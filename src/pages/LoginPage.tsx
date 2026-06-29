@@ -1,6 +1,7 @@
-import React, { useState } from 'react';
+import React, { useState, useEffect } from 'react';
 import { useAuthStore } from '../store/useAuthStore';
-import { ArrowRight, Sparkles, CheckCircle2, AlertCircle } from 'lucide-react';
+import { ArrowRight, Sparkles, CheckCircle2, AlertCircle, Shield, Briefcase } from 'lucide-react';
+import { supabase } from '../lib/supabase';
 
 const LoginPage = () => {
   const [isLogin, setIsLogin] = useState(true);
@@ -8,13 +9,80 @@ const LoginPage = () => {
   const [password, setPassword] = useState('');
   const [confirmPassword, setConfirmPassword] = useState('');
   
-  // Extended fields
   const [name, setName] = useState('');
-  const [designation, setDesignation] = useState('');
   const [companyName, setCompanyName] = useState('');
   const [contactNo, setContactNo] = useState('');
+  const [inviteInfo, setInviteInfo] = useState<{ role: string; designation?: string } | null>(null);
+  const [isInvited, setIsInvited] = useState(false);
+  const [notInvitedError, setNotInvitedError] = useState<string | null>(null);
 
   const { login, signup, isLoading, error } = useAuthStore();
+
+  useEffect(() => {
+    const params = new URLSearchParams(window.location.search);
+    const emailParam = params.get('email');
+    const roleParam = params.get('role');
+    const designationParam = params.get('designation');
+    const companyParam = params.get('company');
+
+    const handleInviteEmail = (targetEmail: string) => {
+      setEmail(targetEmail);
+      setIsInvited(true);
+      setIsLogin(false);
+      if (companyParam) setCompanyName(companyParam);
+      if (roleParam) setInviteInfo({ role: roleParam, designation: designationParam || undefined });
+
+      supabase
+        .from('pending_invites')
+        .select('*, workspace:workspaces(name)')
+        .eq('email', targetEmail.trim())
+        .maybeSingle()
+        .then(({ data }) => {
+          if (data) {
+            setInviteInfo({ role: data.role, designation: data.designation });
+            if (data.workspace?.name) setCompanyName(data.workspace.name);
+          }
+        });
+    };
+
+    if (emailParam) {
+      handleInviteEmail(emailParam);
+    } else {
+      supabase.auth.getSession().then(({ data: { session } }) => {
+        if (session?.user?.email) {
+          handleInviteEmail(session.user.email);
+        }
+      });
+    }
+  }, []);
+
+  // Real-time lookup whenever user types their email on Signup page
+  useEffect(() => {
+    if (!isLogin && email && email.includes('@') && email.includes('.')) {
+      const timer = setTimeout(() => {
+        supabase
+          .from('pending_invites')
+          .select('*, workspace:workspaces(name)')
+          .eq('email', email.trim())
+          .maybeSingle()
+          .then(({ data }) => {
+            if (data) {
+              setIsInvited(true);
+              setNotInvitedError(null);
+              setInviteInfo({ role: data.role, designation: data.designation });
+              if (data.workspace?.name) setCompanyName(data.workspace.name);
+            } else {
+              setIsInvited(false);
+              setInviteInfo(null);
+              setNotInvitedError('You are not invited to join any workspace. Sign up is restricted to invited team members only.');
+            }
+          });
+      }, 300);
+      return () => clearTimeout(timer);
+    } else {
+      setNotInvitedError(null);
+    }
+  }, [email, isLogin]);
 
   const isStrongPassword = (pass: string) => {
     const hasUpperCase = /[A-Z]/.test(pass);
@@ -31,6 +99,10 @@ const LoginPage = () => {
       if (isLogin) {
         await login(email, password);
       } else {
+        if (!isInvited) {
+          useAuthStore.setState({ error: 'You are not invited to join any workspace. Sign up is restricted to invited team members only.' });
+          return;
+        }
         if (!isStrongPassword(password)) {
           useAuthStore.setState({ error: 'Password must be at least 8 characters long and include an uppercase letter, a lowercase letter, a number, and a special character.' });
           return;
@@ -45,7 +117,6 @@ const LoginPage = () => {
         }
         await signup(email, password, {
           name,
-          designation,
           company_name: companyName,
           contact_no: contactNo
         });
@@ -112,6 +183,28 @@ const LoginPage = () => {
             </p>
           </div>
 
+          {inviteInfo && !isLogin && (
+            <div className="mb-6 p-4 bg-emerald-50 border border-emerald-200/60 rounded-xl flex items-center space-x-3 text-emerald-900 shadow-sm">
+              <CheckCircle2 size={20} className="shrink-0 text-emerald-600" />
+              <div className="text-sm">
+                <p className="font-semibold">Workspace Invitation Found!</p>
+                <p className="text-emerald-700 text-xs mt-0.5">
+                  Assigned Role: <span className="font-bold capitalize">{inviteInfo.role}</span> {inviteInfo.designation ? `• Designation: ${inviteInfo.designation}` : ''}
+                </p>
+              </div>
+            </div>
+          )}
+
+          {notInvitedError && !isLogin && (
+            <div className="mb-6 p-4 bg-amber-50 border border-amber-200 rounded-xl flex items-start space-x-3 text-amber-800 shadow-sm">
+              <AlertCircle size={20} className="shrink-0 mt-0.5 text-amber-600" />
+              <div>
+                <p className="font-semibold text-sm">Invitation Required</p>
+                <p className="text-xs text-amber-700 mt-0.5">{notInvitedError}</p>
+              </div>
+            </div>
+          )}
+
           {error && (
             <div className="mb-6 p-4 bg-red-50 border border-red-100 rounded-xl flex items-start space-x-3 text-red-600">
               <AlertCircle size={20} className="shrink-0 mt-0.5" />
@@ -129,10 +222,11 @@ const LoginPage = () => {
                 name="email"
                 type="email"
                 required
-                className="appearance-none block w-full px-4 py-3 border border-gray-200 rounded-xl text-gray-900 placeholder-gray-400 focus:outline-none focus:ring-2 focus:ring-brand focus:border-transparent transition-all sm:text-sm bg-gray-50/50 focus:bg-white"
+                readOnly={isInvited}
+                className={`appearance-none block w-full px-4 py-3 border border-gray-200 rounded-xl text-gray-900 placeholder-gray-400 focus:outline-none focus:ring-2 focus:ring-brand focus:border-transparent transition-all sm:text-sm ${isInvited ? 'bg-gray-100 text-gray-500 cursor-not-allowed select-none border-gray-200 font-medium' : 'bg-gray-50/50 focus:bg-white'}`}
                 placeholder="name@company.com"
                 value={email}
-                onChange={(e) => setEmail(e.target.value)}
+                onChange={(e) => !isInvited && setEmail(e.target.value)}
               />
             </div>
 
@@ -164,22 +258,24 @@ const LoginPage = () => {
                       value={name} onChange={(e) => setName(e.target.value)}
                     />
                   </div>
-                  <div>
-                    <label htmlFor="designation" className="block text-sm font-medium text-gray-700 mb-1.5">Designation</label>
-                    <input
-                      id="designation" type="text"
-                      className="appearance-none block w-full px-4 py-3 border border-gray-200 rounded-xl text-gray-900 placeholder-gray-400 focus:outline-none focus:ring-2 focus:ring-brand focus:border-transparent transition-all sm:text-sm bg-gray-50/50 focus:bg-white"
-                      placeholder="Product Manager"
-                      value={designation} onChange={(e) => setDesignation(e.target.value)}
-                    />
-                  </div>
-                  <div>
+                  <div className="col-span-2 sm:col-span-1">
                     <label htmlFor="company" className="block text-sm font-medium text-gray-700 mb-1.5">Company Name</label>
                     <input
                       id="company" type="text"
-                      className="appearance-none block w-full px-4 py-3 border border-gray-200 rounded-xl text-gray-900 placeholder-gray-400 focus:outline-none focus:ring-2 focus:ring-brand focus:border-transparent transition-all sm:text-sm bg-gray-50/50 focus:bg-white"
+                      readOnly={isInvited}
+                      className={`appearance-none block w-full px-4 py-3 border border-gray-200 rounded-xl text-gray-900 placeholder-gray-400 focus:outline-none focus:ring-2 focus:ring-brand focus:border-transparent transition-all sm:text-sm ${isInvited ? 'bg-gray-100 text-gray-500 cursor-not-allowed select-none border-gray-200 font-medium' : 'bg-gray-50/50 focus:bg-white'}`}
                       placeholder="Acme Corp"
-                      value={companyName} onChange={(e) => setCompanyName(e.target.value)}
+                      value={companyName} onChange={(e) => !isInvited && setCompanyName(e.target.value)}
+                    />
+                  </div>
+
+                  <div className="col-span-2 sm:col-span-1">
+                    <label className="block text-sm font-medium text-gray-700 mb-1.5">Role</label>
+                    <input
+                      type="text"
+                      readOnly={isInvited}
+                      className={`appearance-none block w-full px-4 py-3 border border-gray-200 rounded-xl text-gray-900 placeholder-gray-400 focus:outline-none focus:ring-2 focus:ring-brand focus:border-transparent transition-all sm:text-sm capitalize ${isInvited ? 'bg-gray-100 text-gray-500 cursor-not-allowed select-none font-medium' : 'bg-gray-50/50 focus:bg-white'}`}
+                      value={inviteInfo?.role || 'Member'}
                     />
                   </div>
                   <div className="col-span-2">
@@ -241,8 +337,7 @@ const LoginPage = () => {
                 useAuthStore.setState({ error: null });
                 setConfirmPassword('');
                 setName('');
-                setDesignation('');
-                setCompanyName('');
+                if (!isInvited) setCompanyName('');
                 setContactNo('');
               }}
               className="font-semibold text-brand hover:text-brand/80 transition-colors"

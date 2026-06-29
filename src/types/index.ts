@@ -11,6 +11,9 @@ export interface User {
   name: string;
   avatar_url?: string;
   status: UserStatus;
+  designation?: string;
+  company_name?: string;
+  contact_no?: string;
   preferences?: Record<string, any>;
 }
 
@@ -39,6 +42,7 @@ export interface PendingInvite {
   role: Role;
   invited_by?: string;
   created_at: string;
+  designation?: string;
   workspace?: Workspace; // For joining
 }
 

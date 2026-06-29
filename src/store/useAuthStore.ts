@@ -128,8 +128,9 @@ export const useAuthStore = create<AuthState>((set, get) => ({
         isLoading: false
       });
     } catch (err: any) {
-      const errMsg = err?.message || (typeof err === 'string' ? err : 'An unknown error occurred');
-      set({ error: errMsg === '{}' ? 'Database policy restriction prevented this action.' : errMsg, isLoading: false });
+      console.error("Login raw error:", err);
+      const errMsg = err?.message || String(err) + " | " + JSON.stringify(err, Object.getOwnPropertyNames(err));
+      set({ error: errMsg, isLoading: false });
       throw err;
     }
   },
@@ -146,24 +147,59 @@ export const useAuthStore = create<AuthState>((set, get) => ({
 
       if (error) throw error;
       
-      if (!data.session) {
-        throw new Error("Check your email for the confirmation link.");
+      let activeSession = data.session;
+      if (!activeSession) {
+        const loginAttempt = await supabase.auth.signInWithPassword({ email, password });
+        if (loginAttempt.data?.session) {
+          activeSession = loginAttempt.data.session;
+        }
+      }
+
+      const targetUserId = data.user?.id || activeSession?.user?.id;
+      if (!targetUserId) {
+        set({ isLoading: false });
+        alert("Account created successfully! Please sign in with your email and password.");
+        return;
       }
 
       // Wait a tiny bit for the Postgres Trigger to create the public user & workspace
       await new Promise(resolve => setTimeout(resolve, 1000));
 
+      // Check for pending invites for this email and automatically join workspace
+      const { data: invite } = await supabase
+        .from('pending_invites')
+        .select('*')
+        .eq('email', email.trim())
+        .maybeSingle();
+
+      if (invite) {
+        // 1. Add to workspace_members
+        await supabase.from('workspace_members').insert([{
+          workspace_id: invite.workspace_id,
+          user_id: targetUserId,
+          role: invite.role
+        }]);
+
+        // 2. Update designation if present
+        if (invite.designation) {
+          await supabase.from('users').update({ designation: invite.designation }).eq('id', targetUserId);
+        }
+
+        // 3. Delete pending invite
+        await supabase.from('pending_invites').delete().eq('id', invite.id);
+      }
+
       if (additionalData) {
         await supabase
           .from('users')
           .update(additionalData)
-          .eq('id', data.user!.id);
+          .eq('id', targetUserId);
       }
 
       const { data: publicUser } = await supabase
         .from('users')
         .select('*')
-        .eq('id', data.user!.id)
+        .eq('id', targetUserId)
         .single();
         
       let workspace = null;
@@ -195,8 +231,9 @@ export const useAuthStore = create<AuthState>((set, get) => ({
         isLoading: false
       });
     } catch (err: any) {
-      const errMsg = err?.message || (typeof err === 'string' ? err : 'An unknown error occurred');
-      set({ error: errMsg === '{}' ? 'Database policy restriction prevented this action.' : errMsg, isLoading: false });
+      console.error("Signup raw error:", err);
+      const errMsg = err?.message || String(err) + " | " + JSON.stringify(err, Object.getOwnPropertyNames(err));
+      set({ error: errMsg, isLoading: false });
       throw err;
     }
   },
