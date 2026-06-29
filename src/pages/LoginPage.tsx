@@ -1,0 +1,260 @@
+import React, { useState } from 'react';
+import { useAuthStore } from '../store/useAuthStore';
+import { ArrowRight, Sparkles, CheckCircle2, AlertCircle } from 'lucide-react';
+
+const LoginPage = () => {
+  const [isLogin, setIsLogin] = useState(true);
+  const [email, setEmail] = useState('');
+  const [password, setPassword] = useState('');
+  const [confirmPassword, setConfirmPassword] = useState('');
+  
+  // Extended fields
+  const [name, setName] = useState('');
+  const [designation, setDesignation] = useState('');
+  const [companyName, setCompanyName] = useState('');
+  const [contactNo, setContactNo] = useState('');
+
+  const { login, signup, isLoading, error } = useAuthStore();
+
+  const isStrongPassword = (pass: string) => {
+    const hasUpperCase = /[A-Z]/.test(pass);
+    const hasLowerCase = /[a-z]/.test(pass);
+    const hasNumbers = /\d/.test(pass);
+    const hasSpecialChar = /[!@#$%^&*(),.?":{}|<>]/.test(pass);
+    const isLongEnough = pass.length >= 8;
+    return hasUpperCase && hasLowerCase && hasNumbers && hasSpecialChar && isLongEnough;
+  };
+
+  const handleSubmit = async (e: React.FormEvent) => {
+    e.preventDefault();
+    if (email && password) {
+      if (isLogin) {
+        await login(email, password);
+      } else {
+        if (!isStrongPassword(password)) {
+          useAuthStore.setState({ error: 'Password must be at least 8 characters long and include an uppercase letter, a lowercase letter, a number, and a special character.' });
+          return;
+        }
+        if (password !== confirmPassword) {
+          useAuthStore.setState({ error: 'Passwords do not match.' });
+          return;
+        }
+        if (!name.trim()) {
+          useAuthStore.setState({ error: 'Name is required.' });
+          return;
+        }
+        await signup(email, password, {
+          name,
+          designation,
+          company_name: companyName,
+          contact_no: contactNo
+        });
+      }
+    }
+  };
+
+  return (
+    <div className="min-h-screen flex bg-white font-sans text-gray-900 selection:bg-brand/20">
+      
+      {/* Left side - Dark premium visual */}
+      <div className="hidden lg:flex lg:flex-1 flex-col justify-between bg-[#0A0A0A] text-white p-12 relative overflow-hidden">
+        {/* Background Gradients */}
+        <div className="absolute top-[-10%] left-[-10%] w-[40%] h-[40%] rounded-full bg-brand/20 blur-[120px]"></div>
+        <div className="absolute bottom-[-10%] right-[-10%] w-[40%] h-[40%] rounded-full bg-purple-600/20 blur-[120px]"></div>
+        
+        <div className="z-10 flex items-center space-x-3">
+          <div className="w-10 h-10 rounded-xl bg-gradient-to-br from-[#059669] to-[#10B981] flex items-center justify-center font-bold text-white shadow-lg text-lg">
+            B
+          </div>
+          <span className="text-xl font-bold tracking-tight">BKM Industries</span>
+        </div>
+
+        <div className="z-10 max-w-md">
+          <h1 className="text-4xl md:text-5xl font-bold leading-[1.15] mb-6">
+            The intelligent way to manage your entire workflow.
+          </h1>
+          <div className="space-y-4">
+            {[
+              "Real-time team collaboration and messaging",
+              "Advanced task management and sprint planning",
+              "Dynamic workspaces and integrated calendar",
+            ].map((feature, i) => (
+              <div key={i} className="flex items-start space-x-3 text-gray-300">
+                <CheckCircle2 size={20} className="text-brand shrink-0 mt-0.5" />
+                <span className="text-[15px]">{feature}</span>
+              </div>
+            ))}
+          </div>
+        </div>
+
+        <div className="z-10 flex items-center space-x-4 text-sm text-gray-500">
+          <span>© 2026 BKM Industries</span>
+        </div>
+      </div>
+
+      {/* Right side - Login Form */}
+      <div className="flex-1 flex flex-col justify-center px-8 sm:px-12 md:px-24 lg:px-32 relative">
+        {/* Mobile Header */}
+        <div className="lg:hidden absolute top-8 left-8 flex items-center space-x-3">
+          <div className="w-8 h-8 rounded-lg bg-gradient-to-br from-[#059669] to-[#10B981] flex items-center justify-center font-bold text-white shadow-md">
+            B
+          </div>
+          <span className="text-lg font-bold tracking-tight text-gray-900">BKM Industries</span>
+        </div>
+
+        <div className="w-full max-w-md mx-auto">
+          <div className="mb-10 text-left">
+            <h2 className="text-3xl font-bold text-gray-900 tracking-tight">
+              {isLogin ? 'Welcome back' : 'Create an account'}
+            </h2>
+            <p className="mt-3 text-[15px] text-gray-500">
+              {isLogin ? 'Enter your details to sign in to your workspace.' : 'Sign up to create your first workspace.'}
+            </p>
+          </div>
+
+          {error && (
+            <div className="mb-6 p-4 bg-red-50 border border-red-100 rounded-xl flex items-start space-x-3 text-red-600">
+              <AlertCircle size={20} className="shrink-0 mt-0.5" />
+              <p className="text-sm">{error}</p>
+            </div>
+          )}
+
+          <form className="space-y-5" onSubmit={handleSubmit}>
+            <div>
+              <label htmlFor="email-address" className="block text-sm font-medium text-gray-700 mb-1.5">
+                Email address
+              </label>
+              <input
+                id="email-address"
+                name="email"
+                type="email"
+                required
+                className="appearance-none block w-full px-4 py-3 border border-gray-200 rounded-xl text-gray-900 placeholder-gray-400 focus:outline-none focus:ring-2 focus:ring-brand focus:border-transparent transition-all sm:text-sm bg-gray-50/50 focus:bg-white"
+                placeholder="name@company.com"
+                value={email}
+                onChange={(e) => setEmail(e.target.value)}
+              />
+            </div>
+
+            <div>
+              <label htmlFor="password" className="block text-sm font-medium text-gray-700 mb-1.5">
+                Password
+              </label>
+              <input
+                id="password"
+                name="password"
+                type="password"
+                required
+                className="appearance-none block w-full px-4 py-3 border border-gray-200 rounded-xl text-gray-900 placeholder-gray-400 focus:outline-none focus:ring-2 focus:ring-brand focus:border-transparent transition-all sm:text-sm bg-gray-50/50 focus:bg-white"
+                placeholder="••••••••"
+                value={password}
+                onChange={(e) => setPassword(e.target.value)}
+              />
+            </div>
+
+            {!isLogin && (
+              <>
+                <div className="grid grid-cols-2 gap-4">
+                  <div className="col-span-2">
+                    <label htmlFor="name" className="block text-sm font-medium text-gray-700 mb-1.5">Full Name</label>
+                    <input
+                      id="name" type="text" required={!isLogin}
+                      className="appearance-none block w-full px-4 py-3 border border-gray-200 rounded-xl text-gray-900 placeholder-gray-400 focus:outline-none focus:ring-2 focus:ring-brand focus:border-transparent transition-all sm:text-sm bg-gray-50/50 focus:bg-white"
+                      placeholder="Jane Doe"
+                      value={name} onChange={(e) => setName(e.target.value)}
+                    />
+                  </div>
+                  <div>
+                    <label htmlFor="designation" className="block text-sm font-medium text-gray-700 mb-1.5">Designation</label>
+                    <input
+                      id="designation" type="text"
+                      className="appearance-none block w-full px-4 py-3 border border-gray-200 rounded-xl text-gray-900 placeholder-gray-400 focus:outline-none focus:ring-2 focus:ring-brand focus:border-transparent transition-all sm:text-sm bg-gray-50/50 focus:bg-white"
+                      placeholder="Product Manager"
+                      value={designation} onChange={(e) => setDesignation(e.target.value)}
+                    />
+                  </div>
+                  <div>
+                    <label htmlFor="company" className="block text-sm font-medium text-gray-700 mb-1.5">Company Name</label>
+                    <input
+                      id="company" type="text"
+                      className="appearance-none block w-full px-4 py-3 border border-gray-200 rounded-xl text-gray-900 placeholder-gray-400 focus:outline-none focus:ring-2 focus:ring-brand focus:border-transparent transition-all sm:text-sm bg-gray-50/50 focus:bg-white"
+                      placeholder="Acme Corp"
+                      value={companyName} onChange={(e) => setCompanyName(e.target.value)}
+                    />
+                  </div>
+                  <div className="col-span-2">
+                    <label htmlFor="contact" className="block text-sm font-medium text-gray-700 mb-1.5">Contact Number</label>
+                    <input
+                      id="contact" type="tel"
+                      className="appearance-none block w-full px-4 py-3 border border-gray-200 rounded-xl text-gray-900 placeholder-gray-400 focus:outline-none focus:ring-2 focus:ring-brand focus:border-transparent transition-all sm:text-sm bg-gray-50/50 focus:bg-white"
+                      placeholder="+1 (555) 000-0000"
+                      value={contactNo} onChange={(e) => setContactNo(e.target.value)}
+                    />
+                  </div>
+                </div>
+              </>
+            )}
+
+            {!isLogin && (
+              <div>
+                <label htmlFor="confirm-password" className="block text-sm font-medium text-gray-700 mb-1.5">
+                  Confirm Password
+                </label>
+                <input
+                  id="confirm-password"
+                  name="confirmPassword"
+                  type="password"
+                  required={!isLogin}
+                  className="appearance-none block w-full px-4 py-3 border border-gray-200 rounded-xl text-gray-900 placeholder-gray-400 focus:outline-none focus:ring-2 focus:ring-brand focus:border-transparent transition-all sm:text-sm bg-gray-50/50 focus:bg-white"
+                  placeholder="••••••••"
+                  value={confirmPassword}
+                  onChange={(e) => setConfirmPassword(e.target.value)}
+                />
+              </div>
+            )}
+
+            <div>
+              <button
+                type="submit"
+                disabled={isLoading}
+                className="group relative w-full flex justify-center items-center py-3 px-4 border border-transparent text-[15px] font-semibold rounded-xl text-white bg-gray-900 hover:bg-black focus:outline-none focus:ring-2 focus:ring-offset-2 focus:ring-gray-900 transition-all shadow-md hover:shadow-lg disabled:opacity-70 disabled:cursor-not-allowed"
+              >
+                {isLoading ? (
+                  <div className="w-5 h-5 border-2 border-white border-t-transparent rounded-full animate-spin"></div>
+                ) : (
+                  <>
+                    {isLogin ? 'Sign In' : 'Create Account'}
+                    <ArrowRight size={18} className="ml-2 group-hover:translate-x-1 transition-transform" />
+                  </>
+                )}
+              </button>
+            </div>
+          </form>
+
+          <div className="mt-8 text-center text-sm">
+            <span className="text-gray-500">
+              {isLogin ? "Don't have an account? " : "Already have an account? "}
+            </span>
+            <button
+              onClick={() => {
+                setIsLogin(!isLogin);
+                useAuthStore.setState({ error: null });
+                setConfirmPassword('');
+                setName('');
+                setDesignation('');
+                setCompanyName('');
+                setContactNo('');
+              }}
+              className="font-semibold text-brand hover:text-brand/80 transition-colors"
+              type="button"
+            >
+              {isLogin ? 'Sign up' : 'Sign in'}
+            </button>
+          </div>
+        </div>
+      </div>
+    </div>
+  );
+};
+
+export default LoginPage;

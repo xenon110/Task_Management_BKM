@@ -1,0 +1,180 @@
+Created At: 2026-06-27T05:27:27Z
+Completed At: 2026-06-27T05:27:27Z
+File Path: `file:///c:/Users/yashs/Downloads/T0_Do/src/pages/SpacesPage.tsx`
+Total Lines: 172
+Total Bytes: 9004
+Showing lines 1 to 172
+The following code has been modified to include a line number before every line, in the format: <line_number>: <original_line>. Please note that any changes targeting the original code should remove the line number, colon, and leading space.
+1: import React, { useState } from 'react';
+2: import { 
+3:   Folder, Plus, Search, Filter, Settings2, MoreHorizontal,
+4:   FolderOpen, LayoutGrid, List, CheckCircle2, Users, X
+5: } from 'lucide-react';
+6: import { useNavigate } from 'react-router-dom';
+7: import { useSpaceStore } from '../store/useSpaceStore';
+8: 
+9: const ICON_MAP: Record<string, React.ElementType> = {
+10:   FolderOpen, Folder, LayoutGrid
+11: };
+12: 
+13: const SpacesPage = () => {
+14:   const navigate = useNavigate();
+15:   const [searchQuery, setSearchQuery] = useState('');
+16:   const { spaces, addSpace, removeSpace } = useSpaceStore();
+17:   const [isModalOpen, setIsModalOpen] = useState(false);
+18:   const [newSpaceName, setNewSpaceName] = useState('');
+19:   const [newSpaceDesc, setNewSpaceDesc] = useState('');
+20: 
+21:   const handleCreateSpace = (e: React.FormEvent) => {
+22:     e.preventDefault();
+23:     if (!newSpaceName.trim()) return;
+24:     addSpace({
+25:       name: newSpaceName,
+26:       description: newSpaceDesc || 'A new space in your workspace.',
+27:       projects: 0,
+28:       members: 1,
+29:       color: 'bg-brand',
+30:       icon: 'Folder'
+31:     });
+32:     setNewSpaceName('');
+33:     setNewSpaceDesc('');
+34:     setIsModalOpen(false);
+35:   };
+36: 
+37:   return (
+38:     <div className="flex flex-col h-full bg-[#f8f9fa] text-gray-800 text-sm overflow-hidden w-full">
+39:       {/* Header */}
+40:       <div className="bg-white border-b border-gray-200 shrink-0 z-10 px-8 py-5 flex items-center justify-between shadow-sm">
+41:         <div className="flex items-center space-x-3">
+42:           <div className="w-9 h-9 bg-gray-900 text-white rounded-lg flex items-center justify-center shadow-sm">
+43:             <LayoutGrid size={18} />
+44:           </div>
+45:           <h1 className="font-bold text-gray-900 text-lg">Spaces Overview</h1>
+46:         </div>
+47:         <div className="flex items-center space-x-3">
+48:           <button onClick={() => setIsModalOpen(true)} className="flex items-center space-x-1.5 px-4 py-2 bg-brand text-white font-semibold rounded-md hover:opacity-90 transition-opacity shadow-sm text-xs">
+49:             <Plus size={14} className="mr-1" /> <span>New Space</span>
+50:           </button>
+51:         </div>
+52:       </div>
+53: 
+54:       <div className="flex-1 flex overflow-hidden max-w-[1200px] w-full mx-auto p-8">
+55:         <div className="w-full flex flex-col">
+56:           
+57:           {/* Controls */}
+58:           <div className="flex items-center justify-between mb-6">
+59:             <div className="relative w-72 group">
+60:               <Search size={14} className="absolute left-3 top-1/2 transform -translate-y-1/2 text-gray-400 group-hover:text-gray-600 transition-colors" />
+61:               <input 
+62:                 type="text" 
+63:                 placeholder="Search spaces..." 
+64:                 value={searchQuery}
+65:                 onChange={(e) => setSearchQuery(e.target.value)}
+66:                 className="w-full pl-9 pr-3 py-2 bg-white border border-gray-200 rounded-md text-xs outline-none focus:border-brand focus:ring-1 focus:ring-brand transition-all shadow-sm" 
+67:               />
+68:             </div>
+69:             <div className="flex items-center space-x-2 bg-white border border-gray-200 rounded-md shadow-sm p-1">
+70:               <button className="p-1.5 bg-gray-100 text-gray-800 rounded tooltip" title="Grid View">
+71:                 <LayoutGrid size={16} />
+72:               </button>
+73:               <button className="p-1.5 hover:bg-gray-50 text-gray-500 rounded tooltip" title="List View">
+74:                 <List size={16} />
+75:               </button>
+76:             </div>
+77:           </div>
+78: 
+79:           {/* Grid */}
+80:           <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-6 overflow-y-auto pb-10">
+81:             {spaces.filter(s => s.name.toLowerCase().includes(searchQuery.toLowerCase())).map(space => {
+82:               const Icon = ICON_MAP[space.icon] || Folder;
+83:               return (
+84:               <div key={space.id} onClick={() => navigate('/tasks')} className="bg-white border border-gray-200 rounded-xl p-5 shadow-sm hover:shadow-md transition-all cursor-pointer group">
+85:                 <div className="flex justify-between items-start mb-4">
+86:                   <div className={`w-12 h-12 rounded-xl flex items-center justify-center text-white shadow-sm ${space.color}`}>
+87:                     <Icon size={24} />
+88:                   </div>
+89:                   <div className="relative group/menu">
+90:                     <button className="p-1.5 text-gray-400 hover:text-gray-700 hover:bg-gray-100 rounded opacity-0 group-hover:opacity-100 transition-all">
+91:                       <MoreHorizontal size={16} />
+92:                     </button>
+93:                     <div className="absolute right-0 top-full mt-1 w-32 bg-white border border-gray-200 rounded-lg shadow-lg opacity-0 invisible group-hover/menu:opacity-100 group-hover/menu:visible transition-all z-20">
+94:                        <button onClick={(e) => { e.stopPropagation(); removeSpace(space.id); }} className="w-full text-left px-3 py-2 text-red-600 text-xs hover:bg-red-50 rounded-lg">Delete Space</button>
+95:                     </div>
+96:                   </div>
+97:                 </div>
+98:                 <h3 className="font-bold text-gray-900 text-base mb-1">{space.name}</h3>
+99:                 <p className="text-gray-500 text-[13px] line-clamp-2 h-10 mb-4">{space.description}</p>
+100:                 
+101:                 <div className="flex items-center justify-between pt-4 border-t border-gray-100">
+102:                   <div className="flex items-center text-gray-500 text-xs font-medium">
+103:                     <CheckCircle2 size={14} className="mr-1.5 text-gray-400" /> {space.projects} Projects
+104:                   </div>
+105:                   <div className="flex items-center text-gray-500 text-xs font-medium">
+106:                     <Users size={14} className="mr-1.5 text-gray-400" /> {space.members} Members
+107:                   </div>
+108:                 </div>
+109:               </div>
+110:             )})}
+111:             
+112:             {/* Create New Card */}
+113:             <div onClick={() => setIsModalOpen(true)} className="border-2 border-dashed border-gray-200 rounded-xl p-5 flex flex-col items-center justify-center text-gray-400 hover:text-brand hover:border-brand hover:bg-brand/5 transition-all cursor-pointer min-h-[200px]">
+114:               <div className="w-12 h-12 rounded-full bg-gray-50 flex items-center justify-center mb-3">
+115:                 <Plus size={24} />
+116:               </div>
+117:               <span className="font-semibold text-[15px]">Create new space</span>
+118:             </div>
+119:           </div>
+120: 
+121:         </div>
+122:       </div>
+123: 
+124:       {/* Create Modal */}
+125:       {isModalOpen && (
+126:         <div className="fixed inset-0 z-50 flex items-center justify-center bg-black/40 backdrop-blur-sm px-4">
+127:           <div className="bg-white rounded-xl shadow-2xl w-full max-w-md overflow-hidden animate-in fade-in zoom-in-95 duration-200">
+128:             <div className="px-6 py-4 border-b border-gray-100 flex items-center justify-between">
+129:               <h2 className="text-lg font-bold text-gray-900">Create New Space</h2>
+130:               <button onClick={() => setIsModalOpen(false)} className="p-2 text-gray-400 hover:text-gray-600 rounded-lg hover:bg-gray-100 transition-colors">
+131:                 <X size={20} />
+132:               </button>
+133:             </div>
+134:             <form onSubmit={handleCreateSpace} className="p-6 space-y-4">
+135:               <div>
+136:                 <label className="block text-sm font-semibold text-gray-900 mb-1.5">Space Name</label>
+137:                 <input 
+138:                   type="text" 
+139:                   value={newSpaceName}
+140:                   onChange={e => setNewSpaceName(e.target.value)}
+141:                   placeholder="e.g. Marketing, Engineering"
+142:                   className="w-full px-3 py-2 border border-gray-300 rounded-lg outline-none focus:border-brand focus:ring-1 focus:ring-brand transition-all"
+143:                   autoFocus
+144:                 />
+145:               </div>
+146:               <div>
+147:                 <label className="block text-sm font-semibold text-gray-900 mb-1.5">Description (optional)</label>
+148:                 <textarea 
+149:                   value={newSpaceDesc}
+150:                   onChange={e => setNewSpaceDesc(e.target.value)}
+151:                   placeholder="What is this space for?"
+152:                   className="w-full px-3 py-2 border border-gray-300 rounded-lg outline-none focus:border-brand focus:ring-1 focus:ring-brand transition-all resize-none h-24"
+153:                 />
+154:               </div>
+155:               <div className="pt-4 flex items-center justify-end space-x-3">
+156:                 <button type="button" onClick={() => setIsModalOpen(false)} className="px-4 py-2 text-gray-600 font-semibold hover:bg-gray-100 rounded-lg transition-colors">
+157:                   Cancel
+158:                 </button>
+159:                 <button type="submit" disabled={!newSpaceName.trim()} className="px-4 py-2 bg-brand text-white font-semibold rounded-lg hover:opacity-90 disabled:opacity-50 transition-opacity">
+160:                   Create Space
+161:                 </button>
+162:               </div>
+163:             </form>
+164:           </div>
+165:         </div>
+166:       )}
+167:     </div>
+168:   );
+169: };
+170: 
+171: export default SpacesPage;
+172: 
+The above content shows the entire, complete file contents of the requested file.

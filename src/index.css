@@ -1,0 +1,20 @@
+@import "tailwindcss";
+
+@theme {
+  --color-brand: #aa3bff;
+  --color-brand-dark: #8b21d6;
+}
+
+body {
+  margin: 0;
+  font-family: system-ui, 'Segoe UI', Roboto, sans-serif;
+  background-color: #f3f4f6; /* light mode background */
+  color: #111827; /* light mode text */
+}
+
+@media (prefers-color-scheme: dark) {
+  body {
+    background-color: #111827; /* dark mode background */
+    color: #f9fafb; /* dark mode text */
+  }
+}

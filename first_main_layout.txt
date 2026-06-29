@@ -1,0 +1,108 @@
+Created At: 2026-06-27T04:54:55Z
+Completed At: 2026-06-27T04:54:55Z
+File Path: `file:///c:/Users/yashs/Downloads/T0_Do/src/layouts/MainLayout.tsx`
+Total Lines: 302
+Total Bytes: 17157
+Showing lines 1 to 100
+The following code has been modified to include a line number before every line, in the format: <line_number>: <original_line>. Please note that any changes targeting the original code should remove the line number, colon, and leading space.
+1: import React, { useState } from 'react';
+2: import { Outlet, Link, useLocation } from 'react-router-dom';
+3: import { useAuthStore } from '../store/useAuthStore';
+4: import { useTaskStore } from '../store/useTaskStore';
+5: import { useNotificationStore } from '../store/useNotificationStore';
+6: import { useUiStore } from '../store/useUiStore';
+7: import { useChatStore } from '../store/useChatStore';
+8: import { useSpaceStore } from '../store/useSpaceStore';
+9: import { useWorkspaceStore } from '../store/useWorkspaceStore';
+10: import { useGoalStore } from '../store/useGoalStore';
+11: import { 
+12:   Home, Calendar, Zap, Users, Grid, Settings, 
+13:   Inbox, Reply, MessageSquare, User, MoreHorizontal,
+14:   Plus, ChevronRight, ChevronDown, Hash, Target, Search, Bell, HelpCircle,
+15:   Menu, X, Sparkles, CheckSquare, Check
+16: } from 'lucide-react';
+17: 
+18: const MainLayout = () => {
+19:   const [sections, setSections] = useState({
+20:     tasks: true,
+21:     spaces: true,
+22:     channels: true,
+23:     dms: true
+24:   });
+25: 
+26:   const toggleSection = (section: keyof typeof sections) => {
+27:     setSections(prev => ({ ...prev, [section]: !prev[section] }));
+28:   };
+29:   const { user, logout, activeWorkspace } = useAuthStore();
+30:   const location = useLocation();
+31:   const { openCreateTaskModal } = useUiStore();
+32:   const { notifications } = useNotificationStore();
+33:   const { channels } = useChatStore();
+34:   const { spaces } = useSpaceStore();
+35:   const { tasks, initData, isInitialized: tasksInitialized } = useTaskStore();
+36:   const unreadCount = notifications.filter(n => !n.read).length;
+37:   
+38:   React.useEffect(() => {
+39:     if (!tasksInitialized && initData) initData();
+40:   }, [tasksInitialized, initData]);
+41: 
+42:   React.useEffect(() => {
+43:     if (user?.email) {
+44:       const { initPendingInvites } = useWorkspaceStore.getState();
+45:       initPendingInvites(user.email);
+46:     }
+47:   }, [user?.email]);
+48: 
+49:   React.useEffect(() => {
+50:     const { isInitialized, initSpaces } = useSpaceStore.getState();
+51:     if (!isInitialized && initSpaces) initSpaces();
+52:   }, []);
+53: 
+54:   React.useEffect(() => {
+55:     const { isInitialized, initChat } = useChatStore.getState();
+56:     if (!isInitialized && initChat) initChat();
+57:   }, []);
+58: 
+59:   React.useEffect(() => {
+60:     if (user?.id) {
+61:       const { isInitialized: notifsInit, initNotifications } = useNotificationStore.getState();
+62:       if (!notifsInit && initNotifications) initNotifications(user.id);
+63:     }
+64:   }, [user?.id]);
+65: 
+66:   React.useEffect(() => {
+67:     if (activeWorkspace?.id) {
+68:       const { isInitialized: goalsInit, initGoals } = useGoalStore.getState();
+69:       if (!goalsInit && initGoals) initGoals(activeWorkspace.id);
+70: 
+71:       const { isInitialized: wsInit, initWorkspace } = useWorkspaceStore.getState();
+72:       if (!wsInit && initWorkspace) initWorkspace(activeWorkspace.id);
+73:     }
+74:   }, [activeWorkspace?.id]);
+75: 
+76:   // Calculate overdue tasks
+77:   const today = new Date();
+78:   today.setHours(0, 0, 0, 0);
+79:   const overdueCount = tasks.filter(t => !t.archived && t.assignee_id === user?.id && t.due_date && new Date(t.due_date) < today && t.status !== 'done').length;
+80: 
+81:   return (
+82:     <div className="flex h-screen w-screen overflow-hidden bg-white text-gray-800 font-sans text-sm selection:bg-brand/20">
+83:       {/* App Sidebar (Far Left) */}
+84:       <div className="w-[68px] bg-[#0A0A0A] text-white flex flex-col items-center py-4 border-r border-gray-800 z-20 flex-shrink-0">
+85:         <div className="w-8 h-8 rounded-lg bg-gradient-to-br from-[#FF007A] to-[#aa3bff] mb-6 flex items-center justify-center font-bold text-white shadow-lg cursor-pointer">
+86:           C
+87:         </div>
+88:         
+89:         <div className="flex flex-col space-y-4 w-full">
+90:           <Link to="/" className="w-full"><SidebarIcon icon={<Home size={22} strokeWidth={1.5} />} label="Home" active={location.pathname === '/'} /></Link>
+91:           <Link to="/calendar" className="w-full"><SidebarIcon icon={<Calendar size={22} strokeWidth={1.5} />} label="Planner" active={location.pathname === '/calendar'} /></Link>
+92:           <Link to="/teams" className="w-full"><SidebarIcon icon={<Users size={22} strokeWidth={1.5} />} label="Teams" active={location.pathname === '/teams'} /></Link>
+93:         </div>
+94: 
+95:         <div className="mt-auto flex flex-col space-y-4 w-full mb-2">
+96:           <SidebarIcon icon={<User size={22} strokeWidth={1.5} />} label="Invite" />
+97:           <div className="w-8 h-8 mx-auto rounded-md bg-gradient-to-r from-purple-600 to-brand flex items-center justify-center cursor-pointer hover:opacity-90 transition-opacity mt-2">
+98:             <span className="text-[10px] font-bold">UP</span>
+99:           </div>
+100:         </div>
+The above content does NOT show the entire file contents. If you need to view any lines of the file which were not shown to complete your task, call this tool again to view those lines.

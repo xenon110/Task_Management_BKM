@@ -1,0 +1,74 @@
+Created At: 2026-06-27T05:41:32Z
+Completed At: 2026-06-27T05:41:32Z
+File Path: `file:///c:/Users/yashs/Downloads/T0_Do/src/App.tsx`
+Total Lines: 66
+Total Bytes: 2530
+Showing lines 1 to 66
+The following code has been modified to include a line number before every line, in the format: <line_number>: <original_line>. Please note that any changes targeting the original code should remove the line number, colon, and leading space.
+1: import { BrowserRouter as Router, Routes, Route, Navigate } from 'react-router-dom';
+2: import { useAuthStore } from './store/useAuthStore';
+3: import MainLayout from './layouts/MainLayout';
+4: import LoginPage from './pages/LoginPage';
+5: import DashboardPage from './pages/DashboardPage';
+6: import SettingsPage from './pages/SettingsPage';
+7: import TasksPage from './pages/TasksPage';
+8: import CalendarPage from './pages/CalendarPage';
+9: import GoalsPage from './pages/GoalsPage';
+10: import TodayOverduePage from './pages/TodayOverduePage';
+11: import AssignedToMePage from './pages/AssignedToMePage';
+12: import TeamsPage from './pages/TeamsPage';
+13: import InboxPage from './pages/InboxPage';
+14: import AssignedCommentsPage from './pages/AssignedCommentsPage';
+15: import ProjectListPage from './pages/ProjectListPage';
+16: import ProjectsPage from './pages/ProjectsPage';
+17: import CreateTaskModal from './components/CreateTaskModal';
+18: import TaskDetailPanel from './components/TaskDetailPanel';
+19: 
+20: import { useEffect } from 'react';
+21: 
+22: function App() {
+23:   const { isAuthenticated, isLoading, checkSession } = useAuthStore();
+24: 
+25:   useEffect(() => {
+26:     checkSession();
+27:   }, [checkSession]);
+28: 
+29:   if (isLoading) {
+30:     return <div className="min-h-screen flex items-center justify-center bg-gray-50"><div className="w-8 h-8 border-4 border-brand border-t-transparent rounded-full animate-spin"></div></div>;
+31:   }
+32: 
+33:   return (
+34:     <Router>
+35:       <Routes>
+36:         <Route 
+37:           path="/login" 
+38:           element={!isAuthenticated ? <LoginPage /> : <Navigate to="/" />} 
+39:         />
+40:         
+41:         <Route 
+42:           path="/" 
+43:           element={isAuthenticated ? <MainLayout /> : <Navigate to="/login" />}
+44:         >
+45:           <Route index element={<DashboardPage />} />
+46:           <Route path="tasks" element={<TasksPage />} />
+47:           <Route path="today" element={<TodayOverduePage />} />
+48:           <Route path="assigned" element={<AssignedToMePage />} />
+49:           <Route path="calendar" element={<CalendarPage />} />
+50:           <Route path="goals" element={<GoalsPage />} />
+51:           <Route path="settings" element={<SettingsPage />} />
+52:           <Route path="teams" element={<TeamsPage />} />
+53:           <Route path="inbox" element={<InboxPage />} />
+54:           <Route path="comments" element={<AssignedCommentsPage />} />
+55:           <Route path="projects" element={<ProjectListPage />} />
+56:           <Route path="projects/:id" element={<ProjectsPage />} />
+57:         </Route>
+58:       </Routes>
+59:       <CreateTaskModal />
+60:       <TaskDetailPanel />
+61:     </Router>
+62:   );
+63: }
+64: 
+65: export default App;
+66: 
+The above content shows the entire, complete file contents of the requested file.

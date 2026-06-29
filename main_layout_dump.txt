@@ -1,0 +1,278 @@
+Created At: 2026-06-27T05:41:12Z
+Completed At: 2026-06-27T05:41:12Z
+File Path: `file:///c:/Users/yashs/Downloads/T0_Do/src/layouts/MainLayout.tsx`
+Total Lines: 270
+Total Bytes: 15006
+Showing lines 1 to 270
+The following code has been modified to include a line number before every line, in the format: <line_number>: <original_line>. Please note that any changes targeting the original code should remove the line number, colon, and leading space.
+1: import React, { useState } from 'react';
+2: import { Outlet, Link, useLocation } from 'react-router-dom';
+3: import { useAuthStore } from '../store/useAuthStore';
+4: import { useTaskStore } from '../store/useTaskStore';
+5: import { useNotificationStore } from '../store/useNotificationStore';
+6: import { useUiStore } from '../store/useUiStore';
+7: import { useChatStore } from '../store/useChatStore';
+8: import { useProjectStore } from '../store/useProjectStore';
+9: import { useWorkspaceStore } from '../store/useWorkspaceStore';
+10: import { useGoalStore } from '../store/useGoalStore';
+11: import { 
+12:   Home, Calendar, Zap, Users, Grid, Settings, 
+13:   Inbox, Reply, MessageSquare, User, MoreHorizontal,
+14:   Plus, ChevronRight, ChevronDown, Hash, Target, Search, Bell, HelpCircle,
+15:   Menu, X, Sparkles, CheckSquare, Check, Kanban
+16: } from 'lucide-react';
+17: 
+18: const MainLayout = () => {
+19:   const [sections, setSections] = useState({
+20:     tasks: true,
+21:     projects: true
+22:   });
+23: 
+24:   const toggleSection = (section: keyof typeof sections) => {
+25:     setSections(prev => ({ ...prev, [section]: !prev[section] }));
+26:   };
+27:   const { user, logout, activeWorkspace } = useAuthStore();
+28:   const location = useLocation();
+29:   const { openCreateTaskModal } = useUiStore();
+30:   const { notifications } = useNotificationStore();
+31:   const { channels } = useChatStore();
+32:   const { projects, initProjects } = useProjectStore();
+33:   const { tasks, initData, isInitialized: tasksInitialized } = useTaskStore();
+34:   const unreadCount = notifications.filter(n => !n.read).length;
+35:   
+36:   React.useEffect(() => {
+37:     if (!tasksInitialized && initData) initData();
+38:   }, [tasksInitialized, initData]);
+39: 
+40:   React.useEffect(() => {
+41:     if (user?.email) {
+42:       const { initPendingInvites } = useWorkspaceStore.getState();
+43:       initPendingInvites(user.email);
+44:     }
+45:   }, [user?.email]);
+46: 
+47:   React.useEffect(() => {
+48:     if (!useProjectStore.getState().isInitialized) {
+49:       initProjects();
+50:     }
+51:   }, [initProjects]);
+52: 
+53:   React.useEffect(() => {
+54:     const { isInitialized, initChat } = useChatStore.getState();
+55:     if (!isInitialized && initChat) initChat();
+56:   }, []);
+57: 
+58:   React.useEffect(() => {
+59:     if (user?.id) {
+60:       const { isInitialized: notifsInit, initNotifications } = useNotificationStore.getState();
+61:       if (!notifsInit && initNotifications) initNotifications(user.id);
+62:     }
+63:   }, [user?.id]);
+64: 
+65:   React.useEffect(() => {
+66:     if (activeWorkspace?.id) {
+67:       const { isInitialized: goalsInit, initGoals } = useGoalStore.getState();
+68:       if (!goalsInit && initGoals) initGoals(activeWorkspace.id);
+69: 
+70:       const { isInitialized: wsInit, initWorkspace } = useWorkspaceStore.getState();
+71:       if (!wsInit && initWorkspace) initWorkspace(activeWorkspace.id);
+72:     }
+73:   }, [activeWorkspace?.id]);
+74: 
+75:   // Calculate overdue tasks
+76:   const today = new Date();
+77:   today.setHours(0, 0, 0, 0);
+78:   const overdueCount = tasks.filter(t => !t.archived && t.assignee_id === user?.id && t.due_date && new Date(t.due_date) < today && t.status !== 'done').length;
+79: 
+80:   return (
+81:     <div className="flex h-screen w-screen overflow-hidden bg-white text-gray-800 font-sans text-sm selection:bg-brand/20">
+82:       {/* App Sidebar (Far Left) */}
+83:       <div className="w-[68px] bg-[#0A0A0A] text-white flex flex-col items-center py-4 border-r border-gray-800 z-20 flex-shrink-0">
+84:         <div className="w-8 h-8 rounded-lg bg-gradient-to-br from-[#FF007A] to-[#aa3bff] mb-6 flex items-center justify-center font-bold text-white shadow-lg cursor-pointer">
+85:           C
+86:         </div>
+87:         
+88:         <div className="flex flex-col space-y-4 w-full">
+89:           <Link to="/" className="w-full"><SidebarIcon icon={<Home size={22} strokeWidth={1.5} />} label="Home" active={location.pathname === '/'} /></Link>
+90:           <Link to="/calendar" className="w-full"><SidebarIcon icon={<Calendar size={22} strokeWidth={1.5} />} label="Planner" active={location.pathname === '/calendar'} /></Link>
+91:           <Link to="/teams" className="w-full"><SidebarIcon icon={<Users size={22} strokeWidth={1.5} />} label="Teams" active={location.pathname === '/teams'} /></Link>
+92:           <Link to="/projects" className="w-full"><SidebarIcon icon={<Kanban size={22} strokeWidth={1.5} />} label="Projects" active={location.pathname === '/projects'} /></Link>
+93:         </div>
+94: 
+95:         <div className="mt-auto flex flex-col space-y-4 w-full mb-2">
+96:           <SidebarIcon icon={<User size={22} strokeWidth={1.5} />} label="Invite" />
+97:           <div className="w-8 h-8 mx-auto rounded-md bg-gradient-to-r from-purple-600 to-brand flex items-center justify-center cursor-pointer hover:opacity-90 transition-opacity mt-2">
+98:             <span className="text-[10px] font-bold">UP</span>
+99:           </div>
+100:         </div>
+101:       </div>
+102: 
+103:       <div className="flex-1 flex flex-col min-w-0 bg-white">
+104:         {/* Top Header */}
+105:         <header className="h-[48px] border-b border-gray-200 flex items-center justify-between px-4 bg-white flex-shrink-0 z-10">
+106:           <div className="flex items-center w-64 flex-shrink-0">
+107:             <button className="flex items-center space-x-2 hover:bg-gray-100 px-2 py-1.5 rounded-md transition-colors w-full text-left">
+108:               <div className="w-5 h-5 bg-teal-600 text-white rounded text-xs flex items-center justify-center font-bold flex-shrink-0">M</div>
+109:               <span className="font-semibold text-sm truncate">{activeWorkspace?.name || "MAYANK RAJ's Workspace"}</span>
+110:               <ChevronRight size={14} className="text-gray-400 flex-shrink-0" />
+111:             </button>
+112:           </div>
+113: 
+114:           <div className="flex-1 flex justify-center max-w-xl px-4">
+115:             <div className="flex items-center w-full space-x-2">
+116:               <div className="relative flex-1 group">
+117:                 <Search size={14} className="absolute left-3 top-1/2 transform -translate-y-1/2 text-gray-400 group-hover:text-gray-600 transition-colors" />
+118:                 <input 
+119:                   type="text" 
+120:                   placeholder="Search Ctrl K" 
+121:                   className="w-full pl-9 pr-4 py-1.5 bg-gray-50 border border-gray-200 hover:border-gray-300 focus:bg-white focus:border-brand focus:ring-1 focus:ring-brand focus:shadow-sm rounded-md text-sm transition-all outline-none"
+122:                 />
+123:               </div>
+124:             </div>
+125:           </div>
+126: 
+127:           <div className="flex items-center justify-end space-x-1.5 w-64 flex-shrink-0">
+128:             <button onClick={logout} className="w-7 h-7 bg-gray-900 hover:bg-black text-white rounded-full flex items-center justify-center text-xs font-bold ml-2 border border-gray-200 transition-colors">
+129:               MR
+130:             </button>
+131:           </div>
+132:         </header>
+133: 
+134:         <div className="flex-1 flex overflow-hidden">
+135:           {/* Secondary Sidebar */}
+136:           <div className="w-[260px] bg-gray-50/50 border-r border-gray-200 flex flex-col flex-shrink-0">
+137:             <div className="px-4 py-3 flex items-center justify-between group cursor-pointer hover:bg-gray-100/50 transition-colors">
+138:               <h2 className="font-semibold text-[15px] text-gray-900">Home</h2>
+139:               <button onClick={openCreateTaskModal} className="bg-gray-900 text-white px-2 py-1 rounded text-xs font-medium flex items-center hover:bg-black transition-colors shadow-sm">
+140:                 <Plus size={14} className="mr-1" /> Create
+141:               </button>
+142:             </div>
+143: 
+144:             <div className="flex-1 overflow-y-auto px-2 pb-4 custom-scrollbar">
+145:               <div className="space-y-[1px]">
+146:                 <Link to="/inbox" className="block"><SidebarItem icon={<Inbox size={16} />} label="Inbox" active={location.pathname === '/inbox'} /></Link>
+147:                 <Link to="/comments" className="block"><SidebarItem icon={<MessageSquare size={16} />} label="Assigned Comments" active={location.pathname === '/comments'} /></Link>
+148:               </div>
+149: 
+150:               <div className="mt-5">
+151:                 <div onClick={() => toggleSection('tasks')} className="px-2 py-1 flex items-center text-gray-600 font-medium cursor-pointer hover:bg-gray-100/50 rounded-md transition-colors">
+152:                   <ChevronDown size={14} className={`mr-1 text-gray-400 transition-transform ${!sections.tasks ? '-rotate-90' : ''}`} />
+153:                   <User size={16} className="mr-2" />
+154:                   My Tasks
+155:                 </div>
+156:                 {sections.tasks && (
+157:                   <div className="pl-[22px] border-l border-gray-200 ml-[11px] mt-1 space-y-[1px]">
+158:                     <Link to="/assigned" className="block"><SidebarItem icon={<div className="w-[18px] h-[18px] bg-gray-800 rounded-full text-white flex items-center justify-center text-[9px] font-bold">{user?.name?.charAt(0)}</div>} label="Assigned to me" active={location.pathname === '/assigned'} /></Link>
+159:                     <Link to="/today" className="block"><SidebarItem icon={<Calendar size={16} />} label="Today & Overdue" badge={overdueCount > 0 ? overdueCount.toString() : undefined} active={location.pathname === '/today'} /></Link>
+160:                     <Link to="/tasks" className="block"><SidebarItem icon={<User size={16} />} label="Personal List" active={location.pathname === '/tasks'} /></Link>
+161:                   </div>
+162:                 )}
+163:               </div>
+164: 
+165:               <div className="mt-5 px-2">
+166:                 <div className="flex justify-between items-center group cursor-pointer hover:bg-gray-100/50 rounded-md py-1 -mx-2 px-2 transition-colors">
+167:                   <div onClick={() => toggleSection('projects')} className="flex items-center flex-1">
+168:                     <ChevronDown size={14} className={`mr-1 text-gray-400 transition-transform ${!sections.projects ? '-rotate-90' : ''}`} />
+169:                     <h3 className="text-xs font-semibold text-gray-500">Projects</h3>
+170:                   </div>
+171:                   <Link to="/projects" className="p-0.5 rounded-sm hover:bg-gray-200"><Plus size={14} className="text-gray-400 opacity-0 group-hover:opacity-100 transition-opacity" /></Link>
+172:                 </div>
+173:                 {sections.projects && (
+174:                   <div className="mt-1 space-y-[1px]">
+175:                     {projects.map(project => (
+176:                       <Link key={project.id} to={`/projects/${project.id}`} className="block">
+177:                         <SidebarItem icon={<div className="w-3 h-3 rounded bg-brand" />} label={project.name} active={false} />
+178:                       </Link>
+179:                     ))}
+180:                   </div>
+181:                 )}
+182:               </div>
+183:             </div>
+184: 
+185:             <div className="p-3 border-t border-gray-200 bg-gray-50/80">
+186:               <Link to="/settings" className="w-full flex items-center justify-center space-x-2 py-1.5 hover:bg-gray-200 text-gray-600 rounded-md text-xs font-medium transition-colors">
+187:                 <Settings size={14} />
+188:                 <span>Customize Sidebar</span>
+189:               </Link>
+190:             </div>
+191:           </div>
+192: 
+193:           {/* Main Content Area */}
+194:           <main className="flex-1 bg-white overflow-hidden flex flex-col relative">
+195:             <Outlet />
+196:           </main>
+197:         </div>
+198:       </div>
+199: 
+200:       {/* Pending Invites Modal */}
+201:       {(() => {
+202:         const { pendingInvites, acceptInvite, declineInvite } = useWorkspaceStore();
+203:         if (pendingInvites.length === 0 || !user?.id) return null;
+204: 
+205:         return (
+206:           <div className="fixed inset-0 bg-gray-900/40 backdrop-blur-sm z-[100] flex items-center justify-center p-4">
+207:             <div className="bg-white rounded-xl shadow-2xl w-full max-w-md overflow-hidden transform transition-all border border-gray-100">
+208:               <div className="p-6">
+209:                 <div className="w-12 h-12 bg-brand/10 rounded-full flex items-center justify-center mb-4 mx-auto text-brand">
+210:                   <Mail size={24} />
+211:                 </div>
+212:                 <h3 className="text-xl font-bold text-center text-gray-900 mb-2">You've been invited!</h3>
+213:                 <p className="text-center text-sm text-gray-500 mb-6">
+214:                   You have pending workspace invitations. Accept them to start collaborating.
+215:                 </p>
+216: 
+217:                 <div className="space-y-3 max-h-[300px] overflow-y-auto">
+218:                   {pendingInvites.map(invite => (
+219:                     <div key={invite.id} className="bg-gray-50 border border-gray-200 rounded-lg p-4">
+220:                       <div className="font-semibold text-gray-900 mb-1">{invite.workspace?.name || 'A Workspace'}</div>
+221:                       <div className="text-xs text-gray-500 mb-3">Role: <span className="capitalize font-medium text-gray-700">{invite.role}</span></div>
+222:                       
+223:                       <div className="flex space-x-2">
+224:                         <button 
+225:                           onClick={() => acceptInvite(invite.id, user.id)}
+226:                           className="flex-1 bg-brand text-white py-2 rounded-md font-medium text-sm hover:bg-brand/90 transition-colors flex items-center justify-center"
+227:                         >
+228:                           <Check size={16} className="mr-1.5" /> Accept
+229:                         </button>
+230:                         <button 
+231:                           onClick={() => declineInvite(invite.id)}
+232:                           className="px-4 py-2 bg-white border border-gray-200 text-gray-600 rounded-md font-medium text-sm hover:bg-gray-50 transition-colors"
+233:                         >
+234:                           Decline
+235:                         </button>
+236:                       </div>
+237:                     </div>
+238:                   ))}
+239:                 </div>
+240:               </div>
+241:             </div>
+242:           </div>
+243:         );
+244:       })()}
+245:     </div>
+246:   );
+247: };
+248: 
+249: const SidebarIcon = ({ icon, label, active = false }: { icon: React.ReactNode, label: string, active?: boolean }) => (
+250:   <div className={`flex flex-col items-center justify-center w-full py-2 cursor-pointer group relative transition-colors ${active ? 'text-white' : 'text-gray-400 hover:text-gray-100'}`}>
+251:     {active && <div className="absolute left-0 top-1/2 -translate-y-1/2 w-1 h-8 bg-white rounded-r-md shadow-[0_0_8px_rgba(255,255,255,0.5)]"></div>}
+252:     <div className={`p-1.5 rounded-lg transition-colors ${active ? 'bg-white/10' : 'group-hover:bg-white/5'}`}>
+253:       {icon}
+254:     </div>
+255:     <span className="text-[9px] mt-1 font-medium tracking-wide">{label}</span>
+256:   </div>
+257: );
+258: 
+259: const SidebarItem = ({ icon, label, badge, active = false, textClass = "text-gray-700" }: { icon: React.ReactNode, label: string, badge?: string, active?: boolean, textClass?: string }) => (
+260:   <div className={`flex items-center justify-between px-2 py-1.5 rounded-md cursor-pointer transition-colors ${active ? 'bg-gray-200/80 font-medium' : 'hover:bg-gray-100/80'}`}>
+261:     <div className={`flex items-center space-x-2.5 ${textClass}`}>
+262:       <div className="text-gray-500 flex-shrink-0 flex items-center justify-center w-4">{icon}</div>
+263:       <span className="text-[13px] truncate">{label}</span>
+264:     </div>
+265:     {badge && <span className="text-xs text-gray-500">{badge}</span>}
+266:   </div>
+267: );
+268: 
+269: export default MainLayout;
+270: 
+The above content shows the entire, complete file contents of the requested file.
