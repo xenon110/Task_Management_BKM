@@ -136,6 +136,19 @@ export const useTaskStore = create<TaskState>((set, get) => ({
         localStorage.setItem('app_tasks', JSON.stringify(allUpdated));
         return { tasks: allUpdated };
       });
+
+      // --- DYNAMIC NOTIFICATION: Trigger if assignee was set during creation ---
+      if (data.assignee_id && data.assignee_id !== userId) {
+        useNotificationStore.getState().addNotification({
+          user_id: data.assignee_id,
+          type: 'task_assigned',
+          title: 'New Task Assignment',
+          message: `You were assigned a new task: ${data.title}`,
+          read: false,
+          starred: false,
+          link: data.id
+        });
+      }
     } catch (error: any) {
       console.error('Error adding task (RLS/Offline):', error);
       alert(`DATABASE ERROR: ${error?.message || JSON.stringify(error)}`);
