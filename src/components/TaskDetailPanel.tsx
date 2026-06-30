@@ -226,7 +226,7 @@ const TaskDetailPanel = () => {
                        className={`w-full text-left px-3 py-2 text-sm hover:bg-gray-50 flex items-center space-x-2 transition-colors ${task.status === s.value ? 'bg-gray-50 font-semibold' : ''}`}
                      >
                        <div className={`w-2 h-2 rounded-full ${s.bgColor.split(' ')[0].replace('100', '500')}`}></div>
-                       <span>{s.label}</span>
+                       <span className="text-black">{s.label}</span>
                      </button>
                    ))}
                  </div>
@@ -370,7 +370,7 @@ const TaskDetailPanel = () => {
                       className={`w-full text-left px-3 py-2 text-sm hover:bg-gray-50 flex items-center space-x-2 transition-colors capitalize ${task.priority === p.value ? 'bg-gray-50 font-semibold' : ''}`}
                     >
                       <Flag size={12} className={p.color} />
-                      <span>{p.label}</span>
+                      <span className="text-black">{p.label}</span>
                     </button>
                   ))}
                 </div>
@@ -397,7 +397,7 @@ const TaskDetailPanel = () => {
                       className={`w-full text-left px-3 py-2 text-sm hover:bg-gray-50 flex items-center space-x-2 transition-colors ${task.list_id === p.id ? 'bg-gray-50 font-semibold' : ''}`}
                     >
                       <div className="w-2 h-2 rounded-full bg-brand shrink-0"></div>
-                      <span className="truncate">{p.name}</span>
+                      <span className="truncate text-black">{p.name}</span>
                     </button>
                   ))}
                 </div>
