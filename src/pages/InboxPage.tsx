@@ -6,6 +6,7 @@ import {
 
 import { useNotificationStore } from '../store/useNotificationStore';
 import { useTaskStore } from '../store/useTaskStore';
+import { useAuthStore } from '../store/useAuthStore';
 
 const InboxPage = () => {
   const [activeTab, setActiveTab] = useState('important');
@@ -13,6 +14,7 @@ const InboxPage = () => {
 
   const { notifications, markAsRead, clearAll, snooze, toggleStar, deleteNotification } = useNotificationStore();
   const { tasks } = useTaskStore();
+  const { user } = useAuthStore();
 
   const getNotificationMeta = (type: string) => {
     switch (type) {
@@ -51,7 +53,7 @@ const InboxPage = () => {
           <h1 className="font-bold text-gray-900 text-lg">Inbox</h1>
         </div>
         <div className="flex items-center space-x-3">
-          <button onClick={clearAll} className="flex items-center space-x-1.5 px-3 py-1.5 border border-gray-200 text-gray-600 font-semibold rounded-md hover:bg-gray-50 transition-colors shadow-sm text-xs">
+          <button onClick={() => clearAll(user?.id || '00000000-0000-0000-0000-000000000001')} className="flex items-center space-x-1.5 px-3 py-1.5 border border-gray-200 text-gray-600 font-semibold rounded-md hover:bg-gray-50 transition-colors shadow-sm text-xs">
             <Check size={14} /> <span>Clear all</span>
           </button>
           <button className="p-1.5 border border-gray-200 text-gray-500 rounded-md hover:bg-gray-50 transition-colors shadow-sm">
