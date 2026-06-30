@@ -8,6 +8,7 @@ export interface Notification {
   title: string;
   message: string;
   read: boolean;
+  starred?: boolean;
   link?: string;
   created_at: string;
 }
@@ -20,6 +21,8 @@ interface NotificationState {
   markAsRead: (id: string) => Promise<void>;
   clearAll: (userId: string) => Promise<void>;
   snooze: (id: string) => Promise<void>;
+  deleteNotification: (id: string) => Promise<void>;
+  toggleStar: (id: string) => Promise<void>;
 }
 
 export const useNotificationStore = create<NotificationState>((set, get) => ({
@@ -119,6 +122,55 @@ export const useNotificationStore = create<NotificationState>((set, get) => ({
   snooze: async (id) => {
     // For now snooze just marks as read locally
     get().markAsRead(id);
+  },
+  
+  deleteNotification: async (id) => {
+    const state = get();
+    // Optimistic update
+    set((state) => ({
+      notifications: state.notifications.filter(n => n.id !== id)
+    }));
+
+    try {
+      const { error } = await supabase
+        .from('notifications')
+        .delete()
+        .eq('id', id);
+
+      if (error) throw error;
+    } catch (error) {
+      console.error('Error deleting notification:', error);
+      // Revert on error
+      set({ notifications: state.notifications });
+    }
+  },
+
+  toggleStar: async (id) => {
+    const state = get();
+    const notification = state.notifications.find(n => n.id === id);
+    if (!notification) return;
+
+    const newStarredStatus = !notification.starred;
+
+    // Optimistic update
+    set((state) => ({
+      notifications: state.notifications.map(n => 
+        n.id === id ? { ...n, starred: newStarredStatus } : n
+      )
+    }));
+
+    try {
+      const { error } = await supabase
+        .from('notifications')
+        .update({ starred: newStarredStatus })
+        .eq('id', id);
+
+      if (error) throw error;
+    } catch (error) {
+      console.error('Error toggling notification star:', error);
+      // Revert on error
+      set({ notifications: state.notifications });
+    }
   }
 }));
 

@@ -1,6 +1,6 @@
 import React, { useState } from 'react';
-import { 
-  Users, UserPlus, Search, Filter, MoreHorizontal, Shield, 
+import {
+  Users, UserPlus, Search, Filter, MoreHorizontal, Shield,
   Activity, BarChart2, Layers, Mail, Settings, ChevronDown, CheckCircle2,
   Clock
 } from 'lucide-react';
@@ -50,12 +50,12 @@ const TeamsPage = () => {
   // Calculate workloads
   const memberWorkloads = globalUsers.map(user => {
     // Count active tasks for this member
-    const activeTasksCount = tasks.filter(t => 
-      !t.archived && 
-      t.assignee_id === user.id && 
+    const activeTasksCount = tasks.filter(t =>
+      !t.archived &&
+      t.assignee_id === user.id &&
       !['done', 'Completed', 'Work Done'].includes(t.status)
     ).length;
-    
+
     let statusText = 'Available';
     let statusColor = 'text-green-600';
     let barColor = 'bg-green-500';
@@ -91,8 +91,8 @@ const TeamsPage = () => {
     { id: 'roles', label: 'Roles & Permissions', icon: Shield },
   ];
 
-  const filteredUsers = globalUsers.filter(u => 
-    (u.name || '').toLowerCase().includes(searchQuery.toLowerCase()) || 
+  const filteredUsers = globalUsers.filter(u =>
+    (u.name || '').toLowerCase().includes(searchQuery.toLowerCase()) ||
     (u.email || '').toLowerCase().includes(searchQuery.toLowerCase())
   );
 
@@ -161,11 +161,10 @@ const TeamsPage = () => {
             <button
               key={tab.id}
               onClick={() => setActiveTab(tab.id)}
-              className={`flex items-center space-x-2 pb-3 font-semibold text-[13px] border-b-2 transition-colors ${
-                activeTab === tab.id 
-                  ? 'border-brand text-brand' 
+              className={`flex items-center space-x-2 pb-3 font-semibold text-[13px] border-b-2 transition-colors ${activeTab === tab.id
+                  ? 'border-brand text-brand'
                   : 'border-transparent text-gray-500 hover:text-gray-800'
-              }`}
+                }`}
             >
               <tab.icon size={15} />
               <span>{tab.label}</span>
@@ -177,19 +176,19 @@ const TeamsPage = () => {
       {/* Main Content Area */}
       <div className="flex-1 overflow-y-auto p-8">
         <div className="max-w-[1200px] mx-auto bg-white rounded-xl shadow-sm border border-gray-200 overflow-hidden min-h-[500px]">
-          
+
           {/* TAB: DIRECTORY */}
           {activeTab === 'directory' && (
             <div className="flex flex-col h-full">
               <div className="flex items-center justify-between p-4 border-b border-gray-100 bg-[#fbfbfb]">
                 <div className="relative w-64 group">
                   <Search size={14} className="absolute left-3 top-1/2 transform -translate-y-1/2 text-gray-400 group-hover:text-gray-600 transition-colors" />
-                  <input 
-                    type="text" 
-                    placeholder="Search members..." 
+                  <input
+                    type="text"
+                    placeholder="Search members..."
                     value={searchQuery}
                     onChange={(e) => setSearchQuery(e.target.value)}
-                    className="w-full pl-9 pr-3 py-1.5 bg-white border border-gray-200 rounded-md text-xs outline-none focus:border-brand focus:ring-1 focus:ring-brand transition-all shadow-sm" 
+                    className="w-full pl-9 pr-3 py-1.5 bg-white border border-gray-200 rounded-md text-xs outline-none focus:border-brand focus:ring-1 focus:ring-brand transition-all shadow-sm"
                   />
                 </div>
                 <div className="flex items-center space-x-2">
@@ -255,80 +254,79 @@ const TeamsPage = () => {
                   </thead>
                   <tbody className="divide-y divide-gray-50">
                     {filteredUsers.map(user => {
-                      const initials = (user.name || user.email || 'U').split(' ').map((n: string) => n[0]).join('').toUpperCase().substring(0,2);
+                      const initials = (user.name || user.email || 'U').split(' ').map((n: string) => n[0]).join('').toUpperCase().substring(0, 2);
                       const color = user.role === 'owner' ? 'bg-gray-900' : user.role === 'admin' ? 'bg-blue-600' : 'bg-green-600';
                       return (
-                      <tr key={user.id} className="hover:bg-gray-50/50 transition-colors group">
-                        <td className="px-6 py-3.5">
-                          <div className="flex items-center space-x-3">
-                            <div className={`w-8 h-8 rounded-full flex items-center justify-center text-[10px] font-bold shadow-sm ${color} text-white`}>
-                              {initials}
-                            </div>
-                            <div>
-                              <div className="font-semibold text-gray-900 text-[13px]">{user.name || 'Unknown'}</div>
-                              <div className="text-gray-400 text-[11px] font-medium flex items-center mt-0.5">
-                                <Mail size={10} className="mr-1" /> {user.email}
+                        <tr key={user.id} className="hover:bg-gray-50/50 transition-colors group">
+                          <td className="px-6 py-3.5">
+                            <div className="flex items-center space-x-3">
+                              <div className={`w-8 h-8 rounded-full flex items-center justify-center text-[10px] font-bold shadow-sm ${color} text-white`}>
+                                {initials}
+                              </div>
+                              <div>
+                                <div className="font-semibold text-gray-900 text-[13px]">{user.name || 'Unknown'}</div>
+                                <div className="text-gray-400 text-[11px] font-medium flex items-center mt-0.5">
+                                  <Mail size={10} className="mr-1" /> {user.email}
+                                </div>
                               </div>
                             </div>
-                          </div>
-                        </td>
-                        <td className="px-6 py-3.5">
-                          <div className="flex items-center space-x-1.5">
-                            <div className={`w-2 h-2 rounded-full ${
-                              user.status === 'active' ? 'bg-green-500' : 'bg-orange-500'
-                            }`}></div>
-                            <span className="text-[12px] font-medium capitalize text-gray-600">
-                              {user.status || 'active'}
-                            </span>
-                          </div>
-                        </td>
-                        <td className="px-6 py-3.5">
-                          <div className={`inline-flex items-center px-2 py-0.5 rounded text-[11px] font-bold capitalize ${
-                            user.role === 'owner' ? 'bg-purple-100 text-purple-700' :
-                            user.role === 'admin' ? 'bg-blue-100 text-blue-700' :
-                            user.role === 'guest' ? 'bg-gray-100 text-gray-600' :
-                            'bg-green-100 text-green-700'
-                          }`}>
-                            {user.role || 'member'}
-                          </div>
-                        </td>
-                        <td className="px-6 py-3.5">
-                          <span className="text-[12px] font-medium text-gray-600">{user.role === 'guest' ? 'External' : 'Internal'}</span>
-                        </td>
-                        <td className="px-6 py-3.5 text-right relative role-dropdown-container">
-                          {getAvailableRolesForTarget(user.id).length > 0 ? (
-                            <>
-                              <button 
-                                onClick={() => setOpenDropdownId(openDropdownId === user.id ? null : user.id)}
-                                className="p-1.5 text-gray-400 hover:text-gray-700 hover:bg-gray-100 rounded transition-all"
-                              >
-                                <MoreHorizontal size={16} />
-                              </button>
-                              {openDropdownId === user.id && (
-                                <div className="absolute right-6 top-full mt-1 w-36 bg-white border border-gray-200 rounded-lg shadow-lg z-20 overflow-hidden text-left animate-in fade-in slide-in-from-top-2 duration-200">
-                                  {getAvailableRolesForTarget(user.id).map(r => (
-                                    <button 
-                                      key={r} 
-                                      onClick={() => {
-                                        updateGlobalUserRole(user.id, r);
-                                        setOpenDropdownId(null);
-                                      }} 
-                                      className="w-full text-left px-3 py-2 hover:bg-gray-50 text-xs capitalize text-gray-700"
-                                    >
-                                      Make {r}
-                                    </button>
-                                  ))}
-                                </div>
-                              )}
-                            </>
-                          ) : (
-                            user.id === currentUser?.id ? (
-                              <span className="text-[10px] text-gray-400">Cannot edit own role</span>
-                            ) : null
-                          )}
-                        </td>
-                      </tr>
-                    )})}
+                          </td>
+                          <td className="px-6 py-3.5">
+                            <div className="flex items-center space-x-1.5">
+                              <div className={`w-2 h-2 rounded-full ${user.status === 'active' ? 'bg-green-500' : 'bg-orange-500'
+                                }`}></div>
+                              <span className="text-[12px] font-medium capitalize text-gray-600">
+                                {user.status || 'active'}
+                              </span>
+                            </div>
+                          </td>
+                          <td className="px-6 py-3.5">
+                            <div className={`inline-flex items-center px-2 py-0.5 rounded text-[11px] font-bold capitalize ${user.role === 'owner' ? 'bg-purple-100 text-purple-700' :
+                                user.role === 'admin' ? 'bg-blue-100 text-blue-700' :
+                                  user.role === 'guest' ? 'bg-gray-100 text-gray-600' :
+                                    'bg-green-100 text-green-700'
+                              }`}>
+                              {user.role || 'member'}
+                            </div>
+                          </td>
+                          <td className="px-6 py-3.5">
+                            <span className="text-[12px] font-medium text-gray-600">{user.role === 'guest' ? 'External' : 'Internal'}</span>
+                          </td>
+                          <td className="px-6 py-3.5 text-right relative role-dropdown-container">
+                            {getAvailableRolesForTarget(user.id).length > 0 ? (
+                              <>
+                                <button
+                                  onClick={() => setOpenDropdownId(openDropdownId === user.id ? null : user.id)}
+                                  className="p-1.5 text-gray-400 hover:text-gray-700 hover:bg-gray-100 rounded transition-all"
+                                >
+                                  <MoreHorizontal size={16} />
+                                </button>
+                                {openDropdownId === user.id && (
+                                  <div className="absolute right-6 top-full mt-1 w-36 bg-white border border-gray-200 rounded-lg shadow-lg z-20 overflow-hidden text-left animate-in fade-in slide-in-from-top-2 duration-200">
+                                    {getAvailableRolesForTarget(user.id).map(r => (
+                                      <button
+                                        key={r}
+                                        onClick={() => {
+                                          updateGlobalUserRole(user.id, r);
+                                          setOpenDropdownId(null);
+                                        }}
+                                        className="w-full text-left px-3 py-2 hover:bg-gray-50 text-xs capitalize text-gray-700"
+                                      >
+                                        Make {r}
+                                      </button>
+                                    ))}
+                                  </div>
+                                )}
+                              </>
+                            ) : (
+                              user.id === currentUser?.id ? (
+                                <span className="text-[10px] text-gray-400">Cannot edit own role</span>
+                              ) : null
+                            )}
+                          </td>
+                        </tr>
+                      )
+                    })}
                   </tbody>
                 </table>
               </div>
@@ -343,13 +341,13 @@ const TeamsPage = () => {
               </div>
               <h3 className="text-lg font-bold text-gray-900 mb-2">Team Workload Dashboard</h3>
               <p className="text-gray-500 max-w-md text-sm mb-6">Track capacity, prevent burnout, and rebalance tasks across your team effortlessly.</p>
-              
+
               <div className="w-full max-w-2xl bg-gray-50 rounded-lg p-6 border border-gray-100 text-left">
                 <div className="mb-4 flex items-center justify-between text-xs font-semibold text-gray-500 uppercase tracking-wide">
                   <span>Team Member</span>
                   <span>Capacity (5 Tasks)</span>
                 </div>
-                
+
                 <div className="space-y-4">
                   {memberWorkloads.length > 0 ? (
                     memberWorkloads.map((workload, idx) => (
@@ -367,7 +365,7 @@ const TeamsPage = () => {
                     <div className="text-center text-gray-400 text-xs py-4">No team members found</div>
                   )}
                 </div>
-                
+
                 <p className="mt-6 text-[11px] text-gray-400 text-center flex items-center justify-center">
                   <svg className="w-3.5 h-3.5 mr-1" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path strokeLinecap="round" strokeLinejoin="round" strokeWidth="2" d="M13 16h-1v-4h-1m1-4h.01M21 12a9 9 0 11-18 0 9 9 0 0118 0z"></path></svg>
                   How this works: Workload capacity is measured by the total number of active tasks assigned to a member, with a standard maximum capacity of 5 tasks.
@@ -379,53 +377,53 @@ const TeamsPage = () => {
           {/* TAB: ROLES */}
           {activeTab === 'roles' && (
             <div className="p-8">
-               <h3 className="text-base font-bold text-gray-900 mb-6 flex items-center">
-                 <Shield size={18} className="mr-2 text-brand" /> Access & Permissions Matrix
-               </h3>
-               
-               <div className="border border-gray-200 rounded-lg overflow-hidden">
-                 <table className="w-full text-left text-[13px]">
-                   <thead>
-                     <tr className="bg-gray-50 border-b border-gray-200 text-xs text-gray-500">
-                       <th className="px-4 py-3 font-semibold">Permission Level</th>
-                       <th className="px-4 py-3 font-semibold text-center">Owner</th>
-                       <th className="px-4 py-3 font-semibold text-center">Admin</th>
-                       <th className="px-4 py-3 font-semibold text-center">Member</th>
-                       <th className="px-4 py-3 font-semibold text-center">Guest</th>
-                     </tr>
-                   </thead>
-                   <tbody className="divide-y divide-gray-100">
-                     <tr className="hover:bg-gray-50">
-                       <td className="px-4 py-3 font-medium text-gray-800">Manage Billing & Subscriptions</td>
-                       <td className="px-4 py-3 text-center"><CheckCircle2 size={16} className="text-green-500 mx-auto" /></td>
-                       <td className="px-4 py-3 text-center text-gray-300">-</td>
-                       <td className="px-4 py-3 text-center text-gray-300">-</td>
-                       <td className="px-4 py-3 text-center text-gray-300">-</td>
-                     </tr>
-                     <tr className="hover:bg-gray-50">
-                       <td className="px-4 py-3 font-medium text-gray-800">Invite & Remove Users</td>
-                       <td className="px-4 py-3 text-center"><CheckCircle2 size={16} className="text-green-500 mx-auto" /></td>
-                       <td className="px-4 py-3 text-center"><CheckCircle2 size={16} className="text-green-500 mx-auto" /></td>
-                       <td className="px-4 py-3 text-center text-gray-300">-</td>
-                       <td className="px-4 py-3 text-center text-gray-300">-</td>
-                     </tr>
-                     <tr className="hover:bg-gray-50">
-                       <td className="px-4 py-3 font-medium text-gray-800">Create & Edit Tasks</td>
-                       <td className="px-4 py-3 text-center"><CheckCircle2 size={16} className="text-green-500 mx-auto" /></td>
-                       <td className="px-4 py-3 text-center"><CheckCircle2 size={16} className="text-green-500 mx-auto" /></td>
-                       <td className="px-4 py-3 text-center"><CheckCircle2 size={16} className="text-green-500 mx-auto" /></td>
-                       <td className="px-4 py-3 text-center text-gray-300">-</td>
-                     </tr>
-                     <tr className="hover:bg-gray-50">
-                       <td className="px-4 py-3 font-medium text-gray-800">Comment on Tasks</td>
-                       <td className="px-4 py-3 text-center"><CheckCircle2 size={16} className="text-green-500 mx-auto" /></td>
-                       <td className="px-4 py-3 text-center"><CheckCircle2 size={16} className="text-green-500 mx-auto" /></td>
-                       <td className="px-4 py-3 text-center"><CheckCircle2 size={16} className="text-green-500 mx-auto" /></td>
-                       <td className="px-4 py-3 text-center"><CheckCircle2 size={16} className="text-green-500 mx-auto" /></td>
-                     </tr>
-                   </tbody>
-                 </table>
-               </div>
+              <h3 className="text-base font-bold text-gray-900 mb-6 flex items-center">
+                <Shield size={18} className="mr-2 text-brand" /> Access & Permissions Matrix
+              </h3>
+
+              <div className="border border-gray-200 rounded-lg overflow-hidden">
+                <table className="w-full text-left text-[13px]">
+                  <thead>
+                    <tr className="bg-gray-50 border-b border-gray-200 text-xs text-gray-500">
+                      <th className="px-4 py-3 font-semibold">Permission Level</th>
+                      <th className="px-4 py-3 font-semibold text-center">Owner</th>
+                      <th className="px-4 py-3 font-semibold text-center">Admin</th>
+                      <th className="px-4 py-3 font-semibold text-center">Member</th>
+                      <th className="px-4 py-3 font-semibold text-center">Guest</th>
+                    </tr>
+                  </thead>
+                  <tbody className="divide-y divide-gray-100">
+                    <tr className="hover:bg-gray-50">
+                      <td className="px-4 py-3 font-medium text-gray-800">Manage Billing & Subscriptions</td>
+                      <td className="px-4 py-3 text-center"><CheckCircle2 size={16} className="text-green-500 mx-auto" /></td>
+                      <td className="px-4 py-3 text-center text-gray-300">-</td>
+                      <td className="px-4 py-3 text-center text-gray-300">-</td>
+                      <td className="px-4 py-3 text-center text-gray-300">-</td>
+                    </tr>
+                    <tr className="hover:bg-gray-50">
+                      <td className="px-4 py-3 font-medium text-gray-800">Invite & Remove Users</td>
+                      <td className="px-4 py-3 text-center"><CheckCircle2 size={16} className="text-green-500 mx-auto" /></td>
+                      <td className="px-4 py-3 text-center"><CheckCircle2 size={16} className="text-green-500 mx-auto" /></td>
+                      <td className="px-4 py-3 text-center text-gray-300">-</td>
+                      <td className="px-4 py-3 text-center text-gray-300">-</td>
+                    </tr>
+                    <tr className="hover:bg-gray-50">
+                      <td className="px-4 py-3 font-medium text-gray-800">Create & Edit Tasks</td>
+                      <td className="px-4 py-3 text-center"><CheckCircle2 size={16} className="text-green-500 mx-auto" /></td>
+                      <td className="px-4 py-3 text-center"><CheckCircle2 size={16} className="text-green-500 mx-auto" /></td>
+                      <td className="px-4 py-3 text-center"><CheckCircle2 size={16} className="text-green-500 mx-auto" /></td>
+                      <td className="px-4 py-3 text-center text-gray-300">-</td>
+                    </tr>
+                    <tr className="hover:bg-gray-50">
+                      <td className="px-4 py-3 font-medium text-gray-800">Comment on Tasks</td>
+                      <td className="px-4 py-3 text-center"><CheckCircle2 size={16} className="text-green-500 mx-auto" /></td>
+                      <td className="px-4 py-3 text-center"><CheckCircle2 size={16} className="text-green-500 mx-auto" /></td>
+                      <td className="px-4 py-3 text-center"><CheckCircle2 size={16} className="text-green-500 mx-auto" /></td>
+                      <td className="px-4 py-3 text-center"><CheckCircle2 size={16} className="text-green-500 mx-auto" /></td>
+                    </tr>
+                  </tbody>
+                </table>
+              </div>
             </div>
           )}
 

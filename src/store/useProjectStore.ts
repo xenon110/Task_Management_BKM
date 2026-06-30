@@ -56,9 +56,9 @@ export const useProjectStore = create<ProjectState>((set, get) => ({
         // Filter local projects by membership too
         const filtered = currentUserId
           ? initialProjects.filter((p: any) => {
-              const members = p.members || [];
-              return members.length === 0 || members.includes(currentUserId);
-            })
+            const members = p.members || [];
+            return members.length === 0 || members.includes(currentUserId);
+          })
           : [];
         set({ projects: filtered, isInitialized: true });
         return;
@@ -73,8 +73,8 @@ export const useProjectStore = create<ProjectState>((set, get) => ({
       // Filter: user can only see spaces where they are a member OR spaces with no members (legacy)
       const filtered = currentUserId
         ? mapped.filter((p: any) => {
-            return p.members.length === 0 || p.members.includes(currentUserId);
-          })
+          return p.members.length === 0 || p.members.includes(currentUserId);
+        })
         : [];
 
       set({ projects: filtered, isInitialized: true });
@@ -88,7 +88,7 @@ export const useProjectStore = create<ProjectState>((set, get) => ({
 
   addProject: async (project) => {
     const currentUserId = useAuthStore.getState().user?.id;
-    
+
     // Build members list: include the creator + any selected members
     const projectMembers = Array.isArray((project as any).members) ? [...(project as any).members] : [];
     if (currentUserId && !projectMembers.includes(currentUserId)) {
@@ -102,7 +102,7 @@ export const useProjectStore = create<ProjectState>((set, get) => ({
     };
 
     const tempId = `temp-project-${Date.now()}`;
-    
+
     // Optimistic update
     set((state) => {
       const updated = [...state.projects, { ...newProject, id: tempId } as Project];
@@ -118,7 +118,7 @@ export const useProjectStore = create<ProjectState>((set, get) => ({
         color: serializeMembersToColor(projectMembers),
         members: projectMembers.length,
       };
-      
+
       const { data, error } = await supabase
         .from('spaces')
         .insert([dbProject])
@@ -145,7 +145,7 @@ export const useProjectStore = create<ProjectState>((set, get) => ({
 
   removeProject: async (id) => {
     const state = get();
-    
+
     // Optimistic update
     set((state) => {
       const updated = state.projects.filter(p => p.id !== id);

@@ -144,6 +144,7 @@ export interface Notification {
   title: string;
   message: string;
   read: boolean;
+  starred: boolean;
   link?: string;
   created_at: string;
 }

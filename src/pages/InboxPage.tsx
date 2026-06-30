@@ -1,7 +1,7 @@
 import React, { useState } from 'react';
 import { 
   Inbox as InboxIcon, CheckCircle2, MessageSquare, Settings, 
-  Check, Archive, Star, Clock, MoreHorizontal, Circle, Bell
+  Check, Archive, Star, Clock, MoreHorizontal, Circle, Bell, Trash2
 } from 'lucide-react';
 
 import { useNotificationStore } from '../store/useNotificationStore';
@@ -11,7 +11,7 @@ const InboxPage = () => {
   const [activeTab, setActiveTab] = useState('important');
   const [selectedNotificationId, setSelectedNotificationId] = useState<string | null>(null);
 
-  const { notifications, markAsRead, clearAll, snooze } = useNotificationStore();
+  const { notifications, markAsRead, clearAll, snooze, toggleStar, deleteNotification } = useNotificationStore();
   const { tasks } = useTaskStore();
 
   const getNotificationMeta = (type: string) => {
@@ -33,6 +33,8 @@ const InboxPage = () => {
 
   const activeNotifications = activeTab === 'cleared' 
     ? notifications.filter(n => n.read)
+    : activeTab === 'important' || activeTab === 'starred'
+    ? notifications.filter(n => !n.read || n.starred)
     : notifications.filter(n => !n.read);
     
   const unreadCount = notifications.filter(n => !n.read).length;
@@ -101,46 +103,52 @@ const InboxPage = () => {
                   <div 
                     key={notification.id} 
                     onClick={() => setSelectedNotificationId(notification.id)}
-                    className={`flex items-start p-5 hover:bg-gray-50 transition-colors group cursor-pointer ${!notification.read ? 'bg-[#fcf9ff]/50' : ''} ${isSelected ? 'border-l-2 border-brand bg-gray-50/50' : 'border-l-2 border-transparent'}`}
+                    className={`flex items-start p-4 hover:bg-gray-50 transition-colors group cursor-pointer border-b border-gray-100 last:border-0 ${!notification.read ? 'bg-white' : 'bg-[#fafafa]/50 opacity-80'} ${isSelected ? 'border-l-[3px] border-l-brand' : 'border-l-[3px] border-l-transparent'}`}
                   >
-                    <div className="mr-4 mt-1 relative">
-                      <div className="w-10 h-10 rounded-full bg-gray-100 flex items-center justify-center border border-gray-200 shadow-sm overflow-hidden">
+                    <div className="mr-4 mt-1 flex items-center space-x-3">
+                      <button 
+                        onClick={(e) => { e.stopPropagation(); toggleStar(notification.id); }}
+                        className={`p-1 rounded-md transition-colors ${notification.starred ? 'text-yellow-400' : 'text-gray-300 hover:text-gray-400 opacity-0 group-hover:opacity-100'}`}
+                      >
+                        <Star size={16} fill={notification.starred ? "currentColor" : "none"} />
+                      </button>
+                      <div className="w-8 h-8 rounded-full bg-gray-100 flex items-center justify-center border border-gray-200 overflow-hidden relative">
                          <img src={`https://ui-avatars.com/api/?name=${notification.title.split(' ')[0]}&background=random`} alt="Avatar" className="w-full h-full object-cover" />
-                      </div>
-                      <div className={`absolute -bottom-1 -right-1 w-5 h-5 rounded-full bg-white border border-gray-100 shadow-sm flex items-center justify-center ${meta.color}`}>
-                        <IconComponent size={10} strokeWidth={2.5} />
                       </div>
                     </div>
                     
-                    <div className="flex-1 min-w-0">
-                      <div className="flex justify-between items-start mb-1">
-                        <p className="text-[13px] text-gray-800">
-                          <span className="font-semibold">{notification.title}</span> <span className="font-bold text-gray-900">{notification.message}</span>
+                    <div className="flex-1 min-w-0 pr-4 flex items-center h-full pt-1">
+                      <div className="flex-1 flex flex-col md:flex-row md:items-center justify-between min-w-0 gap-1 md:gap-4">
+                        <p className={`text-[13px] truncate ${!notification.read ? 'text-gray-900 font-bold' : 'text-gray-600 font-medium'}`}>
+                          {notification.title}
                         </p>
-                        <span className="text-[11px] font-medium text-gray-400 whitespace-nowrap ml-4">{getRelativeTime(notification.created_at)}</span>
+                        <p className={`text-[13px] truncate flex-1 ${!notification.read ? 'text-gray-800 font-semibold' : 'text-gray-500'}`}>
+                          {notification.message}
+                        </p>
+                        <span className={`text-[11px] whitespace-nowrap ml-2 ${!notification.read ? 'font-bold text-gray-700' : 'font-medium text-gray-400'}`}>
+                          {getRelativeTime(notification.created_at)}
+                        </span>
                       </div>
                     </div>
 
-                    <div className="ml-4 flex items-center space-x-1 opacity-0 group-hover:opacity-100 transition-opacity">
+                    <div className="flex items-center space-x-1 opacity-0 group-hover:opacity-100 transition-opacity">
                       {!notification.read && (
                         <button 
                           onClick={(e) => { e.stopPropagation(); markAsRead(notification.id); }} 
-                          className="p-1.5 text-gray-400 hover:text-green-600 hover:bg-green-50 rounded-md transition-colors tooltip" title="Clear"
+                          className="p-1.5 text-gray-400 hover:text-green-600 hover:bg-green-50 rounded-md transition-colors tooltip" title="Mark as Read"
                         >
                           <Check size={16} />
                         </button>
                       )}
-                      {!notification.read && (
-                        <button 
-                          onClick={(e) => { e.stopPropagation(); snooze(notification.id); }} 
-                          className="p-1.5 text-gray-400 hover:text-brand hover:bg-brand/10 rounded-md transition-colors tooltip" title="Snooze"
-                        >
-                          <Clock size={16} />
-                        </button>
-                      )}
+                      <button 
+                        onClick={(e) => { e.stopPropagation(); deleteNotification(notification.id); }} 
+                        className="p-1.5 text-gray-400 hover:text-red-600 hover:bg-red-50 rounded-md transition-colors tooltip" title="Delete"
+                      >
+                        <Trash2 size={16} />
+                      </button>
                     </div>
                     {!notification.read && (
-                      <div className="w-2 h-2 rounded-full bg-brand mt-2 ml-3 group-hover:opacity-0 transition-opacity"></div>
+                      <div className="w-2 h-2 rounded-full bg-brand mt-2.5 ml-2 group-hover:opacity-0 transition-opacity shrink-0"></div>
                     )}
                   </div>
                 )})}

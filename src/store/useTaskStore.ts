@@ -69,10 +69,10 @@ export const useTaskStore = create<TaskState>((set, get) => ({
       console.error('Error initializing task data:', error);
       const localTasks = localStorage.getItem('app_tasks');
       const localComments = localStorage.getItem('app_comments');
-      set({ 
-        tasks: localTasks ? JSON.parse(localTasks) : [], 
-        comments: localComments ? JSON.parse(localComments) : [], 
-        isInitialized: true 
+      set({
+        tasks: localTasks ? JSON.parse(localTasks) : [],
+        comments: localComments ? JSON.parse(localComments) : [],
+        isInitialized: true
       });
     }
   },
@@ -122,7 +122,7 @@ export const useTaskStore = create<TaskState>((set, get) => ({
             .from('tasks')
             .insert(subtasksToInsert)
             .select();
-            
+
           if (subRes.data) {
             subtasksData = subRes.data;
           }
@@ -145,11 +145,11 @@ export const useTaskStore = create<TaskState>((set, get) => ({
     const state = get();
     const taskIndex = state.tasks.findIndex(t => t.id === id);
     if (taskIndex === -1) return;
-    
+
     const task = state.tasks[taskIndex];
     const updatedTasks = [...state.tasks];
     updatedTasks[taskIndex] = { ...task, ...updates };
-    
+
     // Optimistic update
     set({ tasks: updatedTasks });
     localStorage.setItem('app_tasks', JSON.stringify(updatedTasks));
@@ -168,7 +168,7 @@ export const useTaskStore = create<TaskState>((set, get) => ({
 
   deleteTask: async (id) => {
     const state = get();
-    
+
     // Optimistic delete - remove immediately from UI
     set((state) => {
       const updated = state.tasks.filter(t => t.id !== id);
@@ -192,7 +192,7 @@ export const useTaskStore = create<TaskState>((set, get) => ({
 
   moveTask: async (id, newStatus, newOrder) => {
     const state = get();
-    
+
     // Optimistic move
     set((state) => {
       const updated = state.tasks.map(t => t.id === id ? { ...t, status: newStatus, order: newOrder } : t);
@@ -222,7 +222,7 @@ export const useTaskStore = create<TaskState>((set, get) => ({
     };
 
     const tempId = `temp-c-${Date.now()}`;
-    
+
     // Optimistic update
     set((state) => {
       const updated = [...state.comments, { ...newComment, id: tempId, created_at: new Date().toISOString() }];
@@ -244,6 +244,20 @@ export const useTaskStore = create<TaskState>((set, get) => ({
         localStorage.setItem('app_comments', JSON.stringify(updated));
         return { comments: updated };
       });
+
+      // Send Notification to Assignee
+      const task = get().tasks.find(t => t.id === taskId);
+      if (task && task.assignee_id && task.assignee_id !== userId) {
+        useNotificationStore.getState().addNotification({
+          user_id: task.assignee_id,
+          type: 'task_comment',
+          title: 'New Comment',
+          message: `New comment on your task: ${task.title}`,
+          read: false,
+          starred: false,
+          link: task.id
+        });
+      }
     } catch (error) {
       console.error('Error adding comment:', error);
     }
@@ -278,7 +292,23 @@ export const useTaskStore = create<TaskState>((set, get) => ({
   },
 
   assignUserToTask: async (taskId, userId) => {
+    const task = get().tasks.find(t => t.id === taskId);
     await get().updateTask(taskId, { assignee_id: userId });
+
+    if (task && userId) {
+      const currentUserId = useAuthStore.getState().user?.id;
+      if (currentUserId !== userId) {
+        useNotificationStore.getState().addNotification({
+          user_id: userId,
+          type: 'task_assigned',
+          title: 'New Assignment',
+          message: `You were assigned to: ${task.title}`,
+          read: false,
+          starred: false,
+          link: task.id
+        });
+      }
+    }
   },
 }));
 

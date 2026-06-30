@@ -26,7 +26,7 @@ const TodayOverduePage = () => {
 
   // Filter tasks by active tab
   let filteredTasks = tasks.filter(t => !t.archived);
-  
+
   if (activeTab === 'todo') {
     filteredTasks = filteredTasks.filter(t => t.assignee_id === user?.id && t.status !== 'done' && t.status !== 'Completed' && t.status !== 'Work Done' && t.status !== 'In Progress' && t.status !== 'Under Review');
   } else if (activeTab === 'in-progress') {
@@ -40,7 +40,7 @@ const TodayOverduePage = () => {
   // Date math
   const today = new Date();
   today.setHours(0, 0, 0, 0);
-  
+
   const tomorrow = new Date(today);
   tomorrow.setDate(tomorrow.getDate() + 1);
 
@@ -63,15 +63,15 @@ const TodayOverduePage = () => {
     return (
       <div className="border-l-[2px] border-gray-200 ml-3 divide-y divide-gray-100 my-2">
         {taskList.map(task => (
-          <div 
-            key={task.id} 
+          <div
+            key={task.id}
             onClick={() => openTaskDetailPanel(task.id)}
             className="flex items-center py-2.5 pr-4 text-[13px] text-gray-700 hover:bg-gray-50/80 transition-colors group cursor-pointer"
           >
             <div className="w-[50%] flex items-center pl-3">
-              <CheckCircle2 
-                size={14} 
-                className={`mr-3 transition-colors flex-shrink-0 cursor-pointer ${task.status === 'Completed' || task.status === 'done' ? 'text-green-500' : 'text-gray-300 group-hover:text-green-500'}`} 
+              <CheckCircle2
+                size={14}
+                className={`mr-3 transition-colors flex-shrink-0 cursor-pointer ${task.status === 'Completed' || task.status === 'done' ? 'text-green-500' : 'text-gray-300 group-hover:text-green-500'}`}
                 onClick={(e) => {
                   e.stopPropagation();
                   const newStatus = (task.status === 'Completed' || task.status === 'done') ? 'To Do' : 'Completed';
@@ -96,7 +96,7 @@ const TodayOverduePage = () => {
                 <span className={`px-2 py-1 bg-white border border-gray-200 rounded text-[11px] font-bold text-gray-600 shadow-sm cursor-pointer hover:bg-gray-50 capitalize inline-block w-24 text-center truncate ${task.status === 'Completed' || task.status === 'done' ? 'text-green-600 bg-green-50' : task.status === 'In Progress' ? 'text-amber-600 bg-amber-50' : ''}`}>
                   {task.status}
                 </span>
-                <select 
+                <select
                   className="absolute inset-0 w-full h-full opacity-0 cursor-pointer"
                   value={task.status}
                   onChange={(e) => updateTask(task.id, { status: e.target.value })}
@@ -122,7 +122,7 @@ const TodayOverduePage = () => {
         <span className="text-gray-300">/</span>
         <span className="font-bold text-gray-800">Today & Overdue</span>
       </div>
-      
+
       {/* Main Card */}
       <div className="bg-white rounded-xl border border-gray-200 shadow-sm flex flex-col w-full max-w-5xl overflow-hidden">
         <div className="px-6 pt-5 border-b border-gray-100 shrink-0">
@@ -132,27 +132,27 @@ const TodayOverduePage = () => {
               <Settings size={15} />
             </button>
           </div>
-          
+
           <div className="flex items-center space-x-6 text-[13px] font-medium">
-            <button 
+            <button
               onClick={() => setActiveTab('todo')}
               className={`pb-3 border-b-2 transition-colors ${activeTab === 'todo' ? 'border-gray-900 text-gray-900' : 'border-transparent text-gray-400 hover:text-gray-600'}`}
             >To Do</button>
-            <button 
+            <button
               onClick={() => setActiveTab('in-progress')}
               className={`pb-3 border-b-2 transition-colors ${activeTab === 'in-progress' ? 'border-gray-900 text-gray-900' : 'border-transparent text-gray-400 hover:text-gray-600'}`}
             >In Progress</button>
-            <button 
+            <button
               onClick={() => setActiveTab('done')}
               className={`pb-3 border-b-2 transition-colors ${activeTab === 'done' ? 'border-gray-900 text-gray-900' : 'border-transparent text-gray-400 hover:text-gray-600'}`}
             >Done</button>
-            <button 
+            <button
               onClick={() => setActiveTab('delegated')}
               className={`pb-3 border-b-2 transition-colors ${activeTab === 'delegated' ? 'border-gray-900 text-gray-900' : 'border-transparent text-gray-400 hover:text-gray-600'}`}
             >Delegated</button>
           </div>
         </div>
-        
+
         <div className="p-6 space-y-6 overflow-y-auto flex-1 h-[calc(100vh-250px)]">
           {/* Today Section */}
           <div>
