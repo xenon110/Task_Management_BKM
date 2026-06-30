@@ -133,7 +133,7 @@ const CreateTaskModal = () => {
               
               {/* Due Date */}
               <div className="relative">
-                <button type="button" className="flex items-center space-x-2 text-gray-400 hover:text-gray-600 text-[13px] font-medium transition-colors relative">
+                <label className="flex items-center space-x-2 text-gray-400 hover:text-gray-600 text-[13px] font-medium transition-colors cursor-pointer relative">
                   <Calendar size={16} className="text-gray-300" />
                   <span>{dueDate ? new Date(dueDate).toLocaleDateString() : 'Due Date'}</span>
                   <input 
@@ -142,7 +142,7 @@ const CreateTaskModal = () => {
                     value={dueDate}
                     onChange={(e) => setDueDate(e.target.value)}
                   />
-                </button>
+                </label>
               </div>
 
               {/* Priority */}
