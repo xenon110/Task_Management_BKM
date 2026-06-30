@@ -35,7 +35,7 @@ export const useAuthStore = create<AuthState>((set, get) => ({
       if (error) throw error;
       
       if (session?.user) {
-        // Fetch public user
+        // Fetch public user by auth ID first
         let { data: publicUser } = await supabase
           .from('users')
           .select('*')
@@ -43,16 +43,44 @@ export const useAuthStore = create<AuthState>((set, get) => ({
           .maybeSingle();
           
         if (!publicUser) {
-          publicUser = {
-            id: session.user.id,
-            email: session.user.email || '',
-            name: session.user.user_metadata?.name || session.user.email?.split('@')[0] || 'Unknown',
-            role: 'member',
-            status: 'active',
-            avatar_url: `https://ui-avatars.com/api/?name=${encodeURIComponent(session.user.user_metadata?.name || session.user.email?.split('@')[0] || 'U')}&background=random`
-          };
-          // Self-heal the database
-          supabase.from('users').upsert([publicUser], { onConflict: 'id' }).then();
+          // Auth ID not found — check if there's an existing user row with the same EMAIL but a different ID
+          const { data: emailUser } = await supabase
+            .from('users')
+            .select('*')
+            .eq('email', session.user.email || '')
+            .maybeSingle();
+
+          if (emailUser && emailUser.id !== session.user.id) {
+            // ID MISMATCH DETECTED — auto-fix by migrating the old ID to the real auth ID
+            const oldId = emailUser.id;
+            const newId = session.user.id;
+            console.log(`[Auth] Fixing ID mismatch for ${emailUser.email}: ${oldId} → ${newId}`);
+
+            // Update workspace_members first (foreign key dependency)
+            await supabase.from('workspace_members').update({ user_id: newId }).eq('user_id', oldId);
+            // Update tasks assigned to the old ID
+            await supabase.from('tasks').update({ assignee_id: newId }).eq('assignee_id', oldId);
+            // Update tasks created by the old ID
+            await supabase.from('tasks').update({ created_by: newId }).eq('created_by', oldId);
+            // Finally update the users table row itself
+            await supabase.from('users').update({ id: newId }).eq('id', oldId);
+
+            publicUser = { ...emailUser, id: newId };
+          } else if (!emailUser) {
+            // Completely new user — create a fresh row
+            publicUser = {
+              id: session.user.id,
+              email: session.user.email || '',
+              name: session.user.user_metadata?.name || session.user.email?.split('@')[0] || 'Unknown',
+              role: 'member',
+              status: 'active',
+              avatar_url: `https://ui-avatars.com/api/?name=${encodeURIComponent(session.user.user_metadata?.name || session.user.email?.split('@')[0] || 'U')}&background=random`
+            };
+            supabase.from('users').upsert([publicUser], { onConflict: 'id' }).then();
+          } else {
+            // emailUser exists and IDs already match (shouldn't reach here, but just in case)
+            publicUser = emailUser;
+          }
         }
         // Fetch workspace (try owner first, then member)
         let workspace = null;
@@ -112,16 +140,38 @@ export const useAuthStore = create<AuthState>((set, get) => ({
         .maybeSingle();
         
       if (!publicUser) {
-        publicUser = {
-          id: data.user.id,
-          email: data.user.email || '',
-          name: data.user.user_metadata?.name || data.user.email?.split('@')[0] || 'Unknown',
-          role: 'member',
-          status: 'active',
-          avatar_url: `https://ui-avatars.com/api/?name=${encodeURIComponent(data.user.user_metadata?.name || data.user.email?.split('@')[0] || 'U')}&background=random`
-        };
-        // Self-heal the database
-        supabase.from('users').upsert([publicUser], { onConflict: 'id' }).then();
+        // Check by email for ID mismatch
+        const { data: emailUser } = await supabase
+          .from('users')
+          .select('*')
+          .eq('email', data.user.email || '')
+          .maybeSingle();
+
+        if (emailUser && emailUser.id !== data.user.id) {
+          // ID MISMATCH — auto-fix
+          const oldId = emailUser.id;
+          const newId = data.user.id;
+          console.log(`[Auth] Fixing ID mismatch for ${emailUser.email}: ${oldId} → ${newId}`);
+
+          await supabase.from('workspace_members').update({ user_id: newId }).eq('user_id', oldId);
+          await supabase.from('tasks').update({ assignee_id: newId }).eq('assignee_id', oldId);
+          await supabase.from('tasks').update({ created_by: newId }).eq('created_by', oldId);
+          await supabase.from('users').update({ id: newId }).eq('id', oldId);
+
+          publicUser = { ...emailUser, id: newId };
+        } else if (!emailUser) {
+          publicUser = {
+            id: data.user.id,
+            email: data.user.email || '',
+            name: data.user.user_metadata?.name || data.user.email?.split('@')[0] || 'Unknown',
+            role: 'member',
+            status: 'active',
+            avatar_url: `https://ui-avatars.com/api/?name=${encodeURIComponent(data.user.user_metadata?.name || data.user.email?.split('@')[0] || 'U')}&background=random`
+          };
+          supabase.from('users').upsert([publicUser], { onConflict: 'id' }).then();
+        } else {
+          publicUser = emailUser;
+        }
       }
       let workspace = null;
       if (publicUser) {
