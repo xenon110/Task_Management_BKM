@@ -1,4 +1,4 @@
-import React, { useState } from 'react';
+import React, { useState, useRef } from 'react';
 import { useUiStore } from '../store/useUiStore';
 import { useTaskStore } from '../store/useTaskStore';
 import { useWorkspaceStore } from '../store/useWorkspaceStore';
@@ -24,6 +24,7 @@ const CreateTaskModal = () => {
   const [assigneeId, setAssigneeId] = useState<string>(currentUserId);
   const [subtasks, setSubtasks] = useState<string[]>([]);
   const [isMaximized, setIsMaximized] = useState(false);
+  const dateInputRef = useRef<HTMLInputElement>(null);
 
 
   
@@ -133,16 +134,21 @@ const CreateTaskModal = () => {
               
               {/* Due Date */}
               <div className="relative">
-                <label className="flex items-center space-x-2 text-gray-400 hover:text-gray-600 text-[13px] font-medium transition-colors cursor-pointer relative">
+                <button 
+                  type="button"
+                  onClick={() => dateInputRef.current?.showPicker()} 
+                  className="flex items-center space-x-2 text-gray-400 hover:text-gray-600 text-[13px] font-medium transition-colors cursor-pointer relative"
+                >
                   <Calendar size={16} className="text-gray-300" />
                   <span>{dueDate ? new Date(dueDate).toLocaleDateString() : 'Due Date'}</span>
                   <input 
+                    ref={dateInputRef}
                     type="date"
-                    className="absolute inset-0 w-full h-full opacity-0 cursor-pointer"
+                    className="absolute bottom-0 left-0 w-0 h-0 opacity-0 pointer-events-none"
                     value={dueDate}
                     onChange={(e) => setDueDate(e.target.value)}
                   />
-                </label>
+                </button>
               </div>
 
               {/* Priority */}
