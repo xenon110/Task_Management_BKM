@@ -136,8 +136,9 @@ export const useTaskStore = create<TaskState>((set, get) => ({
         localStorage.setItem('app_tasks', JSON.stringify(allUpdated));
         return { tasks: allUpdated };
       });
-    } catch (error) {
+    } catch (error: any) {
       console.error('Error adding task (RLS/Offline):', error);
+      alert(`DATABASE ERROR: ${error?.message || JSON.stringify(error)}`);
     }
   },
 
