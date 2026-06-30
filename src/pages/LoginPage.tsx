@@ -59,28 +59,50 @@ const LoginPage = () => {
   // Real-time lookup whenever user types their email on Signup page
   useEffect(() => {
     if (!isLogin && email && email.includes('@') && email.includes('.')) {
-      const timer = setTimeout(() => {
+      const timer = setTimeout(async () => {
+        const targetEmail = email.trim();
+        
+        // 1. Check if account already exists
+        const { data: existingUser } = await supabase
+          .from('users')
+          .select('id')
+          .eq('email', targetEmail)
+          .maybeSingle();
+
+        if (existingUser) {
+          setIsInvited(false);
+          setInviteInfo(null);
+          setNotInvitedError('This account already exists. Please switch to Login.');
+          useAuthStore.setState({ error: 'This account already exists. Please switch to Login.' });
+          return;
+        }
+
+        // 2. Check pending invites
         supabase
           .from('pending_invites')
           .select('*, workspace:workspaces(name)')
-          .eq('email', email.trim())
+          .eq('email', targetEmail)
           .maybeSingle()
           .then(({ data }) => {
             if (data) {
               setIsInvited(true);
               setNotInvitedError(null);
+              useAuthStore.setState({ error: null });
               setInviteInfo({ role: data.role, designation: data.designation });
               if (data.workspace?.name) setCompanyName(data.workspace.name);
             } else {
               setIsInvited(false);
               setInviteInfo(null);
-              setNotInvitedError('You are not invited to join any workspace. Sign up is restricted to invited team members only.');
+              const errMsg = 'You are not invited to join any workspace. Sign up is restricted to invited team members only.';
+              setNotInvitedError(errMsg);
+              useAuthStore.setState({ error: errMsg });
             }
           });
-      }, 300);
+      }, 500); // 500ms debounce
       return () => clearTimeout(timer);
     } else {
       setNotInvitedError(null);
+      if (!isLogin) useAuthStore.setState({ error: null });
     }
   }, [email, isLogin]);
 
@@ -100,7 +122,7 @@ const LoginPage = () => {
         await login(email, password);
       } else {
         if (!isInvited) {
-          useAuthStore.setState({ error: 'You are not invited to join any workspace. Sign up is restricted to invited team members only.' });
+          useAuthStore.setState({ error: notInvitedError || 'You are not invited to join any workspace.' });
           return;
         }
         if (!isStrongPassword(password)) {
