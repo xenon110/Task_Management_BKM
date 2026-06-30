@@ -26,6 +26,12 @@ const CreateTaskModal = () => {
   const [isMaximized, setIsMaximized] = useState(false);
   const dateInputRef = useRef<HTMLInputElement>(null);
 
+  React.useEffect(() => {
+    if (isCreateTaskModalOpen && !projectId && projects && projects.length > 0) {
+      setProjectId(projects[0].id);
+    }
+  }, [isCreateTaskModalOpen, projects]);
+
 
   
   if (!isCreateTaskModalOpen) return null;
