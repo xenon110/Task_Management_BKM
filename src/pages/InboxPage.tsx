@@ -52,14 +52,7 @@ const InboxPage = () => {
           </div>
           <h1 className="font-bold text-gray-900 text-lg">Inbox</h1>
         </div>
-        <div className="flex items-center space-x-3">
-          <button onClick={() => clearAll(user?.id || '00000000-0000-0000-0000-000000000001')} className="flex items-center space-x-1.5 px-3 py-1.5 border border-gray-200 text-gray-600 font-semibold rounded-md hover:bg-gray-50 transition-colors shadow-sm text-xs">
-            <Check size={14} /> <span>Clear all</span>
-          </button>
-          <button className="p-1.5 border border-gray-200 text-gray-500 rounded-md hover:bg-gray-50 transition-colors shadow-sm">
-            <Settings size={15} />
-          </button>
-        </div>
+        {/* Action buttons removed */}
       </div>
 
       <div className="flex-1 flex overflow-hidden max-w-[1400px] w-full mx-auto p-6 space-x-6">
