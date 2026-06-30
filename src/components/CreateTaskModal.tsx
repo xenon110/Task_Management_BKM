@@ -39,7 +39,7 @@ const CreateTaskModal = () => {
       description,
       status,
       priority,
-      list_id: projectId || '',
+      list_id: projectId || undefined,
       due_date: dueDate || undefined,
       assignee_id: assigneeId || undefined,
     }, subtasks);
