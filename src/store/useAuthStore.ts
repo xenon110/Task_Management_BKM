@@ -36,12 +36,24 @@ export const useAuthStore = create<AuthState>((set, get) => ({
       
       if (session?.user) {
         // Fetch public user
-        const { data: publicUser } = await supabase
+        let { data: publicUser } = await supabase
           .from('users')
           .select('*')
           .eq('id', session.user.id)
-          .single();
+          .maybeSingle();
           
+        if (!publicUser) {
+          publicUser = {
+            id: session.user.id,
+            email: session.user.email || '',
+            name: session.user.user_metadata?.name || session.user.email?.split('@')[0] || 'Unknown',
+            role: 'member',
+            status: 'active',
+            avatar_url: `https://ui-avatars.com/api/?name=${encodeURIComponent(session.user.user_metadata?.name || session.user.email?.split('@')[0] || 'U')}&background=random`
+          };
+          // Self-heal the database
+          supabase.from('users').upsert([publicUser], { onConflict: 'id' }).then();
+        }
         // Fetch workspace (try owner first, then member)
         let workspace = null;
         if (publicUser) {
@@ -49,7 +61,7 @@ export const useAuthStore = create<AuthState>((set, get) => ({
             .from('workspaces')
             .select('*')
             .eq('owner_id', publicUser.id)
-            .single();
+            .maybeSingle();
           if (ownedWs) {
             workspace = ownedWs;
           } else {
@@ -93,19 +105,31 @@ export const useAuthStore = create<AuthState>((set, get) => ({
       if (error) throw error;
 
       // Now fetch public profile and workspace
-      const { data: publicUser } = await supabase
+      let { data: publicUser } = await supabase
         .from('users')
         .select('*')
         .eq('id', data.user.id)
-        .single();
+        .maybeSingle();
         
+      if (!publicUser) {
+        publicUser = {
+          id: data.user.id,
+          email: data.user.email || '',
+          name: data.user.user_metadata?.name || data.user.email?.split('@')[0] || 'Unknown',
+          role: 'member',
+          status: 'active',
+          avatar_url: `https://ui-avatars.com/api/?name=${encodeURIComponent(data.user.user_metadata?.name || data.user.email?.split('@')[0] || 'U')}&background=random`
+        };
+        // Self-heal the database
+        supabase.from('users').upsert([publicUser], { onConflict: 'id' }).then();
+      }
       let workspace = null;
       if (publicUser) {
         const { data: ownedWs } = await supabase
           .from('workspaces')
           .select('*')
           .eq('owner_id', publicUser.id)
-          .single();
+          .maybeSingle();
         if (ownedWs) {
           workspace = ownedWs;
         } else {
@@ -143,6 +167,11 @@ export const useAuthStore = create<AuthState>((set, get) => ({
       const { data, error } = await supabase.auth.signUp({
         email,
         password,
+        options: {
+          data: {
+            name: additionalData?.name || email.split('@')[0],
+          }
+        }
       });
 
       if (error) throw error;
@@ -162,8 +191,31 @@ export const useAuthStore = create<AuthState>((set, get) => ({
         return;
       }
 
-      // Wait a tiny bit for the Postgres Trigger to create the public user & workspace
-      await new Promise(resolve => setTimeout(resolve, 1000));
+      // Poll for up to 5 seconds waiting for the Postgres trigger to create the public user row
+      let publicUserExists = false;
+      for (let i = 0; i < 10; i++) {
+        await new Promise(resolve => setTimeout(resolve, 500));
+        const { data: checkUser } = await supabase
+          .from('users')
+          .select('id')
+          .eq('id', targetUserId)
+          .maybeSingle();
+        if (checkUser) {
+          publicUserExists = true;
+          break;
+        }
+      }
+
+      // If the trigger never created the row, manually insert it
+      if (!publicUserExists) {
+        await supabase.from('users').insert([{
+          id: targetUserId,
+          email: email.trim(),
+          name: additionalData?.name || email.split('@')[0],
+          status: 'active',
+          avatar_url: `https://ui-avatars.com/api/?name=${encodeURIComponent(additionalData?.name || email.split('@')[0])}&background=random`,
+        }]);
+      }
 
       // Check for pending invites for this email and automatically join workspace
       const { data: invite } = await supabase
@@ -171,6 +223,14 @@ export const useAuthStore = create<AuthState>((set, get) => ({
         .select('*')
         .eq('email', email.trim())
         .maybeSingle();
+
+      // Build the update payload with all user details
+      const userUpdate: Record<string, any> = {
+        email: email.trim(),
+      };
+      if (additionalData?.name) userUpdate.name = additionalData.name;
+      if (additionalData?.company_name) userUpdate.company_name = additionalData.company_name;
+      if (additionalData?.contact_no) userUpdate.contact_no = additionalData.contact_no;
 
       if (invite) {
         // 1. Add to workspace_members
@@ -180,21 +240,19 @@ export const useAuthStore = create<AuthState>((set, get) => ({
           role: invite.role
         }]);
 
-        // 2. Update designation if present
-        if (invite.designation) {
-          await supabase.from('users').update({ designation: invite.designation }).eq('id', targetUserId);
-        }
+        // 2. Apply invite role and designation to user profile
+        if (invite.role) userUpdate.role = invite.role;
+        if (invite.designation) userUpdate.designation = invite.designation;
 
         // 3. Delete pending invite
         await supabase.from('pending_invites').delete().eq('id', invite.id);
       }
 
-      if (additionalData) {
-        await supabase
-          .from('users')
-          .update(additionalData)
-          .eq('id', targetUserId);
-      }
+      // Apply all profile updates in one call
+      await supabase
+        .from('users')
+        .update(userUpdate)
+        .eq('id', targetUserId);
 
       const { data: publicUser } = await supabase
         .from('users')

@@ -15,6 +15,7 @@ export interface User {
   company_name?: string;
   contact_no?: string;
   preferences?: Record<string, any>;
+  role?: Role;
 }
 
 export interface Workspace {

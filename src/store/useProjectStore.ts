@@ -1,6 +1,7 @@
 import { create } from 'zustand';
 import { supabase } from '../lib/supabase';
 import type { Project } from '../types';
+import { useAuthStore } from './useAuthStore';
 
 interface ProjectState {
   projects: Project[];
@@ -13,12 +14,29 @@ interface ProjectState {
 // Assume a default workspace id matching the seeded one
 const DEFAULT_WORKSPACE_ID = '00000000-0000-0000-0000-000000000010';
 
+/**
+ * Parse the `color` column (stores comma-separated user IDs) into a members array.
+ * Returns an empty array if color is null/empty.
+ */
+const parseMembersFromColor = (color: string | null | undefined): string[] => {
+  if (!color || color.trim() === '') return [];
+  return color.split(',').map(id => id.trim()).filter(Boolean);
+};
+
+/**
+ * Serialize a members array into a comma-separated string for the `color` column.
+ */
+const serializeMembersToColor = (members: string[]): string => {
+  return members.join(',');
+};
+
 export const useProjectStore = create<ProjectState>((set, get) => ({
   projects: [],
   isInitialized: false,
 
   initProjects: async () => {
     try {
+      const currentUserId = useAuthStore.getState().user?.id;
       const local = localStorage.getItem('app_projects');
       const initialProjects = local ? JSON.parse(local) : [];
 
@@ -35,12 +53,32 @@ export const useProjectStore = create<ProjectState>((set, get) => ({
       }
 
       if (error || !data || data.length === 0) {
-        set({ projects: initialProjects, isInitialized: true });
+        // Filter local projects by membership too
+        const filtered = currentUserId
+          ? initialProjects.filter((p: any) => {
+              const members = p.members || [];
+              return members.length === 0 || members.includes(currentUserId);
+            })
+          : [];
+        set({ projects: filtered, isInitialized: true });
         return;
       }
 
-      set({ projects: data, isInitialized: true });
-      localStorage.setItem('app_projects', JSON.stringify(data));
+      // Map DB rows to Project objects, parsing members from the color column
+      const mapped = data.map((row: any) => ({
+        ...row,
+        members: parseMembersFromColor(row.color),
+      }));
+
+      // Filter: user can only see spaces where they are a member OR spaces with no members (legacy)
+      const filtered = currentUserId
+        ? mapped.filter((p: any) => {
+            return p.members.length === 0 || p.members.includes(currentUserId);
+          })
+        : [];
+
+      set({ projects: filtered, isInitialized: true });
+      localStorage.setItem('app_projects', JSON.stringify(filtered));
     } catch (error) {
       console.error('Error fetching projects:', error);
       const local = localStorage.getItem('app_projects');
@@ -49,9 +87,18 @@ export const useProjectStore = create<ProjectState>((set, get) => ({
   },
 
   addProject: async (project) => {
+    const currentUserId = useAuthStore.getState().user?.id;
+    
+    // Build members list: include the creator + any selected members
+    const projectMembers = Array.isArray((project as any).members) ? [...(project as any).members] : [];
+    if (currentUserId && !projectMembers.includes(currentUserId)) {
+      projectMembers.push(currentUserId);
+    }
+
     const newProject = {
       ...project,
-      workspace_id: DEFAULT_WORKSPACE_ID
+      workspace_id: DEFAULT_WORKSPACE_ID,
+      members: projectMembers,
     };
 
     const tempId = `temp-project-${Date.now()}`;
@@ -64,7 +111,13 @@ export const useProjectStore = create<ProjectState>((set, get) => ({
     });
 
     try {
-      const { order, ...dbProject } = newProject as any;
+      // Prepare DB payload: store members as comma-separated in `color`, count in `members` (integer)
+      const { order, members: membersList, ...rest } = newProject as any;
+      const dbProject = {
+        ...rest,
+        color: serializeMembersToColor(projectMembers),
+        members: projectMembers.length,
+      };
       
       const { data, error } = await supabase
         .from('spaces')
@@ -74,8 +127,14 @@ export const useProjectStore = create<ProjectState>((set, get) => ({
 
       if (error) throw error;
 
+      // Map the returned data back with parsed members
+      const mappedData = {
+        ...data,
+        members: parseMembersFromColor(data.color),
+      };
+
       set((state) => {
-        const updated = state.projects.map(p => p.id === tempId ? data : p);
+        const updated = state.projects.map(p => p.id === tempId ? mappedData : p);
         localStorage.setItem('app_projects', JSON.stringify(updated));
         return { projects: updated };
       });
@@ -106,3 +165,4 @@ export const useProjectStore = create<ProjectState>((set, get) => ({
     }
   }
 }));
+

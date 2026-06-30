@@ -28,7 +28,7 @@ const MainLayout = () => {
   const { user, logout, activeWorkspace } = useAuthStore();
   const location = useLocation();
   const { openCreateTaskModal, openInviteModal } = useUiStore();
-  const { canManageTasks } = usePermissions();
+  const { canCreateTasks, canInviteUsers } = usePermissions();
   const { notifications } = useNotificationStore();
   const { channels } = useChatStore();
   const { projects, initProjects } = useProjectStore();
@@ -36,8 +36,8 @@ const MainLayout = () => {
   const unreadCount = notifications.filter(n => !n.read).length;
   
   React.useEffect(() => {
-    if (!tasksInitialized && initData) initData();
-  }, [tasksInitialized, initData]);
+    if (initData) initData();
+  }, [initData, user?.id]);
 
   React.useEffect(() => {
     if (user?.email) {
@@ -47,10 +47,8 @@ const MainLayout = () => {
   }, [user?.email]);
 
   React.useEffect(() => {
-    if (!useProjectStore.getState().isInitialized) {
-      initProjects();
-    }
-  }, [initProjects]);
+    if (initProjects) initProjects();
+  }, [initProjects, user?.id]);
 
   React.useEffect(() => {
     const { isInitialized, initChat } = useChatStore.getState();
@@ -67,11 +65,11 @@ const MainLayout = () => {
   React.useEffect(() => {
     const workspaceId = activeWorkspace?.id || '00000000-0000-0000-0000-000000000010';
     
-    const { isInitialized: goalsInit, initGoals } = useGoalStore.getState();
-    if (!goalsInit && initGoals) initGoals(workspaceId);
+    const { initGoals } = useGoalStore.getState();
+    if (initGoals) initGoals(workspaceId);
 
-    const { isInitialized: wsInit, initWorkspace } = useWorkspaceStore.getState();
-    if (!wsInit && initWorkspace) initWorkspace(workspaceId);
+    const { initWorkspace } = useWorkspaceStore.getState();
+    if (initWorkspace) initWorkspace(workspaceId);
   }, [activeWorkspace?.id]);
 
   // Calculate overdue tasks
@@ -96,7 +94,7 @@ const MainLayout = () => {
         </div>
 
         <div className="mt-auto flex flex-col space-y-4 w-full mb-2">
-          <div onClick={openInviteModal}><SidebarIcon icon={<User size={22} strokeWidth={1.5} />} label="Invite" /></div>
+          {canInviteUsers && <div onClick={openInviteModal}><SidebarIcon icon={<User size={22} strokeWidth={1.5} />} label="Invite" /></div>}
           <div 
             className="w-8 h-8 mx-auto rounded-md bg-gradient-to-r from-purple-600 to-brand flex items-center justify-center cursor-pointer hover:opacity-90 transition-opacity mt-2"
             title={activeWorkspace?.name || 'Workspace'}
@@ -115,11 +113,15 @@ const MainLayout = () => {
 
       <div className="flex-1 flex flex-col min-w-0 bg-white">
         {/* Top Header */}
-        <header className="h-[48px] border-b border-gray-200 flex items-center justify-between px-4 bg-white flex-shrink-0 z-10">
+        <header className="h-[48px] border-b border-gray-200 flex items-center justify-between px-4 bg-white flex-shrink-0 relative z-50">
           <div className="flex items-center w-64 flex-shrink-0">
             <button className="flex items-center space-x-2 hover:bg-gray-100 px-2 py-1.5 rounded-md transition-colors w-full text-left">
-              <div className="w-5 h-5 bg-teal-600 text-white rounded text-xs flex items-center justify-center font-bold flex-shrink-0">M</div>
-              <span className="font-semibold text-sm truncate">{activeWorkspace?.name || "MAYANK RAJ's Workspace"}</span>
+              <div className="w-5 h-5 bg-teal-600 text-white rounded text-xs flex items-center justify-center font-bold flex-shrink-0">
+                {user?.name ? user.name.charAt(0).toUpperCase() : 'M'}
+              </div>
+              <span className="font-semibold text-sm truncate">
+                {user?.name ? `${user.name.split(' ')[0]} Workspace` : (activeWorkspace?.name || "My Workspace")}
+              </span>
               <ChevronRight size={14} className="text-gray-400 flex-shrink-0" />
             </button>
           </div>
@@ -147,11 +149,9 @@ const MainLayout = () => {
           <div className="w-[260px] bg-gray-50/50 border-r border-gray-200 flex flex-col flex-shrink-0">
             <div className="px-4 py-3 flex items-center justify-between group cursor-pointer hover:bg-gray-100/50 transition-colors">
               <h2 className="font-semibold text-[15px] text-gray-900">Home</h2>
-              {canManageTasks && (
-                <button onClick={openCreateTaskModal} className="bg-gray-900 text-white px-2 py-1 rounded text-xs font-medium flex items-center hover:bg-black transition-colors shadow-sm">
-                  <Plus size={14} className="mr-1" /> Create
-                </button>
-              )}
+              <button onClick={openCreateTaskModal} className="bg-gray-900 text-white px-2 py-1 rounded text-xs font-medium flex items-center hover:bg-black transition-colors shadow-sm">
+                <Plus size={14} className="mr-1" /> Create
+              </button>
             </div>
 
             <div className="flex-1 overflow-y-auto px-2 pb-4 custom-scrollbar">

@@ -8,6 +8,7 @@ import { useProjectStore } from '../store/useProjectStore';
 import { useWorkspaceStore } from '../store/useWorkspaceStore';
 import { useAuthStore } from '../store/useAuthStore';
 import ProjectChannelView from '../components/ProjectChannelView';
+import { usePermissions } from '../hooks/usePermissions';
 import { CircleDot, Circle, Loader, Eye, CheckCircle2, MoreHorizontal, Plus, X, Calendar, MessageSquare, CheckSquare, User, Kanban } from 'lucide-react';
 
 const COLUMNS = [
@@ -24,6 +25,8 @@ const ProjectsPage = () => {
   const { projects, addProject } = useProjectStore();
   const { members } = useWorkspaceStore() as any;
   const { user } = useAuthStore();
+  const { canCreateTasks, getAssignableMembers } = usePermissions();
+  const assignableMembers = getAssignableMembers();
   const [activeTab, setActiveTab] = useState('board');
   const [boardData, setBoardData] = useState<Record<string, any[]>>({});
   const [quickTaskModal, setQuickTaskModal] = useState<{ isOpen: boolean, columnId: string, title: string }>({ isOpen: false, columnId: '', title: '' });
@@ -119,9 +122,9 @@ const ProjectsPage = () => {
           <span className="bg-brand/10 text-brand px-2 py-0.5 rounded-full text-xs border border-brand/20">Beta</span>
         </h1>
         <div className="flex items-center space-x-3">
-          <button onClick={() => setSpaceModalOpen(true)} className="bg-gray-900 hover:bg-black text-white px-3 py-1.5 rounded-md text-sm font-medium transition-colors shadow-sm flex items-center">
+          {canCreateTasks && <button onClick={() => setSpaceModalOpen(true)} className="bg-gray-900 hover:bg-black text-white px-3 py-1.5 rounded-md text-sm font-medium transition-colors shadow-sm flex items-center">
             <Plus size={16} className="mr-1" /> New space
-          </button>
+          </button>}
         </div>
       </div>
 
@@ -264,7 +267,7 @@ const ProjectsPage = () => {
                                               </div>
                                               <div className="text-sm font-bold text-gray-900">Me <span className="text-[10px] text-gray-500 font-normal ml-1">(Assign to self)</span></div>
                                             </div>
-                                            {members.map((member: any) => (
+                                            {assignableMembers.map((member: any) => (
                                               <div 
                                                 key={member.id}
                                                 onClick={(e) => {

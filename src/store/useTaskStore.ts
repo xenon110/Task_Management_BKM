@@ -32,6 +32,7 @@ export const useTaskStore = create<TaskState>((set, get) => ({
 
   initData: async () => {
     try {
+      const currentUserId = useAuthStore.getState().user?.id;
       const localTasks = localStorage.getItem('app_tasks');
       const localComments = localStorage.getItem('app_comments');
       const initialTasks = localTasks ? JSON.parse(localTasks) : [];
@@ -43,16 +44,26 @@ export const useTaskStore = create<TaskState>((set, get) => ({
       ]);
 
       if (tasksRes.error || !tasksRes.data || tasksRes.data.length === 0) {
-        set({ tasks: initialTasks, comments: initialComments, isInitialized: true });
+        // Filter local tasks by user too
+        const filtered = currentUserId
+          ? initialTasks.filter((t: any) => t.assignee_id === currentUserId || t.created_by === currentUserId)
+          : [];
+        set({ tasks: filtered, comments: initialComments, isInitialized: true });
         return;
       }
 
+      // Filter: user only sees tasks they created or are assigned to
+      const allTasks = tasksRes.data;
+      const filtered = currentUserId
+        ? allTasks.filter((t: any) => t.assignee_id === currentUserId || t.created_by === currentUserId)
+        : [];
+
       set({
-        tasks: tasksRes.data,
+        tasks: filtered,
         comments: commentsRes.data || initialComments,
         isInitialized: true
       });
-      localStorage.setItem('app_tasks', JSON.stringify(tasksRes.data));
+      localStorage.setItem('app_tasks', JSON.stringify(filtered));
       if (commentsRes.data) localStorage.setItem('app_comments', JSON.stringify(commentsRes.data));
     } catch (error) {
       console.error('Error initializing task data:', error);

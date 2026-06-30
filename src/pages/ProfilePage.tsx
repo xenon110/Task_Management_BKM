@@ -1,9 +1,11 @@
 import React, { useState } from 'react';
 import { useAuthStore } from '../store/useAuthStore';
 import { User, Mail, Shield, Key, Save, Edit2 } from 'lucide-react';
+import { usePermissions } from '../hooks/usePermissions';
 
 const ProfilePage = () => {
   const { user, updateUser } = useAuthStore();
+  const { role } = usePermissions();
   const [isEditing, setIsEditing] = useState(false);
   const [name, setName] = useState(user?.name || '');
   const [saving, setSaving] = useState(false);
@@ -82,7 +84,7 @@ const ProfilePage = () => {
                   <Shield size={14} className="mr-1.5" /> Role / Status
                 </label>
                 <div className="px-3 py-2 bg-gray-50 border border-gray-200 rounded-md text-gray-800 text-sm capitalize">
-                  {user?.status || 'Active'}
+                  {role || 'member'} • {user?.status || 'Active'}
                 </div>
               </div>
             </div>

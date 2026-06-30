@@ -8,21 +8,51 @@ import { useWorkspaceStore } from '../store/useWorkspaceStore';
 import { useTaskStore } from '../store/useTaskStore';
 import { useUiStore } from '../store/useUiStore';
 import { usePermissions } from '../hooks/usePermissions';
+import { useAuthStore } from '../store/useAuthStore';
 
 const TeamsPage = () => {
   const { members, pendingInvites, removeMember, updateMemberRole } = useWorkspaceStore();
   const { tasks } = useTaskStore();
   const { openInviteModal } = useUiStore();
-  const { role: currentUserRole, canInviteUsers } = usePermissions();
+  const { canInviteUsers } = usePermissions();
+  const { user: currentUser } = useAuthStore();
   const [activeTab, setActiveTab] = useState('directory');
   const [searchQuery, setSearchQuery] = useState('');
+  const [globalUsers, setGlobalUsers] = useState<any[]>([]);
+  const [openDropdownId, setOpenDropdownId] = useState<string | null>(null);
+  const [showInviteError, setShowInviteError] = useState(false);
+
+  // Directly pull the role from the freshly fetched database snapshot
+  const dbCurrentUser = globalUsers.find(u => u.email === currentUser?.email);
+  const currentUserRole = (dbCurrentUser?.role || currentUser?.role || 'guest').toLowerCase().trim();
+
+  React.useEffect(() => {
+    const handleClickOutside = (e: MouseEvent) => {
+      if (!(e.target as Element).closest('.role-dropdown-container')) {
+        setOpenDropdownId(null);
+      }
+    };
+    document.addEventListener('click', handleClickOutside);
+    return () => document.removeEventListener('click', handleClickOutside);
+  }, []);
+
+  React.useEffect(() => {
+    const fetchGlobalUsers = async () => {
+      const { supabase } = await import('../lib/supabase');
+      const { data } = await supabase.from('users').select('*').order('created_at');
+      if (data) {
+        setGlobalUsers(data);
+      }
+    };
+    fetchGlobalUsers();
+  }, []);
 
   // Calculate workloads
-  const memberWorkloads = members.map(member => {
+  const memberWorkloads = globalUsers.map(user => {
     // Count active tasks for this member
     const activeTasksCount = tasks.filter(t => 
       !t.archived && 
-      t.assignee_id === member.user_id && 
+      t.assignee_id === user.id && 
       !['done', 'Completed', 'Work Done'].includes(t.status)
     ).length;
     
@@ -46,7 +76,7 @@ const TeamsPage = () => {
     }
 
     return {
-      member,
+      user,
       tasksCount: activeTasksCount,
       statusText,
       statusColor,
@@ -61,13 +91,33 @@ const TeamsPage = () => {
     { id: 'roles', label: 'Roles & Permissions', icon: Shield },
   ];
 
-  const filteredMembers = members.filter(m => 
-    m.user!.name.toLowerCase().includes(searchQuery.toLowerCase()) || 
-    m.user!.email.toLowerCase().includes(searchQuery.toLowerCase())
+  const filteredUsers = globalUsers.filter(u => 
+    (u.name || '').toLowerCase().includes(searchQuery.toLowerCase()) || 
+    (u.email || '').toLowerCase().includes(searchQuery.toLowerCase())
   );
 
   const handleInvite = () => {
-    openInviteModal();
+    if (['owner', 'admin'].includes(currentUserRole)) {
+      openInviteModal();
+    } else {
+      setShowInviteError(true);
+      setTimeout(() => setShowInviteError(false), 4000);
+    }
+  };
+
+  const updateGlobalUserRole = async (targetUserId: string, newRole: string) => {
+    const { supabase } = await import('../lib/supabase');
+    const { error } = await supabase.from('users').update({ role: newRole }).eq('id', targetUserId);
+    if (!error) {
+      setGlobalUsers(prev => prev.map(u => u.id === targetUserId ? { ...u, role: newRole } : u));
+    }
+  };
+
+  const getAvailableRolesForTarget = (targetUserId: string) => {
+    if (targetUserId === currentUser?.id) return []; // Cannot change own role
+    if (currentUserRole === 'owner') return ['owner', 'admin', 'member', 'guest'];
+    if (currentUserRole === 'admin') return ['member', 'guest'];
+    return [];
   };
 
   const canManageMember = (targetRole: string, targetId: string) => {
@@ -93,12 +143,15 @@ const TeamsPage = () => {
               <p className="text-gray-500 text-xs mt-0.5">Manage your workspace members, roles, and capacity.</p>
             </div>
           </div>
-          <div className="flex items-center space-x-3">
-            {canInviteUsers && (
-              <button onClick={handleInvite} className="px-4 py-2 bg-brand text-white font-semibold rounded-md hover:opacity-90 transition-opacity flex items-center shadow-sm text-xs">
-                <UserPlus size={14} className="mr-2" /> Invite Members
-              </button>
+          <div className="flex items-center space-x-3 relative">
+            {showInviteError && (
+              <span className="text-[11px] text-red-500 font-medium absolute right-full mr-3 whitespace-nowrap bg-red-50 px-2.5 py-1.5 rounded shadow-sm border border-red-100 animate-in fade-in slide-in-from-right-2 duration-300">
+                You are not Owner or admin, to add request any one of them
+              </span>
             )}
+            <button onClick={handleInvite} className="px-4 py-2 bg-brand text-white font-semibold rounded-md hover:opacity-90 transition-opacity flex items-center shadow-sm text-xs">
+              <UserPlus size={14} className="mr-2" /> Invite Members
+            </button>
           </div>
         </div>
 
@@ -188,7 +241,7 @@ const TeamsPage = () => {
                 )}
 
                 <h3 className="px-6 py-3 text-xs font-bold text-gray-500 uppercase tracking-wider bg-gray-50/50 border-y border-gray-100">
-                  Active Members ({filteredMembers.length})
+                  Active Members ({filteredUsers.length})
                 </h3>
                 <table className="w-full text-left border-collapse">
                   <thead>
@@ -201,20 +254,20 @@ const TeamsPage = () => {
                     </tr>
                   </thead>
                   <tbody className="divide-y divide-gray-50">
-                    {filteredMembers.map(member => {
-                      const initials = member.user?.name.split(' ').map(n => n[0]).join('').toUpperCase().substring(0,2) || 'U';
-                      const color = member.role === 'owner' ? 'bg-gray-900' : member.role === 'manager' ? 'bg-blue-600' : 'bg-green-600';
+                    {filteredUsers.map(user => {
+                      const initials = (user.name || user.email || 'U').split(' ').map((n: string) => n[0]).join('').toUpperCase().substring(0,2);
+                      const color = user.role === 'owner' ? 'bg-gray-900' : user.role === 'admin' ? 'bg-blue-600' : 'bg-green-600';
                       return (
-                      <tr key={member.id} className="hover:bg-gray-50/50 transition-colors group">
+                      <tr key={user.id} className="hover:bg-gray-50/50 transition-colors group">
                         <td className="px-6 py-3.5">
                           <div className="flex items-center space-x-3">
                             <div className={`w-8 h-8 rounded-full flex items-center justify-center text-[10px] font-bold shadow-sm ${color} text-white`}>
                               {initials}
                             </div>
                             <div>
-                              <div className="font-semibold text-gray-900 text-[13px]">{member.user!.name}</div>
+                              <div className="font-semibold text-gray-900 text-[13px]">{user.name || 'Unknown'}</div>
                               <div className="text-gray-400 text-[11px] font-medium flex items-center mt-0.5">
-                                <Mail size={10} className="mr-1" /> {member.user!.email}
+                                <Mail size={10} className="mr-1" /> {user.email}
                               </div>
                             </div>
                           </div>
@@ -222,40 +275,56 @@ const TeamsPage = () => {
                         <td className="px-6 py-3.5">
                           <div className="flex items-center space-x-1.5">
                             <div className={`w-2 h-2 rounded-full ${
-                              member.user!.status === 'active' ? 'bg-green-500' : 'bg-orange-500'
+                              user.status === 'active' ? 'bg-green-500' : 'bg-orange-500'
                             }`}></div>
                             <span className="text-[12px] font-medium capitalize text-gray-600">
-                              {member.user!.status}
+                              {user.status || 'active'}
                             </span>
                           </div>
                         </td>
                         <td className="px-6 py-3.5">
                           <div className={`inline-flex items-center px-2 py-0.5 rounded text-[11px] font-bold capitalize ${
-                            member.role === 'owner' ? 'bg-purple-100 text-purple-700' :
-                            member.role === 'admin' ? 'bg-blue-100 text-blue-700' :
-                            member.role === 'guest' ? 'bg-gray-100 text-gray-600' :
+                            user.role === 'owner' ? 'bg-purple-100 text-purple-700' :
+                            user.role === 'admin' ? 'bg-blue-100 text-blue-700' :
+                            user.role === 'guest' ? 'bg-gray-100 text-gray-600' :
                             'bg-green-100 text-green-700'
                           }`}>
-                            {member.role}
+                            {user.role || 'member'}
                           </div>
                         </td>
                         <td className="px-6 py-3.5">
-                          <span className="text-[12px] font-medium text-gray-600">{member.role === 'guest' ? 'External' : 'Internal'}</span>
+                          <span className="text-[12px] font-medium text-gray-600">{user.role === 'guest' ? 'External' : 'Internal'}</span>
                         </td>
-                        <td className="px-6 py-3.5 text-right relative group/menu">
-                          {canManageMember(member.role, member.id) && (
+                        <td className="px-6 py-3.5 text-right relative role-dropdown-container">
+                          {getAvailableRolesForTarget(user.id).length > 0 ? (
                             <>
-                              <button className="p-1.5 text-gray-400 hover:text-gray-700 hover:bg-gray-100 rounded opacity-0 group-hover:opacity-100 transition-all">
+                              <button 
+                                onClick={() => setOpenDropdownId(openDropdownId === user.id ? null : user.id)}
+                                className="p-1.5 text-gray-400 hover:text-gray-700 hover:bg-gray-100 rounded transition-all"
+                              >
                                 <MoreHorizontal size={16} />
                               </button>
-                              <div className="absolute right-6 top-full mt-1 w-36 bg-white border border-gray-200 rounded-lg shadow-lg opacity-0 invisible group-hover/menu:opacity-100 group-hover/menu:visible transition-all z-20 overflow-hidden text-left">
-                                {['owner', 'admin', 'member', 'guest'].map(r => (
-                                  <button key={r} onClick={() => updateMemberRole(member.id, r as any)} className="w-full text-left px-3 py-2 hover:bg-gray-50 text-xs capitalize text-gray-700">Make {r}</button>
-                                ))}
-                                <div className="h-px bg-gray-100 my-1"></div>
-                                <button onClick={() => removeMember(member.id)} className="w-full text-left px-3 py-2 text-red-600 text-xs hover:bg-red-50">Remove User</button>
-                              </div>
+                              {openDropdownId === user.id && (
+                                <div className="absolute right-6 top-full mt-1 w-36 bg-white border border-gray-200 rounded-lg shadow-lg z-20 overflow-hidden text-left animate-in fade-in slide-in-from-top-2 duration-200">
+                                  {getAvailableRolesForTarget(user.id).map(r => (
+                                    <button 
+                                      key={r} 
+                                      onClick={() => {
+                                        updateGlobalUserRole(user.id, r);
+                                        setOpenDropdownId(null);
+                                      }} 
+                                      className="w-full text-left px-3 py-2 hover:bg-gray-50 text-xs capitalize text-gray-700"
+                                    >
+                                      Make {r}
+                                    </button>
+                                  ))}
+                                </div>
+                              )}
                             </>
+                          ) : (
+                            user.id === currentUser?.id ? (
+                              <span className="text-[10px] text-gray-400">Cannot edit own role</span>
+                            ) : null
                           )}
                         </td>
                       </tr>
@@ -286,7 +355,7 @@ const TeamsPage = () => {
                     memberWorkloads.map((workload, idx) => (
                       <div key={idx}>
                         <div className="flex justify-between text-[13px] font-semibold text-gray-800 mb-1.5">
-                          <span>{workload.member.user?.name || workload.member.user?.email || 'Unknown User'}</span>
+                          <span>{workload.user?.name || workload.user?.email || 'Unknown User'}</span>
                           <span className={workload.statusColor}>{workload.tasksCount} task{workload.tasksCount !== 1 ? 's' : ''} ({workload.statusText})</span>
                         </div>
                         <div className="w-full bg-gray-200 h-2 rounded-full overflow-hidden">

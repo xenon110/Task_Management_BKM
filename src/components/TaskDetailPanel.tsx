@@ -44,7 +44,7 @@ const TaskDetailPanel = () => {
   const { members } = useWorkspaceStore();
   const { user } = useAuthStore();
   const { projects } = useProjectStore();
-  const { canManageTasks } = usePermissions();
+  const { canManageTasks, getAssignableMembers } = usePermissions();
   const currentUserId = user?.id || '00000000-0000-0000-0000-000000000001';
   const [comment, setComment] = useState('');
   const [activeTab, setActiveTab] = useState<'comments' | 'history'>('comments');
@@ -305,7 +305,7 @@ const TaskDetailPanel = () => {
                       </div>
                       <span className="text-sm font-bold text-gray-900">Me <span className="text-[10px] text-gray-500 font-normal ml-1">(Assign to self)</span></span>
                     </div>
-                    {members.filter(m => m.user && m.user.id !== currentUserId).map(m => (
+                    {getAssignableMembers().filter(m => m.user && m.user.id !== currentUserId).map(m => (
                       <div 
                         key={m.id}
                         onClick={() => handleAssign(m.user!.id)}

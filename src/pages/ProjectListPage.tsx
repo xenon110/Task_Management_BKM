@@ -5,6 +5,7 @@ import {
 import { useNavigate } from 'react-router-dom';
 import { useProjectStore } from '../store/useProjectStore';
 import { useWorkspaceStore } from '../store/useWorkspaceStore';
+import { usePermissions } from '../hooks/usePermissions';
 
 const ProjectListPage = () => {
   const navigate = useNavigate();
@@ -17,6 +18,7 @@ const ProjectListPage = () => {
   const [selectedMembers, setSelectedMembers] = useState<string[]>([]);
 
   const { members } = useWorkspaceStore();
+  const { canCreateTasks, canDeleteSpaces } = usePermissions();
 
   const [spaceToDelete, setSpaceToDelete] = useState<string | null>(null);
 
@@ -55,9 +57,11 @@ const ProjectListPage = () => {
           <h1 className="font-bold text-gray-900 text-lg">Spaces Overview</h1>
         </div>
         <div className="flex items-center space-x-3">
+        {canCreateTasks && (
           <button onClick={() => setIsModalOpen(true)} className="flex items-center space-x-1.5 px-4 py-2 bg-brand text-white font-semibold rounded-md hover:opacity-90 transition-opacity shadow-sm text-[13px]">
             <Plus size={16} className="mr-1" /> <span>New Space</span>
           </button>
+        )}
         </div>
       </div>
 
@@ -93,16 +97,18 @@ const ProjectListPage = () => {
                   </div>
                   
                   {/* Delete Button */}
-                  <button 
-                    onClick={(e) => {
-                      e.stopPropagation();
-                      setSpaceToDelete(project.id);
-                    }} 
-                    className="text-gray-400 hover:text-red-500 transition-colors opacity-0 group-hover:opacity-100 absolute right-0 top-0 bg-gray-50 rounded-md p-1.5 hover:bg-red-50"
-                    title="Delete Space"
-                  >
-                    <Trash2 size={16} />
-                  </button>
+                  {canDeleteSpaces && (
+                    <button 
+                      onClick={(e) => {
+                        e.stopPropagation();
+                        setSpaceToDelete(project.id);
+                      }} 
+                      className="text-gray-400 hover:text-red-500 transition-colors opacity-0 group-hover:opacity-100 absolute right-0 top-0 bg-gray-50 rounded-md p-1.5 hover:bg-red-50"
+                      title="Delete Space"
+                    >
+                      <Trash2 size={16} />
+                    </button>
+                  )}
                 </div>
 
                 <h3 className="text-[16px] font-semibold text-gray-900 mb-1.5">{project.name}</h3>
@@ -113,15 +119,17 @@ const ProjectListPage = () => {
             )})}
             
             {/* Create New Card */}
-            <div 
-              onClick={() => setIsModalOpen(true)} 
-              className="border-2 border-dashed border-gray-200 rounded-xl p-6 flex flex-col items-center justify-center text-gray-400 hover:text-brand hover:border-brand/50 hover:bg-brand/5 transition-all cursor-pointer min-h-[220px] group"
-            >
-              <div className="w-14 h-14 rounded-full bg-gray-50 group-hover:bg-white flex items-center justify-center mb-4 transition-colors shadow-sm">
-                <Plus size={28} />
+            {canCreateTasks && (
+              <div 
+                onClick={() => setIsModalOpen(true)} 
+                className="border-2 border-dashed border-gray-200 rounded-xl p-6 flex flex-col items-center justify-center text-gray-400 hover:text-brand hover:border-brand/50 hover:bg-brand/5 transition-all cursor-pointer min-h-[220px] group"
+              >
+                <div className="w-14 h-14 rounded-full bg-gray-50 group-hover:bg-white flex items-center justify-center mb-4 transition-colors shadow-sm">
+                  <Plus size={28} />
+                </div>
+                <span className="font-semibold text-[15px] text-gray-600 group-hover:text-brand transition-colors">Create new space</span>
               </div>
-              <span className="font-semibold text-[15px] text-gray-600 group-hover:text-brand transition-colors">Create new space</span>
-            </div>
+            )}
           </div>
 
         </div>
