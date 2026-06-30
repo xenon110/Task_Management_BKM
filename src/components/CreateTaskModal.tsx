@@ -32,7 +32,7 @@ const CreateTaskModal = () => {
 
   const handleSubmit = (e: React.FormEvent) => {
     e.preventDefault();
-    if (!title.trim()) return;
+    if (!title.trim() || !projectId) return;
     
     addTask({
       title,
@@ -61,15 +61,15 @@ const CreateTaskModal = () => {
         <div className="px-4 py-3 flex items-center justify-between border-b border-gray-100 bg-gray-50/50">
            <div className="flex items-center space-x-1.5 text-xs font-semibold text-gray-500">
              <div className="relative group">
-               <span className="px-2 py-1 bg-white border border-gray-200 rounded text-gray-600 shadow-sm cursor-pointer hover:bg-gray-50">
-                 {projectId ? projects.find(p => p.id === projectId)?.name : 'Tasks'}
+               <span className={`px-2 py-1 bg-white border ${!projectId ? 'border-red-300 text-red-500 font-medium' : 'border-gray-200 text-gray-600'} rounded shadow-sm cursor-pointer hover:bg-gray-50`}>
+                 {projectId ? projects.find(p => p.id === projectId)?.name : 'Select a Space'}
                </span>
                <select 
                  className="absolute inset-0 w-full h-full opacity-0 cursor-pointer"
                  value={projectId}
                  onChange={(e) => setProjectId(e.target.value)}
                >
-                 <option value="">Tasks</option>
+                 <option value="" disabled>Select a Space</option>
                  {projects.map(p => (
                    <option key={p.id} value={p.id}>{p.name}</option>
                  ))}
@@ -238,9 +238,9 @@ const CreateTaskModal = () => {
             </button>
             <button 
               type="submit"
-              disabled={!title.trim()}
+              disabled={!title.trim() || !projectId}
               className={`px-6 py-2 rounded-lg font-bold text-sm shadow-sm transition-all ${
-                title.trim() 
+                title.trim() && projectId
                   ? 'bg-brand text-white hover:opacity-90' 
                   : 'bg-gray-200 text-gray-400 cursor-not-allowed'
               }`}
