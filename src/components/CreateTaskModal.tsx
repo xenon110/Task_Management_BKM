@@ -194,7 +194,7 @@ const CreateTaskModal = () => {
                     <input 
                       type="text" 
                       placeholder="Subtask title..." 
-                      className="flex-1 text-[13px] border-b border-gray-200 outline-none focus:border-brand py-1 transition-colors"
+                      className="flex-1 text-[13px] text-gray-900 border-b border-gray-200 outline-none focus:border-brand py-1 transition-colors"
                       value={st}
                       onChange={(e) => {
                         const newSubtasks = [...subtasks];
