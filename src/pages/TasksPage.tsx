@@ -7,7 +7,7 @@ import BoardView from '../components/BoardView';
 import ProjectCalendarView from '../components/ProjectCalendarView';
 import ProjectTableView from '../components/ProjectTableView';
 import ProjectGanttView from '../components/ProjectGanttView';
-import { 
+import {
   Star, Sparkles, Bot, BrainCircuit,
   Kanban, List, Plus, Layers, Network, Columns,
   Filter, CheckCircle2, User, Search, Settings2,
@@ -54,8 +54,8 @@ const TasksPage = () => {
 
   if (searchQuery.trim()) {
     const q = searchQuery.toLowerCase();
-    filteredTasks = filteredTasks.filter(t => 
-      t.title.toLowerCase().includes(q) || 
+    filteredTasks = filteredTasks.filter(t =>
+      t.title.toLowerCase().includes(q) ||
       (t.description && t.description.toLowerCase().includes(q))
     );
   }
@@ -80,9 +80,9 @@ const TasksPage = () => {
     } else {
       // Due Date
       return {
-        'overdue': filteredTasks.filter(t => t.due_date && new Date(t.due_date) < new Date(new Date().setHours(0,0,0,0))),
-        'today': filteredTasks.filter(t => t.due_date && new Date(t.due_date) >= new Date(new Date().setHours(0,0,0,0)) && new Date(t.due_date) < new Date(new Date().setHours(24,0,0,0))),
-        'upcoming': filteredTasks.filter(t => t.due_date && new Date(t.due_date) >= new Date(new Date().setHours(24,0,0,0))),
+        'overdue': filteredTasks.filter(t => t.due_date && new Date(t.due_date) < new Date(new Date().setHours(0, 0, 0, 0))),
+        'today': filteredTasks.filter(t => t.due_date && new Date(t.due_date) >= new Date(new Date().setHours(0, 0, 0, 0)) && new Date(t.due_date) < new Date(new Date().setHours(24, 0, 0, 0))),
+        'upcoming': filteredTasks.filter(t => t.due_date && new Date(t.due_date) >= new Date(new Date().setHours(24, 0, 0, 0))),
         'no date': filteredTasks.filter(t => !t.due_date),
       };
     }
@@ -106,35 +106,35 @@ const TasksPage = () => {
 
       {/* Tabs Row */}
       <div className="px-6 pt-3 border-b border-gray-200 flex items-center space-x-5 overflow-x-auto custom-scrollbar shrink-0">
-        <button 
+        <button
           onClick={() => setActiveTab('list')}
           className={`flex items-center space-x-2 pb-2 whitespace-nowrap transition-colors border-b-2 ${activeTab === 'list' ? 'text-gray-900 border-gray-900 font-medium' : 'text-gray-500 border-transparent hover:text-gray-900'}`}
         >
           <List size={15} strokeWidth={2} className="text-gray-600" />
           <span className="text-xs">List</span>
         </button>
-        <button 
+        <button
           onClick={() => setActiveTab('board')}
           className={`flex items-center space-x-2 pb-2 whitespace-nowrap transition-colors border-b-2 ${activeTab === 'board' ? 'text-gray-900 border-gray-900 font-medium' : 'text-gray-500 border-transparent hover:text-gray-900'}`}
         >
           <Kanban size={15} strokeWidth={2} className="text-blue-500" />
           <span className="font-medium text-xs">Board</span>
         </button>
-        <button 
+        <button
           onClick={() => setActiveTab('calendar')}
           className={`flex items-center space-x-2 pb-2 whitespace-nowrap transition-colors border-b-2 ${activeTab === 'calendar' ? 'text-gray-900 border-gray-900 font-medium' : 'text-gray-500 border-transparent hover:text-gray-900'}`}
         >
           <Calendar size={15} strokeWidth={2} className="text-orange-500" />
           <span className="font-medium text-xs">Calendar</span>
         </button>
-        <button 
+        <button
           onClick={() => setActiveTab('gantt')}
           className={`flex items-center space-x-2 pb-2 whitespace-nowrap transition-colors border-b-2 ${activeTab === 'gantt' ? 'text-gray-900 border-gray-900 font-medium' : 'text-gray-500 border-transparent hover:text-gray-900'}`}
         >
           <Layers size={15} strokeWidth={2} className="text-red-500" />
           <span className="font-medium text-xs">Gantt</span>
         </button>
-        <button 
+        <button
           onClick={() => setActiveTab('table')}
           className={`flex items-center space-x-2 pb-2 whitespace-nowrap transition-colors border-b-2 ${activeTab === 'table' ? 'text-gray-900 border-gray-900 font-medium' : 'text-gray-500 border-transparent hover:text-gray-900'}`}
         >
@@ -150,7 +150,7 @@ const TasksPage = () => {
             <button className="flex items-center space-x-1.5 px-2 py-1 rounded bg-[#f3e8ff] hover:bg-[#e9d5ff] text-[#7e22ce] transition-colors border border-transparent font-medium relative">
               <Layers size={14} className="text-[#a855f7]" />
               <span className="capitalize">Group: {grouping === 'dueDate' ? 'Due Date' : grouping}</span>
-              <select 
+              <select
                 className="absolute inset-0 w-full h-full opacity-0 cursor-pointer"
                 value={grouping}
                 onChange={(e) => setGrouping(e.target.value as any)}
@@ -161,7 +161,7 @@ const TasksPage = () => {
               </select>
             </button>
           </div>
-          <button 
+          <button
             onClick={() => setShowSubtasks(!showSubtasks)}
             className={`flex items-center space-x-1.5 px-2 py-1 rounded transition-colors border ${showSubtasks ? 'bg-[#f3e8ff] text-[#7e22ce] border-[#e9d5ff]' : 'hover:bg-gray-100 text-gray-600 border-transparent'}`}
           >
@@ -175,7 +175,7 @@ const TasksPage = () => {
             <button className={`flex items-center space-x-1.5 px-2.5 py-1 rounded border transition-colors text-xs ${priorityFilter !== 'all' ? 'bg-[#f3e8ff] text-[#7e22ce] border-[#e9d5ff]' : 'border-gray-200 hover:bg-gray-50 text-gray-600'}`}>
               <Filter size={12} className={priorityFilter !== 'all' ? 'text-[#a855f7]' : 'text-gray-400'} />
               <span>Filter{priorityFilter !== 'all' ? `: ${priorityFilter}` : ''}</span>
-              <select 
+              <select
                 className="absolute inset-0 w-full h-full opacity-0 cursor-pointer"
                 value={priorityFilter}
                 onChange={(e) => setPriorityFilter(e.target.value as any)}
@@ -188,7 +188,7 @@ const TasksPage = () => {
               </select>
             </button>
           </div>
-          <button 
+          <button
             onClick={() => setShowClosed(!showClosed)}
             className={`flex items-center space-x-1.5 px-2.5 py-1 rounded border transition-colors text-xs ${showClosed ? 'bg-[#f3e8ff] text-[#7e22ce] border-[#e9d5ff]' : 'border-gray-200 hover:bg-gray-50 text-gray-600'}`}>
             <CheckCircle2 size={12} className={showClosed ? 'text-[#a855f7]' : 'text-gray-400'} />
@@ -208,7 +208,7 @@ const TasksPage = () => {
                   ?
                 </div>
               )}
-              <select 
+              <select
                 className="absolute inset-0 w-full h-full opacity-0 cursor-pointer"
                 value={assigneeFilter}
                 onChange={(e) => setAssigneeFilter(e.target.value)}
@@ -221,17 +221,17 @@ const TasksPage = () => {
               </select>
             </button>
           </div>
-          
+
           <div className="w-px h-4 bg-gray-200 mx-1"></div>
-          
+
           <div className={`flex items-center border rounded transition-all duration-300 ${isSearchExpanded ? 'w-48 bg-white border-brand ring-1 ring-brand' : 'w-8 bg-transparent border-gray-200 hover:bg-gray-100 cursor-pointer'}`}>
             <button onClick={() => !isSearchExpanded && setIsSearchExpanded(true)} className="p-1.5 text-gray-500 hover:text-gray-700">
               <Search size={14} />
             </button>
             {isSearchExpanded && (
-              <input 
-                type="text" 
-                placeholder="Search tasks..." 
+              <input
+                type="text"
+                placeholder="Search tasks..."
                 className="w-full text-xs outline-none bg-transparent py-1 pr-2"
                 autoFocus
                 value={searchQuery}
@@ -240,7 +240,7 @@ const TasksPage = () => {
               />
             )}
           </div>
-          
+
           <div className="flex rounded overflow-hidden shadow-sm border border-gray-900 bg-gray-900 ml-1">
             {canManageTasks && (
               <button onClick={openCreateTaskModal} className="px-3 py-1 text-white text-xs font-medium hover:bg-black transition-colors">
@@ -256,7 +256,7 @@ const TasksPage = () => {
         <div className="flex-1 overflow-y-auto">
           {Object.entries(groups).map(([groupName, groupTasks]) => {
             if (groupTasks.length === 0 && !['to-do', 'in-progress', 'review', 'done'].includes(groupName)) return null;
-            
+
             return (
               <div key={groupName} className="mb-4">
                 {/* Group Header */}
@@ -290,8 +290,8 @@ const TasksPage = () => {
                     const taskComments = (comments || []).filter(c => c.task_id === t.id);
                     const assignee = t.assignee_id ? members.find((m: any) => m.user?.id === t.assignee_id)?.user : null;
                     return (
-                      <div 
-                        key={t.id} 
+                      <div
+                        key={t.id}
                         onClick={() => openTaskDetailPanel(t.id)}
                         className={`border-b border-gray-100 border-l-2 pl-2 hover:bg-gray-50/80 transition-colors group cursor-pointer ${isSubtask ? 'ml-12 border-l-brand/50 bg-gray-50/30' : 'ml-6 border-l-gray-300'}`}
                       >
@@ -307,10 +307,10 @@ const TasksPage = () => {
                           <div className="w-[12%] flex items-center">
                             {assignee ? (
                               <div className="flex items-center space-x-1.5" title={assignee.name}>
-                                 <div className="w-6 h-6 rounded-full bg-blue-100 text-blue-700 font-bold text-[9px] flex items-center justify-center shrink-0 border border-white shadow-sm">
-                                   {assignee.name.split(' ').map(n => n[0]).join('')}
-                                 </div>
-                                 <span className="text-[11px] truncate max-w-[80px]">{assignee.name}</span>
+                                <div className="w-6 h-6 rounded-full bg-blue-100 text-blue-700 font-bold text-[9px] flex items-center justify-center shrink-0 border border-white shadow-sm">
+                                  {assignee.name.split(' ').map(n => n[0]).join('')}
+                                </div>
+                                <span className="text-[11px] truncate max-w-[80px]">{assignee.name}</span>
                               </div>
                             ) : (
                               <UserPlus size={14} className="text-gray-400 hover:text-gray-600 border border-dashed border-gray-300 rounded-full w-6 h-6 p-1" />
@@ -318,9 +318,9 @@ const TasksPage = () => {
                           </div>
                           <div className="w-[12%]">
                             {t.due_date ? (
-                              <div className={`flex items-center space-x-1.5 ${new Date(t.due_date) < new Date(new Date().setHours(0,0,0,0)) && !['done', 'Completed', 'Work Done'].includes(t.status) ? 'text-red-500' : 'text-gray-500'}`}>
-                                 <Calendar size={14} />
-                                 <span className="text-[12px]">{new Date(t.due_date).toLocaleDateString([], { month: 'short', day: 'numeric' })}</span>
+                              <div className={`flex items-center space-x-1.5 ${new Date(t.due_date) < new Date(new Date().setHours(0, 0, 0, 0)) && !['done', 'Completed', 'Work Done'].includes(t.status) ? 'text-red-500' : 'text-gray-500'}`}>
+                                <Calendar size={14} />
+                                <span className="text-[12px]">{new Date(t.due_date).toLocaleDateString([], { month: 'short', day: 'numeric' })}</span>
                               </div>
                             ) : (
                               <Calendar size={14} className="text-gray-300 hover:text-gray-500" />
@@ -333,7 +333,7 @@ const TasksPage = () => {
                                 <span className="text-[12px] font-medium">{t.priority}</span>
                               </div>
                             ) : (
-                               <Flag size={14} className="text-gray-300 hover:text-gray-500" />
+                              <Flag size={14} className="text-gray-300 hover:text-gray-500" />
                             )}
                           </div>
                           <div className="w-[12%]">
@@ -344,12 +344,12 @@ const TasksPage = () => {
                           </div>
                           <div className="w-[12%]">
                             {taskComments.length > 0 ? (
-                               <div className="flex items-center space-x-1 text-gray-500 hover:text-gray-700">
-                                 <MessageSquare size={14} className={taskComments.some(c => !c.resolved) ? 'text-brand fill-brand/10' : ''} />
-                                 <span className="text-xs font-medium">{taskComments.length}</span>
-                               </div>
+                              <div className="flex items-center space-x-1 text-gray-500 hover:text-gray-700">
+                                <MessageSquare size={14} className={taskComments.some(c => !c.resolved) ? 'text-brand fill-brand/10' : ''} />
+                                <span className="text-xs font-medium">{taskComments.length}</span>
+                              </div>
                             ) : (
-                               <MessageSquare size={14} className="text-gray-300 hover:text-gray-500" />
+                              <MessageSquare size={14} className="text-gray-300 hover:text-gray-500" />
                             )}
                           </div>
                           <div className="w-6"></div>
@@ -369,7 +369,7 @@ const TasksPage = () => {
                 })}
 
                 {/* Add Task Row */}
-                <div 
+                <div
                   onClick={(e) => { e.stopPropagation(); openCreateTaskModal(); }}
                   className="border-l-2 border-l-gray-300 ml-6 pl-2 group cursor-text hover:bg-gray-50"
                 >
@@ -383,7 +383,7 @@ const TasksPage = () => {
               </div>
             );
           })}
-          
+
           {/* New Status Button */}
           <div className="mt-6 px-6 pb-12">
             <button className="flex items-center space-x-2 text-gray-400 hover:text-gray-700 transition-colors text-xs font-medium">

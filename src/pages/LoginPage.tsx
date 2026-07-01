@@ -7,7 +7,11 @@ const LoginPage = () => {
   const [isLogin, setIsLogin] = useState(true);
   const [email, setEmail] = useState('');
   const [password, setPassword] = useState('');
-  const [confirmPassword, setConfirmPassword] = useState('');
+  const [loginMode, setLoginMode] = useState<'workflow' | 'attendance'>('workflow');
+  
+  useEffect(() => {
+    localStorage.setItem('loginRedirectMode', loginMode);
+  }, [loginMode]);
   
   const [name, setName] = useState('');
   const [companyName, setCompanyName] = useState('');
@@ -235,6 +239,40 @@ const LoginPage = () => {
           )}
 
           <form className="space-y-5" onSubmit={handleSubmit}>
+            {isLogin && (
+              <div className="space-y-2">
+                <label className="block text-xs font-semibold text-gray-500 uppercase tracking-wider">
+                  Select Login Mode
+                </label>
+                <div className="grid grid-cols-2 gap-4">
+                  <button
+                    type="button"
+                    onClick={() => setLoginMode('workflow')}
+                    className={`flex flex-col items-center justify-center p-3 rounded-xl border text-center transition-all ${
+                      loginMode === 'workflow'
+                        ? 'border-brand bg-brand/5 text-brand shadow-sm ring-1 ring-brand font-semibold'
+                        : 'border-gray-200 hover:bg-gray-50 text-gray-500 font-medium'
+                    }`}
+                  >
+                    <Briefcase size={18} className={loginMode === 'workflow' ? 'text-brand' : 'text-gray-400'} />
+                    <span className="text-xs mt-1.5">Workflow Mode</span>
+                  </button>
+                  <button
+                    type="button"
+                    onClick={() => setLoginMode('attendance')}
+                    className={`flex flex-col items-center justify-center p-3 rounded-xl border text-center transition-all ${
+                      loginMode === 'attendance'
+                        ? 'border-[#7e22ce] bg-[#7e22ce]/5 text-[#7e22ce] shadow-sm ring-1 ring-[#7e22ce] font-semibold'
+                        : 'border-gray-200 hover:bg-gray-50 text-gray-500 font-medium'
+                    }`}
+                  >
+                    <Shield size={18} className={loginMode === 'attendance' ? 'text-[#7e22ce]' : 'text-gray-400'} />
+                    <span className="text-xs mt-1.5">Attendance Mode</span>
+                  </button>
+                </div>
+              </div>
+            )}
+
             <div>
               <label htmlFor="email-address" className="block text-sm font-medium text-gray-700 mb-1.5">
                 Email address

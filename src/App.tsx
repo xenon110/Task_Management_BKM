@@ -41,7 +41,14 @@ function App() {
       <Routes>
         <Route 
           path="/login" 
-          element={!isAuthenticated ? <LoginPage /> : <Navigate to="/" />} 
+          element={!isAuthenticated ? <LoginPage /> : <Navigate to={(() => {
+            const mode = localStorage.getItem('loginRedirectMode');
+            if (mode === 'attendance') {
+              localStorage.removeItem('loginRedirectMode');
+              return '/attendance';
+            }
+            return '/';
+          })()} />} 
         />
         
         <Route 
