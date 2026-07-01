@@ -314,9 +314,9 @@ const AttendancePage = () => {
   return (
     <div className="flex flex-col h-full bg-[#f8f9fa] text-gray-800 text-sm overflow-hidden w-full">
       {/* Header */}
-      <div className="bg-white border-b border-gray-200 shrink-0 z-10 px-8 py-5 flex items-center justify-between">
+      <div className="bg-white border-b border-gray-200 shrink-0 z-10 px-4 md:px-8 py-4 md:py-5 flex flex-col md:flex-row md:items-center justify-between gap-4">
         <div className="flex items-center space-x-3">
-          <div className="w-9 h-9 bg-brand text-white rounded-lg flex items-center justify-center shadow-sm">
+          <div className="w-9 h-9 bg-brand text-white rounded-lg flex items-center justify-center shadow-sm flex-shrink-0">
             <Clock size={18} />
           </div>
           <div>
@@ -326,29 +326,29 @@ const AttendancePage = () => {
         </div>
 
         {/* Navigation Tabs */}
-        <div className="flex space-x-2 bg-gray-100 p-1 rounded-lg">
+        <div className="flex space-x-2 bg-gray-100 p-1 rounded-lg overflow-x-auto whitespace-nowrap max-w-full scrollbar-none">
           <button 
             onClick={() => setActiveTab('clock')}
-            className={`px-4 py-1.5 text-xs font-semibold rounded-md transition-all ${activeTab === 'clock' ? 'bg-white text-gray-900 shadow-sm' : 'text-gray-500 hover:text-gray-900'}`}
+            className={`px-4 py-1.5 text-xs font-semibold rounded-md transition-all flex-shrink-0 ${activeTab === 'clock' ? 'bg-white text-gray-900 shadow-sm' : 'text-gray-500 hover:text-gray-900'}`}
           >
             Clock In/Out
           </button>
           <button 
             onClick={() => setActiveTab('history')}
-            className={`px-4 py-1.5 text-xs font-semibold rounded-md transition-all ${activeTab === 'history' ? 'bg-white text-gray-900 shadow-sm' : 'text-gray-500 hover:text-gray-900'}`}
+            className={`px-4 py-1.5 text-xs font-semibold rounded-md transition-all flex-shrink-0 ${activeTab === 'history' ? 'bg-white text-gray-900 shadow-sm' : 'text-gray-500 hover:text-gray-900'}`}
           >
             History Logs
           </button>
           <button 
             onClick={() => setActiveTab('analytics')}
-            className={`px-4 py-1.5 text-xs font-semibold rounded-md transition-all ${activeTab === 'analytics' ? 'bg-white text-gray-900 shadow-sm' : 'text-gray-500 hover:text-gray-900'}`}
+            className={`px-4 py-1.5 text-xs font-semibold rounded-md transition-all flex-shrink-0 ${activeTab === 'analytics' ? 'bg-white text-gray-900 shadow-sm' : 'text-gray-500 hover:text-gray-900'}`}
           >
             My Analytics
           </button>
           {isAdmin && (
             <button 
               onClick={() => setActiveTab('admin')}
-              className={`px-4 py-1.5 text-xs font-semibold rounded-md transition-all ${activeTab === 'admin' ? 'bg-white text-gray-900 shadow-sm' : 'text-gray-500 hover:text-gray-900'}`}
+              className={`px-4 py-1.5 text-xs font-semibold rounded-md transition-all flex-shrink-0 ${activeTab === 'admin' ? 'bg-white text-gray-900 shadow-sm' : 'text-gray-500 hover:text-gray-900'}`}
             >
               Admin Controls
             </button>
