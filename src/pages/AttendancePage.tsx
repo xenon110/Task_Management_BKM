@@ -147,11 +147,21 @@ const AttendancePage = () => {
     const absentCountMonthly = Math.max(0, totalWorkingDaysMonthly - presentCountMonthly - leaveCountMonthly);
     const monthlyRate = totalWorkingDaysMonthly > 0 ? ((presentCountMonthly + leaveCountMonthly) / totalWorkingDaysMonthly) * 100 : 0;
 
-    const totalWorkingDaysYearly = Math.max(yearlyRecords.length, 260); // Standard year days
+    const TOTAL_LEAVES_ALLOWED = 15;
     const presentCountYearly = yearlyRecords.filter(r => r.status === 'Present').length;
     const leaveCountYearly = yearlyRecords.filter(r => r.status === 'Leave').length;
-    const absentCountYearly = Math.max(0, totalWorkingDaysYearly - presentCountYearly - leaveCountYearly);
-    const yearlyRate = totalWorkingDaysYearly > 0 ? ((presentCountYearly + leaveCountYearly) / totalWorkingDaysYearly) * 100 : 0;
+    const rawAbsentCountYearly = yearlyRecords.filter(r => r.status === 'Absent').length;
+
+    const paidLeavesYearly = Math.min(leaveCountYearly, TOTAL_LEAVES_ALLOWED);
+    const unpaidLeavesYearly = Math.max(0, leaveCountYearly - TOTAL_LEAVES_ALLOWED);
+
+    const absentCountYearly = rawAbsentCountYearly + unpaidLeavesYearly;
+    const rawTotalWorkingDaysYearly = Math.max(yearlyRecords.length, 260);
+    const totalWorkingDaysYearly = Math.max(0, rawTotalWorkingDaysYearly - TOTAL_LEAVES_ALLOWED); // 245 expected working days
+
+    const yearlyRate = totalWorkingDaysYearly > 0 
+      ? Math.min(100, (presentCountYearly / totalWorkingDaysYearly) * 100) 
+      : 100;
 
     // Averages (Login / Logout / Lunch Late)
     let loginMinutesSum = 0;
@@ -759,7 +769,7 @@ const AttendancePage = () => {
 
                 <div className="bg-white rounded-xl shadow-sm border border-gray-200 p-5">
                   <span className="text-xs font-semibold text-gray-400">Cumulative Leaves</span>
-                  <p className="text-xl font-bold text-orange-500 mt-1">{userStats.yearly.leave}</p>
+                  <p className="text-xl font-bold text-orange-500 mt-1">{userStats.yearly.leave} / 15</p>
                 </div>
 
                 <div className="bg-white rounded-xl shadow-sm border border-gray-200 p-5">
