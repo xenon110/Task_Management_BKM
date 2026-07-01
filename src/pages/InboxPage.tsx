@@ -33,14 +33,50 @@ const InboxPage = () => {
     return `${Math.floor(hours / 24)} day${Math.floor(hours / 24) > 1 ? 's' : ''} ago`;
   };
 
-  const activeNotifications = activeTab === 'cleared' 
-    ? notifications.filter(n => n.read)
-    : activeTab === 'important' || activeTab === 'starred'
-    ? notifications.filter(n => !n.read || n.starred)
-    : notifications.filter(n => !n.read);
-    
-  const unreadCount = notifications.filter(n => !n.read).length;
-  const clearedCount = notifications.filter(n => n.read).length;
+  const [snoozedIds, setSnoozedIds] = useState<string[]>(() => {
+    const local = localStorage.getItem('snoozed_notification_ids');
+    return local ? JSON.parse(local) : [];
+  });
+
+  const toggleSnooze = (id: string) => {
+    setSnoozedIds(prev => {
+      const updated = prev.includes(id) ? prev.filter(x => x !== id) : [...prev, id];
+      localStorage.setItem('snoozed_notification_ids', JSON.stringify(updated));
+      return updated;
+    });
+  };
+
+  const isSnoozed = (id: string) => snoozedIds.includes(id);
+
+  // Divide notifications dynamically
+  const importantTypes = ['task_assigned', 'deadline_reminder', 'invitation_accepted'];
+  const otherTypes = ['task_completed', 'task_comment'];
+
+  const snoozedNotifications = notifications.filter(n => isSnoozed(n.id));
+
+  const importantNotifications = notifications.filter(n => 
+    !isSnoozed(n.id) && 
+    !n.read && 
+    (importantTypes.includes(n.type) || !otherTypes.includes(n.type)) // default to important
+  );
+
+  const otherNotifications = notifications.filter(n => 
+    !isSnoozed(n.id) && 
+    !n.read && 
+    otherTypes.includes(n.type)
+  );
+
+  const clearedNotifications = notifications.filter(n => 
+    !isSnoozed(n.id) && 
+    n.read
+  );
+
+  // Get active list based on selected tab
+  const activeNotifications = 
+    activeTab === 'snoozed' ? snoozedNotifications :
+    activeTab === 'other' ? otherNotifications :
+    activeTab === 'cleared' ? clearedNotifications :
+    importantNotifications; // default to 'important'
 
   return (
     <div className="flex flex-col h-full bg-[#f8f9fa] text-gray-800 text-sm overflow-hidden w-full">
@@ -62,10 +98,10 @@ const InboxPage = () => {
           {/* Tabs */}
           <div className="flex px-2 pt-2 border-b border-gray-100 bg-[#fbfbfb]">
             {[
-              { id: 'important', label: 'Important', count: unreadCount },
-              { id: 'other', label: 'Other', count: 0 },
-              { id: 'snoozed', label: 'Snoozed', count: 0 },
-              { id: 'cleared', label: 'Cleared', count: clearedCount },
+              { id: 'important', label: 'Important', count: importantNotifications.length },
+              { id: 'other', label: 'Other', count: otherNotifications.length },
+              { id: 'snoozed', label: 'Snoozed', count: snoozedNotifications.length },
+              { id: 'cleared', label: 'Cleared', count: clearedNotifications.length },
             ].map(tab => (
               <button
                 key={tab.id}
@@ -140,6 +176,13 @@ const InboxPage = () => {
                           <Check size={16} />
                         </button>
                       )}
+                      <button 
+                        onClick={(e) => { e.stopPropagation(); toggleSnooze(notification.id); }} 
+                        className={`p-1.5 rounded-md transition-colors tooltip ${isSnoozed(notification.id) ? 'text-orange-500 hover:bg-orange-50/50' : 'text-gray-400 hover:text-orange-500 hover:bg-orange-50/50'}`}
+                        title={isSnoozed(notification.id) ? "Unsnooze" : "Snooze"}
+                      >
+                        <Clock size={16} />
+                      </button>
                       <button 
                         onClick={(e) => { e.stopPropagation(); deleteNotification(notification.id); }} 
                         className="p-1.5 text-gray-400 hover:text-red-600 hover:bg-red-50 rounded-md transition-colors tooltip" title="Delete"
