@@ -8,6 +8,7 @@ import { useAttendanceStore } from '../store/useAttendanceStore';
 import { useAuthStore } from '../store/useAuthStore';
 import { useWorkspaceStore } from '../store/useWorkspaceStore';
 import type { Attendance } from '../types';
+import emailjs from '@emailjs/browser';
 
 const AttendancePage = () => {
   const { records, loading, fetchRecords, markLogin, markLunchOut, markLunchIn, markLogout, markLeave } = useAttendanceStore();
@@ -297,13 +298,43 @@ ${employeeName}`;
     setLeaveRemark('');
   };
 
-  const handleSendEmail = (e: React.FormEvent) => {
+  const handleSendEmail = async (e: React.FormEvent) => {
     e.preventDefault();
     if (!emailFromDate || !emailToDate || !emailReason.trim()) {
       alert('Please fill in dates and reason.');
       return;
     }
     const subject = `Leave Request: ${currentUser?.name || 'Employee'} (${emailFromDate} to ${emailToDate})`;
+    
+    const serviceId = import.meta.env.VITE_EMAILJS_SERVICE_ID;
+    const publicKey = import.meta.env.VITE_EMAILJS_PUBLIC_KEY;
+    // Look for VITE_EMAILJS_LEAVE_TEMPLATE_ID or default to template_8406qye
+    const templateId = import.meta.env.VITE_EMAILJS_LEAVE_TEMPLATE_ID || 'template_8406qye';
+
+    if (serviceId && publicKey) {
+      try {
+        await emailjs.send(
+          serviceId,
+          templateId,
+          {
+            to_email: 'hr@bkmindustries.in',
+            subject: subject,
+            message: emailBody,
+            from_name: currentUser?.name || 'Employee'
+          },
+          publicKey
+        );
+        alert('Leave application email sent automatically in the background!');
+        setShowEmailModal(false);
+        setEmailFromDate('');
+        setEmailToDate('');
+        setEmailReason('');
+        return;
+      } catch (err) {
+        console.warn('Background EmailJS send failed, opening mail client as fallback...', err);
+      }
+    }
+
     const mailtoUrl = `mailto:hr@bkmindustries.in?subject=${encodeURIComponent(subject)}&body=${encodeURIComponent(emailBody)}`;
     window.location.href = mailtoUrl;
     setShowEmailModal(false);
