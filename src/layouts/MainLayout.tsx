@@ -18,6 +18,7 @@ import ProfileDropdown from '../components/ProfileDropdown';
 import { usePermissions } from '../hooks/usePermissions';
 
 const MainLayout = () => {
+  const [mobileMenuOpen, setMobileMenuOpen] = useState(false);
   const [sections, setSections] = useState({
     tasks: true
   });
@@ -27,6 +28,10 @@ const MainLayout = () => {
   };
   const { user, logout, activeWorkspace } = useAuthStore();
   const location = useLocation();
+
+  React.useEffect(() => {
+    setMobileMenuOpen(false);
+  }, [location.pathname]);
   const { openCreateTaskModal, openInviteModal } = useUiStore();
   const { canCreateTasks, canInviteUsers } = usePermissions();
   const { notifications } = useNotificationStore();
@@ -79,8 +84,18 @@ const MainLayout = () => {
 
   return (
     <div className="flex h-screen w-screen overflow-hidden bg-white text-gray-800 font-sans text-sm selection:bg-brand/20">
+      {/* Backdrop */}
+      {mobileMenuOpen && (
+        <div 
+          onClick={() => setMobileMenuOpen(false)}
+          className="fixed inset-0 bg-black/40 backdrop-blur-[1px] z-40 md:hidden animate-in fade-in duration-200"
+        />
+      )}
+
       {/* App Sidebar (Far Left) */}
-      <div className="w-[68px] bg-[#0A0A0A] text-white flex flex-col items-center py-4 border-r border-gray-800 z-20 flex-shrink-0">
+      <div className={`w-[68px] bg-[#0A0A0A] text-white flex flex-col items-center py-4 border-r border-gray-800 flex-shrink-0 transition-transform duration-200 z-50 fixed md:relative h-full ${
+        mobileMenuOpen ? 'translate-x-0' : '-translate-x-full md:translate-x-0'
+      }`}>
         <div className="w-8 h-8 rounded-lg bg-gradient-to-br from-[#FF007A] to-[#aa3bff] mb-6 flex items-center justify-center font-bold text-white shadow-lg cursor-pointer">
           C
         </div>
@@ -114,8 +129,16 @@ const MainLayout = () => {
 
       <div className="flex-1 flex flex-col min-w-0 bg-white">
         {/* Top Header */}
-        <header className="h-[48px] border-b border-gray-200 flex items-center justify-between px-4 bg-white flex-shrink-0 relative z-50">
+        <header className="h-[48px] border-b border-gray-200 flex items-center justify-between px-4 bg-white flex-shrink-0 relative z-20">
           <div className="flex items-center w-64 flex-shrink-0">
+            {/* Hamburger Button */}
+            <button 
+              onClick={() => setMobileMenuOpen(!mobileMenuOpen)}
+              className="md:hidden p-1.5 text-gray-500 hover:text-gray-700 hover:bg-gray-100 rounded-md transition-colors mr-2 flex-shrink-0"
+              aria-label="Toggle navigation menu"
+            >
+              {mobileMenuOpen ? <X size={18} /> : <Menu size={18} />}
+            </button>
             <button className="flex items-center space-x-2 hover:bg-gray-100 px-2 py-1.5 rounded-md transition-colors w-full text-left">
               <div className="w-5 h-5 bg-teal-600 text-white rounded text-xs flex items-center justify-center font-bold flex-shrink-0">
                 {user?.name ? user.name.charAt(0).toUpperCase() : 'M'}
@@ -147,7 +170,9 @@ const MainLayout = () => {
 
         <div className="flex-1 flex overflow-hidden">
           {/* Secondary Sidebar */}
-          <div className="w-[260px] bg-gray-50/50 border-r border-gray-200 flex flex-col flex-shrink-0">
+          <div className={`w-[260px] bg-gray-50/50 border-r border-gray-200 flex flex-col flex-shrink-0 fixed md:relative h-full top-0 left-0 z-50 transition-transform duration-200 ${
+            mobileMenuOpen ? 'translate-x-[68px]' : '-translate-x-full md:translate-x-0'
+          }`}>
             <div className="px-4 py-3 flex items-center justify-between group cursor-pointer hover:bg-gray-100/50 transition-colors">
               <h2 className="font-semibold text-[15px] text-gray-900">Home</h2>
               <button onClick={openCreateTaskModal} className="bg-gray-900 text-white px-2 py-1 rounded text-xs font-medium flex items-center hover:bg-black transition-colors shadow-sm">
