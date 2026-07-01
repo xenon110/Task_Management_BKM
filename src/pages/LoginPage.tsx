@@ -7,6 +7,7 @@ const LoginPage = () => {
   const [isLogin, setIsLogin] = useState(true);
   const [email, setEmail] = useState('');
   const [password, setPassword] = useState('');
+  const [confirmPassword, setConfirmPassword] = useState('');
   const [loginMode, setLoginMode] = useState<'workflow' | 'attendance'>('workflow');
   
   useEffect(() => {
