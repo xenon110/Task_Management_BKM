@@ -281,7 +281,9 @@ const LoginPage = () => {
                     />
                   </div>
                   <div className="col-span-2 sm:col-span-1">
-                    <label htmlFor="company" className="block text-sm font-medium text-gray-700 mb-1.5">Company Name</label>
+                    <label htmlFor="company" className="block text-sm font-medium text-gray-700 mb-1.5">
+                      {isInvited ? 'Invited Workspace' : 'Company Name'}
+                    </label>
                     <input
                       id="company" type="text"
                       readOnly={isInvited}
