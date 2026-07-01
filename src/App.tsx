@@ -45,7 +45,7 @@ function App() {
         
         <Route 
           path="/" 
-          element={isAuthenticated ? <MainLayout /> : <Navigate to="/login" />}
+          element={isAuthenticated ? <MainLayout /> : <Navigate to={`/login${window.location.search}`} replace />}
         >
           <Route index element={<DashboardPage />} />
           <Route path="tasks" element={<TasksPage />} />

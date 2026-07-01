@@ -202,7 +202,7 @@ export const useWorkspaceStore = create<WorkspaceState>((set, get) => ({
                 designation: designation || 'Member',
                 workspace_name: activeWorkspace?.name || 'Your Team Workspace',
                 inviter_name: 'BKM Industries Admin',
-                invite_link: `${window.location.origin}${queryParams}`,
+                invite_link: `${window.location.origin}/login${queryParams}`,
               },
               publicKey
             );
@@ -218,7 +218,7 @@ export const useWorkspaceStore = create<WorkspaceState>((set, get) => ({
             const { error: otpError } = await supabase.auth.signInWithOtp({
               email,
               options: {
-                emailRedirectTo: `${window.location.origin}${queryParams}`,
+                emailRedirectTo: `${window.location.origin}/login${queryParams}`,
                 data: {
                   workspace_name: activeWorkspace?.name || 'Your Team Workspace',
                   role,
