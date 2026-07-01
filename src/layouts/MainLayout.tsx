@@ -83,7 +83,7 @@ const MainLayout = () => {
   const overdueCount = tasks.filter(t => !t.archived && t.assignee_id === user?.id && t.due_date && new Date(t.due_date) < today && t.status !== 'done').length;
 
   return (
-    <div className="flex h-screen w-screen overflow-hidden bg-white text-gray-800 font-sans text-sm selection:bg-brand/20">
+    <div className="flex h-[100dvh] w-screen overflow-hidden bg-white text-gray-800 font-sans text-sm selection:bg-brand/20">
       {/* Backdrop */}
       {mobileMenuOpen && (
         <div 
@@ -93,7 +93,7 @@ const MainLayout = () => {
       )}
 
       {/* App Sidebar (Far Left) */}
-      <div className={`w-[68px] bg-[#0A0A0A] text-white flex flex-col items-center py-4 border-r border-gray-800 flex-shrink-0 transition-transform duration-200 z-50 fixed md:relative h-full ${
+      <div className={`w-[68px] bg-[#0A0A0A] text-white flex flex-col items-center py-4 border-r border-gray-800 flex-shrink-0 transition-transform duration-200 z-50 fixed md:relative inset-y-0 md:inset-auto md:h-full left-0 ${
         mobileMenuOpen ? 'translate-x-0' : '-translate-x-full md:translate-x-0'
       }`}>
         <div className="w-8 h-8 rounded-lg bg-gradient-to-br from-[#FF007A] to-[#aa3bff] mb-6 flex items-center justify-center font-bold text-white shadow-lg cursor-pointer">
@@ -170,7 +170,7 @@ const MainLayout = () => {
 
         <div className="flex-1 flex overflow-hidden">
           {/* Secondary Sidebar */}
-          <div className={`w-[260px] bg-gray-50/50 border-r border-gray-200 flex flex-col flex-shrink-0 fixed md:relative h-full top-0 left-0 z-50 transition-transform duration-200 ${
+          <div className={`w-[260px] bg-gray-50/50 border-r border-gray-200 flex flex-col flex-shrink-0 fixed md:relative inset-y-0 md:inset-auto md:h-full left-0 z-50 transition-transform duration-200 ${
             mobileMenuOpen ? 'translate-x-[68px]' : '-translate-x-full md:translate-x-0'
           }`}>
             <div className="px-4 py-3 flex items-center justify-between group cursor-pointer hover:bg-gray-100/50 transition-colors">
