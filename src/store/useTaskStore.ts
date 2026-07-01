@@ -209,7 +209,8 @@ export const useTaskStore = create<TaskState>((set, get) => ({
           created_by: userId,
           parent_task_id: data.id,
           archived: false,
-          order: index
+          order: index,
+          assignee_id: data.assignee_id || undefined
         }));
 
         if (subtasksToInsert.length > 0) {

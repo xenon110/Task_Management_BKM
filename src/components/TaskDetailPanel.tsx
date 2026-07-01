@@ -489,7 +489,8 @@ const TaskDetailPanel = () => {
                            list_id: task.list_id,
                            status: 'To Do',
                            priority: 'normal',
-                           parent_task_id: task.id
+                           parent_task_id: task.id,
+                           assignee_id: task.assignee_id || undefined
                          });
                          e.currentTarget.value = '';
                        }
