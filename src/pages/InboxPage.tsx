@@ -97,8 +97,13 @@ const InboxPage = () => {
                   return (
                   <div 
                     key={notification.id} 
-                    onClick={() => setSelectedNotificationId(notification.id)}
-                    className={`flex items-start p-4 hover:bg-gray-50 transition-colors group cursor-pointer border-b border-gray-100 last:border-0 ${!notification.read ? 'bg-white' : 'bg-[#fafafa]/50 opacity-80'} ${isSelected ? 'border-l-[3px] border-l-brand' : 'border-l-[3px] border-l-transparent'}`}
+                    onClick={() => {
+                      setSelectedNotificationId(notification.id);
+                      if (!notification.read) {
+                        markAsRead(notification.id);
+                      }
+                    }}
+                    className={`flex items-start p-4 hover:bg-gray-50 transition-colors group cursor-pointer border-b border-gray-100 last:border-0 ${!notification.read ? 'bg-white' : 'bg-gray-50/55'} ${isSelected ? 'border-l-[3px] border-l-brand' : 'border-l-[3px] border-l-transparent'}`}
                   >
                     <div className="mr-4 mt-1 flex items-center space-x-3">
                       <button 
@@ -114,14 +119,14 @@ const InboxPage = () => {
                     
                     <div className="flex-1 min-w-0 pr-4 flex items-center h-full pt-1">
                       <div className="flex-1 flex flex-col md:flex-row md:items-center justify-between min-w-0 gap-1 md:gap-4">
-                        <p className={`text-[13px] truncate ${!notification.read ? 'text-gray-900 font-bold' : 'text-gray-600 font-medium'}`}>
+                        <p className={`text-[13px] truncate ${!notification.read ? 'text-gray-900 font-bold' : 'text-gray-900 font-normal'}`}>
                           {notification.title}
                         </p>
-                        <p className={`text-[13px] truncate flex-1 ${!notification.read ? 'text-gray-800 font-semibold' : 'text-gray-500'}`}>
+                        <p className={`text-[13px] truncate flex-1 ${!notification.read ? 'text-gray-800 font-semibold' : 'text-gray-800 font-normal'}`}>
                           {notification.message}
                         </p>
-                        <span className={`text-[11px] whitespace-nowrap ml-2 ${!notification.read ? 'font-bold text-gray-700' : 'font-medium text-gray-400'}`}>
-                          {getRelativeTime(notification.created_at)}
+                        <span className={`text-[11px] whitespace-nowrap ml-2 ${!notification.read ? 'font-bold text-gray-700' : 'font-normal text-gray-500'}`}>
+                          {new Date(notification.created_at).toLocaleString([], { month: 'short', day: 'numeric', hour: '2-digit', minute: '2-digit' })}
                         </span>
                       </div>
                     </div>
