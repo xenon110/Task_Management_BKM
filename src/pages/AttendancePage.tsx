@@ -36,6 +36,17 @@ const AttendancePage = () => {
   const [emailToDate, setEmailToDate] = useState('');
   const [emailReason, setEmailReason] = useState('');
   const [emailBody, setEmailBody] = useState('');
+  const [lastAutoTemplate, setLastAutoTemplate] = useState('');
+
+  useEffect(() => {
+    if (showEmailModal) {
+      setEmailFromDate('');
+      setEmailToDate('');
+      setEmailReason('');
+      setEmailBody('');
+      setLastAutoTemplate('');
+    }
+  }, [showEmailModal]);
 
   useEffect(() => {
     const employeeName = currentUser?.name || 'Employee';
@@ -47,8 +58,13 @@ Please review and approve my request.
 
 Thanks & Regards,
 ${employeeName}`;
-    setEmailBody(bodyText);
-  }, [emailFromDate, emailToDate, emailReason, currentUser?.name, showEmailModal]);
+
+    // Overwrite only if the current body matches the last auto-generated template
+    if (emailBody === lastAutoTemplate || !emailBody) {
+      setEmailBody(bodyText);
+    }
+    setLastAutoTemplate(bodyText);
+  }, [emailFromDate, emailToDate, emailReason, currentUser?.name]);
 
   // Admin filter states
   const [adminSearch, setAdminSearch] = useState('');
