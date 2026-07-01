@@ -3,9 +3,11 @@ import { MessageSquare, Check, Filter, Search, Settings2, CheckCircle2 } from 'l
 import { useTaskStore } from '../store/useTaskStore';
 import { useAuthStore } from '../store/useAuthStore';
 import { useUiStore } from '../store/useUiStore';
+import { useWorkspaceStore } from '../store/useWorkspaceStore';
 
 const AssignedCommentsPage = () => {
-  const { comments, tasks, users, resolveComment, resolveAllComments } = useTaskStore();
+  const { comments, tasks, resolveComment, resolveAllComments } = useTaskStore();
+  const { members } = useWorkspaceStore();
   const { user } = useAuthStore();
   const { openTaskDetailPanel } = useUiStore();
   
@@ -71,7 +73,7 @@ const AssignedCommentsPage = () => {
                 </div>
               ) : (
                 activeComments.map(comment => {
-                  const author = users.find(u => u.id === comment.user_id);
+                  const author = members.find(m => m.user?.id === comment.user_id || m.user_id === comment.user_id)?.user;
                   const task = tasks.find(t => t.id === comment.task_id);
                   const authorName = author ? author.name : 'Unknown User';
                   
