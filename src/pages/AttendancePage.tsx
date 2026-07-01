@@ -2,7 +2,7 @@ import React, { useState, useEffect, useMemo } from 'react';
 import { 
   Clock, Calendar, Play, CheckCircle2, AlertCircle, FileSpreadsheet, 
   Search, Filter, Plus, LogOut, Coffee, ArrowRight, UserCheck, X, RefreshCw,
-  TrendingUp, Award, Activity
+  TrendingUp, Award, Activity, Mail
 } from 'lucide-react';
 import { useAttendanceStore } from '../store/useAttendanceStore';
 import { useAuthStore } from '../store/useAuthStore';
@@ -28,6 +28,26 @@ const AttendancePage = () => {
   const [leaveStartDate, setLeaveStartDate] = useState('');
   const [leaveEndDate, setLeaveEndDate] = useState('');
   const [leaveRemark, setLeaveRemark] = useState('');
+
+  // Email Leave request modal state
+  const [showEmailModal, setShowEmailModal] = useState(false);
+  const [emailFromDate, setEmailFromDate] = useState('');
+  const [emailToDate, setEmailToDate] = useState('');
+  const [emailReason, setEmailReason] = useState('');
+  const [emailBody, setEmailBody] = useState('');
+
+  useEffect(() => {
+    const employeeName = currentUser?.name || 'Employee';
+    const bodyText = `Respected HR,
+
+I am writing to formally request leave from ${emailFromDate || '[Start Date]'} to ${emailToDate || '[End Date]'} due to ${emailReason || '[Reason details]'}.
+
+Please review and approve my request.
+
+Thanks & Regards,
+${employeeName}`;
+    setEmailBody(bodyText);
+  }, [emailFromDate, emailToDate, emailReason, currentUser?.name, showEmailModal]);
 
   // Admin filter states
   const [adminSearch, setAdminSearch] = useState('');
@@ -277,6 +297,21 @@ const AttendancePage = () => {
     setLeaveRemark('');
   };
 
+  const handleSendEmail = (e: React.FormEvent) => {
+    e.preventDefault();
+    if (!emailFromDate || !emailToDate || !emailReason.trim()) {
+      alert('Please fill in dates and reason.');
+      return;
+    }
+    const subject = `Leave Request: ${currentUser?.name || 'Employee'} (${emailFromDate} to ${emailToDate})`;
+    const mailtoUrl = `mailto:hr@bkmindustries.in?subject=${encodeURIComponent(subject)}&body=${encodeURIComponent(emailBody)}`;
+    window.location.href = mailtoUrl;
+    setShowEmailModal(false);
+    setEmailFromDate('');
+    setEmailToDate('');
+    setEmailReason('');
+  };
+
   // CSV Export utility
   const handleCSVExport = () => {
     const csvHeaders = [
@@ -379,8 +414,14 @@ const AttendancePage = () => {
               
               <div className="flex items-center space-x-2 text-xs">
                 <button 
+                  onClick={() => setShowEmailModal(true)}
+                  className="px-3 py-1.5 bg-[#aa3bff] hover:opacity-95 text-white font-semibold rounded-lg shadow-sm transition-opacity flex items-center h-8"
+                >
+                  <Mail size={13} className="mr-1.5" /> Apply for Leave
+                </button>
+                <button 
                   onClick={() => fetchRecords()}
-                  className="p-2 border border-gray-200 rounded-lg bg-gray-50 hover:bg-gray-100 text-gray-600 transition-colors flex items-center"
+                  className="p-2 border border-gray-200 rounded-lg bg-gray-50 hover:bg-gray-100 text-gray-600 transition-colors flex items-center h-8"
                   title="Refresh"
                 >
                   <RefreshCw size={14} className={loading ? 'animate-spin' : ''} />
@@ -1054,6 +1095,105 @@ const AttendancePage = () => {
                 </div>
               </form>
             </div>
+          </div>
+        </div>
+      )}
+
+      {/* Compose Leave Email Modal */}
+      {showEmailModal && (
+        <div className="fixed inset-0 bg-black/50 backdrop-blur-xs flex items-center justify-center p-4 z-50 animate-in fade-in duration-200">
+          <div className="bg-white rounded-xl shadow-2xl border border-gray-100 max-w-lg w-full overflow-hidden flex flex-col transform transition-all animate-in zoom-in-95 duration-200">
+            {/* Header: Styled like a mail draft header */}
+            <div className="bg-gray-900 text-white px-5 py-3.5 flex items-center justify-between">
+              <div className="flex items-center space-x-2">
+                <Mail size={16} className="text-gray-400" />
+                <span className="text-xs font-bold tracking-wide uppercase">New Message: Leave Application</span>
+              </div>
+              <button 
+                onClick={() => setShowEmailModal(false)}
+                className="p-1 hover:bg-gray-800 rounded text-gray-400 hover:text-white transition-colors"
+              >
+                <X size={16} />
+              </button>
+            </div>
+
+            <form onSubmit={handleSendEmail} className="p-5 flex flex-col space-y-4">
+              {/* Mail Header fields */}
+              <div className="space-y-2.5 pb-3 border-b border-gray-100">
+                <div className="flex items-center text-xs">
+                  <span className="w-12 text-gray-400 font-medium">To:</span>
+                  <span className="px-2 py-0.5 bg-gray-100 border border-gray-200 rounded text-gray-700 font-semibold select-all">hr@bkmindustries.in</span>
+                </div>
+                <div className="flex items-center text-xs">
+                  <span className="w-12 text-gray-400 font-medium">Subject:</span>
+                  <span className="text-gray-600 font-medium truncate">
+                    {`Leave Request: ${currentUser?.name || 'Employee'} (${emailFromDate || 'From'} to ${emailToDate || 'To'})`}
+                  </span>
+                </div>
+              </div>
+
+              {/* Form Input fields */}
+              <div className="grid grid-cols-2 gap-4">
+                <div>
+                  <label className="block text-[11px] font-bold text-gray-500 uppercase mb-1">From Date</label>
+                  <input 
+                    type="date"
+                    required
+                    value={emailFromDate}
+                    onChange={(e) => setEmailFromDate(e.target.value)}
+                    className="w-full border border-gray-200 rounded-xl p-2.5 text-xs outline-none focus:border-brand focus:ring-1 focus:ring-brand"
+                  />
+                </div>
+                <div>
+                  <label className="block text-[11px] font-bold text-gray-500 uppercase mb-1">To Date</label>
+                  <input 
+                    type="date"
+                    required
+                    value={emailToDate}
+                    onChange={(e) => setEmailToDate(e.target.value)}
+                    className="w-full border border-gray-200 rounded-xl p-2.5 text-xs outline-none focus:border-brand focus:ring-1 focus:ring-brand"
+                  />
+                </div>
+              </div>
+
+              <div>
+                <label className="block text-[11px] font-bold text-gray-500 uppercase mb-1">Brief Reason</label>
+                <input 
+                  type="text"
+                  required
+                  placeholder="e.g. Medical Checkup, Out of Town"
+                  value={emailReason}
+                  onChange={(e) => setEmailReason(e.target.value)}
+                  className="w-full border border-gray-200 rounded-xl p-2.5 text-xs outline-none focus:border-brand focus:ring-1 focus:ring-brand"
+                />
+              </div>
+
+              <div>
+                <label className="block text-[11px] font-bold text-gray-500 uppercase mb-1">Email Body Draft</label>
+                <textarea 
+                  value={emailBody}
+                  onChange={(e) => setEmailBody(e.target.value)}
+                  required
+                  className="w-full border border-gray-200 rounded-xl p-3 text-xs outline-none focus:border-brand focus:ring-1 focus:ring-brand h-40 resize-none font-mono text-gray-700 leading-relaxed"
+                />
+              </div>
+
+              <div className="flex justify-end space-x-2 pt-2">
+                <button 
+                  type="button"
+                  onClick={() => setShowEmailModal(false)}
+                  className="px-4 py-2 bg-gray-100 hover:bg-gray-200 text-gray-700 text-xs font-semibold rounded-lg transition-colors"
+                >
+                  Discard
+                </button>
+                <button 
+                  type="submit"
+                  className="px-4 py-2 bg-[#aa3bff] text-white text-xs font-bold rounded-lg hover:opacity-90 transition-opacity flex items-center shadow-sm"
+                >
+                  <Mail size={13} className="mr-1.5" /> Send Application
+                </button>
+              </div>
+            </form>
           </div>
         </div>
       )}
