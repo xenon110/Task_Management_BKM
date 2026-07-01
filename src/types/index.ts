@@ -160,3 +160,21 @@ export interface ActivityLog {
   new_values?: Record<string, any>;
   created_at: string;
 }
+
+export interface Attendance {
+  id: string;
+  user_id: string;
+  employee_name: string;
+  date: string;
+  login_time?: string;
+  lunch_out_time?: string;
+  lunch_in_time?: string;
+  logout_time?: string;
+  lunch_duration?: string;
+  late_after_lunch?: string;
+  total_working_hours?: string;
+  status: 'Present' | 'Absent' | 'Leave';
+  leave_remark?: string;
+  created_at?: string;
+  updated_at?: string;
+}

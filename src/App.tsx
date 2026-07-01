@@ -21,6 +21,7 @@ import CreateTaskModal from './components/CreateTaskModal';
 import TaskDetailPanel from './components/TaskDetailPanel';
 import CreateGoalModal from './components/CreateGoalModal';
 import InviteMemberModal from './components/InviteMemberModal';
+import AttendancePage from './pages/AttendancePage';
 
 import { useEffect } from 'react';
 
@@ -56,6 +57,7 @@ function App() {
           <Route path="profile" element={<ProfilePage />} />
           <Route path="settings" element={<SettingsPage />} />
           <Route path="teams" element={<TeamsPage />} />
+          <Route path="attendance" element={<AttendancePage />} />
           <Route path="inbox" element={<InboxPage />} />
           <Route path="comments" element={<AssignedCommentsPage />} />
           <Route path="spaces" element={<ProjectListPage />} />

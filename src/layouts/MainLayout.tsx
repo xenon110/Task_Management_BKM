@@ -12,7 +12,7 @@ import {
   Home, Calendar, Zap, Users, Grid, Settings, 
   Inbox, Reply, MessageSquare, User, MoreHorizontal,
   Plus, ChevronRight, ChevronDown, Hash, Target, Search, Bell, HelpCircle,
-  Menu, X, Sparkles, CheckSquare, Check, Kanban, Mail
+  Menu, X, Sparkles, CheckSquare, Check, Kanban, Mail, Clock
 } from 'lucide-react';
 import ProfileDropdown from '../components/ProfileDropdown';
 import { usePermissions } from '../hooks/usePermissions';
@@ -91,6 +91,7 @@ const MainLayout = () => {
           <Link to="/teams" className="w-full"><SidebarIcon icon={<Users size={22} strokeWidth={1.5} />} label="Teams" active={location.pathname === '/teams'} /></Link>
           <Link to="/goals" className="w-full"><SidebarIcon icon={<Target size={22} strokeWidth={1.5} />} label="Goals" active={location.pathname === '/goals'} /></Link>
           <Link to="/spaces" className="w-full"><SidebarIcon icon={<Kanban size={22} strokeWidth={1.5} />} label="Spaces" active={location.pathname === '/spaces'} /></Link>
+          <Link to="/attendance" className="w-full"><SidebarIcon icon={<Clock size={22} strokeWidth={1.5} />} label="Attendance" active={location.pathname === '/attendance'} /></Link>
         </div>
 
         <div className="mt-auto flex flex-col space-y-4 w-full mb-2">
