@@ -267,7 +267,7 @@ const PlannerPage = () => {
 
       {/* Main Calendar Area */}
       <div className="flex-1 flex flex-col min-w-0">
-        <div className="flex items-center justify-between px-8 py-5 bg-white border-b border-gray-200 shrink-0 shadow-sm z-0">
+        <div className="flex flex-col sm:flex-row sm:items-center justify-between px-4 md:px-8 py-4 md:py-5 gap-4 bg-white border-b border-gray-200 shrink-0 shadow-sm z-0">
           <div className="flex items-center space-x-2 text-gray-600">
             <CalendarIcon size={18} className="text-[#aa3bff]" />
             <span className="font-bold text-gray-900 text-[15px]">Planner</span>

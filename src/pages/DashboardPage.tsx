@@ -88,7 +88,7 @@ const DashboardPage = () => {
   return (
     <div className="flex flex-col h-full bg-[#f8f9fa] text-gray-800 text-sm overflow-hidden w-full">
       {/* Dynamic Header */}
-      <div className="bg-white border-b border-gray-200 shrink-0 z-10 px-8 py-4 flex items-center justify-between shadow-sm">
+      <div className="bg-white border-b border-gray-200 shrink-0 z-10 px-4 md:px-8 py-4 flex flex-col sm:flex-row sm:items-center justify-between gap-4 shadow-sm">
         <div>
           <h1 className="text-xl font-bold text-gray-900 tracking-tight flex items-center">
             <Activity className="mr-2 text-brand" size={22} /> Workspace Live Dashboard

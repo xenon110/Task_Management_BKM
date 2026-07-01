@@ -116,7 +116,7 @@ const ProjectsPage = () => {
   return (
     <div className="flex flex-col h-full bg-white text-gray-800 font-sans selection:bg-brand/20 w-full overflow-hidden">
       {/* Header */}
-      <div className="px-6 py-4 border-b border-gray-200 bg-white flex items-center justify-between shrink-0">
+      <div className="px-4 md:px-6 py-4 border-b border-gray-200 bg-white flex flex-col sm:flex-row sm:items-center justify-between gap-4 shrink-0">
         <h1 className="text-xl font-semibold flex items-center space-x-2">
           <span className="text-gray-900">{currentProject?.name || 'Space Tracking'}</span>
           <span className="bg-brand/10 text-brand px-2 py-0.5 rounded-full text-xs border border-brand/20">Beta</span>
