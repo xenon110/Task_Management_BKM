@@ -425,8 +425,8 @@ const AttendancePage = () => {
                   )}
                 </div>
                 <div>
-                  <h3 className="font-bold text-gray-900 text-sm">2. Out for Lunch</h3>
-                  <p className="text-[11px] text-gray-400 mt-1">Standard break duration: 1 hour.</p>
+                  <h3 className="font-bold text-gray-900 text-sm">2. Lunch Out</h3>
+                  <p className="text-[11px] text-gray-400 mt-1">when the employee leaves for lunch.</p>
                 </div>
                 <div>
                   {todayRecord?.lunch_out_time ? (
@@ -437,7 +437,7 @@ const AttendancePage = () => {
                       disabled={!clockState.canLunchOut}
                       className="w-full py-1.5 bg-orange-500 text-white text-xs font-bold rounded-lg hover:opacity-90 disabled:opacity-30 transition-opacity"
                     >
-                      Out for Lunch
+                      Lunch Out
                     </button>
                   )}
                 </div>
@@ -457,8 +457,8 @@ const AttendancePage = () => {
                   )}
                 </div>
                 <div>
-                  <h3 className="font-bold text-gray-900 text-sm">3. Back from Lunch</h3>
-                  <p className="text-[11px] text-gray-400 mt-1">Calculates lunch late durations.</p>
+                  <h3 className="font-bold text-gray-900 text-sm">3. Lunch In</h3>
+                  <p className="text-[11px] text-gray-400 mt-1">when the employee returns from lunch.</p>
                 </div>
                 <div>
                   {todayRecord?.lunch_in_time ? (
@@ -469,7 +469,7 @@ const AttendancePage = () => {
                       disabled={!clockState.canLunchIn}
                       className="w-full py-1.5 bg-orange-600 text-white text-xs font-bold rounded-lg hover:opacity-90 disabled:opacity-30 transition-opacity"
                     >
-                      Back from Lunch
+                      Lunch In
                     </button>
                   )}
                 </div>
