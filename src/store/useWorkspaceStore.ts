@@ -141,9 +141,10 @@ export const useWorkspaceStore = create<WorkspaceState>((set, get) => ({
     try {
       const activeWs = get().workspaces[0] || useAuthStore.getState().activeWorkspace;
       const workspaceId = activeWs?.id || '00000000-0000-0000-0000-000000000010';
+      const cleanEmail = email.trim().toLowerCase();
 
       // Ensure they aren't already a member
-      const { data: userData } = await supabase.from('users').select('id').eq('email', email).single();
+      const { data: userData } = await supabase.from('users').select('id').eq('email', cleanEmail).single();
       if (userData) {
         const existingMember = get().members.find(m => m.user_id === userData.id);
         if (existingMember) {
@@ -155,7 +156,7 @@ export const useWorkspaceStore = create<WorkspaceState>((set, get) => ({
       // Insert into pending_invites
       const newInvite: any = {
         workspace_id: workspaceId,
-        email,
+        email: cleanEmail,
         role
       };
       if (designation) newInvite.designation = designation;
@@ -178,7 +179,7 @@ export const useWorkspaceStore = create<WorkspaceState>((set, get) => ({
         await supabase
           .from('pending_invites')
           .update({ role, designation })
-          .eq('email', email);
+          .eq('email', cleanEmail);
       }
         
         const activeWorkspace = activeWs;
@@ -188,7 +189,7 @@ export const useWorkspaceStore = create<WorkspaceState>((set, get) => ({
         const templateId = import.meta.env.VITE_EMAILJS_TEMPLATE_ID;
         const publicKey = import.meta.env.VITE_EMAILJS_PUBLIC_KEY;
 
-        const queryParams = `?email=${encodeURIComponent(email)}&role=${encodeURIComponent(role)}&designation=${encodeURIComponent(designation || '')}&company=${encodeURIComponent(activeWorkspace?.name || 'BKM Industries')}&mode=signup`;
+        const queryParams = `?email=${encodeURIComponent(cleanEmail)}&role=${encodeURIComponent(role)}&designation=${encodeURIComponent(designation || '')}&company=${encodeURIComponent(activeWorkspace?.name || 'BKM Industries')}&mode=signup`;
 
         let emailSent = false;
         if (serviceId && templateId && publicKey) {
@@ -197,7 +198,7 @@ export const useWorkspaceStore = create<WorkspaceState>((set, get) => ({
               serviceId,
               templateId,
               {
-                to_email: email,
+                to_email: cleanEmail,
                 role: role,
                 designation: designation || 'Member',
                 workspace_name: activeWorkspace?.name || 'Your Team Workspace',
@@ -216,7 +217,7 @@ export const useWorkspaceStore = create<WorkspaceState>((set, get) => ({
         if (!emailSent) {
           try {
             const { error: otpError } = await supabase.auth.signInWithOtp({
-              email,
+              email: cleanEmail,
               options: {
                 emailRedirectTo: `${window.location.origin}/login${queryParams}`,
                 data: {

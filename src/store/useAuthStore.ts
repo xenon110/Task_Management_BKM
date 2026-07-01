@@ -234,7 +234,7 @@ export const useAuthStore = create<AuthState>((set, get) => ({
       if (!publicUserExists) {
         await supabase.from('users').insert([{
           id: targetUserId,
-          email: email.trim(),
+          email: email.trim().toLowerCase(),
           name: additionalData?.name || email.split('@')[0],
           status: 'active',
           avatar_url: `https://ui-avatars.com/api/?name=${encodeURIComponent(additionalData?.name || email.split('@')[0])}&background=random`,
@@ -245,12 +245,12 @@ export const useAuthStore = create<AuthState>((set, get) => ({
       const { data: invite } = await supabase
         .from('pending_invites')
         .select('*')
-        .eq('email', email.trim())
+        .eq('email', email.trim().toLowerCase())
         .maybeSingle();
 
       // Build the update payload with all user details
       const userUpdate: Record<string, any> = {
-        email: email.trim(),
+        email: email.trim().toLowerCase(),
       };
       if (additionalData?.name) userUpdate.name = additionalData.name;
       if (additionalData?.company_name) userUpdate.company_name = additionalData.company_name;

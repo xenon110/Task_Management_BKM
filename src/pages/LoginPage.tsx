@@ -40,7 +40,7 @@ const LoginPage = () => {
       supabase
         .from('pending_invites')
         .select('*, workspace:workspaces(name)')
-        .eq('email', targetEmail.trim())
+        .eq('email', targetEmail.trim().toLowerCase())
         .maybeSingle()
         .then(({ data }) => {
           if (data) {
@@ -65,7 +65,7 @@ const LoginPage = () => {
   useEffect(() => {
     if (!isLogin && email && email.includes('@') && email.includes('.')) {
       const timer = setTimeout(async () => {
-        const targetEmail = email.trim();
+        const targetEmail = email.trim().toLowerCase();
         
         // 1. Check if account already exists
         const { data: existingUser } = await supabase
