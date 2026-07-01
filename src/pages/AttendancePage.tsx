@@ -372,7 +372,7 @@ const AttendancePage = () => {
                   }`}></span>
                   {clockState.status}
                 </h2>
-                <p className="text-xs text-gray-500 mt-1">Official Hours: <span className="font-semibold text-gray-700">10:05 AM - 06:00 PM</span></p>
+                <p className="text-xs text-gray-500 mt-1">Official Hours: <span className="font-semibold text-gray-700">10:05 AM - 07:00 PM</span></p>
               </div>
               
               <div className="flex items-center space-x-2 text-xs">
@@ -520,39 +520,42 @@ const AttendancePage = () => {
             </div>
 
             {/* Today's Math Dashboard */}
-            {todayRecord && todayRecord.status === 'Present' && (
-              <div className="bg-white rounded-xl shadow-sm border border-gray-200 p-6">
-                <h3 className="font-bold text-gray-950 text-[15px] mb-4 flex items-center">
-                  <Activity size={16} className="text-brand mr-2" /> Today's Calculations Summary
-                </h3>
-                <div className="grid grid-cols-1 sm:grid-cols-3 gap-6">
-                  
-                  <div className="bg-gray-50/50 border border-gray-100 p-4 rounded-xl">
-                    <span className="text-xs text-gray-400 font-semibold">Lunch break duration</span>
-                    <p className="text-lg font-bold text-gray-800 mt-1">{todayRecord.lunch_duration || '--'}</p>
-                  </div>
-                  
-                  <div className="bg-gray-50/50 border border-gray-100 p-4 rounded-xl">
-                    <span className="text-xs text-gray-400 font-semibold">Lunch delay status</span>
-                    <div className="mt-1">
-                      {todayRecord.late_after_lunch === 'On Time' ? (
-                        <span className="px-2.5 py-1 bg-green-100 text-green-700 rounded-full font-bold text-xs">On Time</span>
-                      ) : todayRecord.late_after_lunch ? (
-                        <span className="px-2.5 py-1 bg-yellow-100 text-yellow-700 rounded-full font-bold text-xs">Late: {todayRecord.late_after_lunch}</span>
-                      ) : (
-                        <span className="text-gray-500 font-medium text-sm">--</span>
-                      )}
-                    </div>
-                  </div>
-                  
-                  <div className="bg-gray-50/50 border border-gray-100 p-4 rounded-xl">
-                    <span className="text-xs text-gray-400 font-semibold">Total Net Working hours</span>
-                    <p className="text-lg font-bold text-gray-850 mt-1">{todayRecord.total_working_hours || '--'}</p>
-                  </div>
-
+            <div className="bg-white rounded-xl shadow-sm border border-gray-200 p-6">
+              <h3 className="font-bold text-gray-950 text-[15px] mb-4 flex items-center">
+                <Activity size={16} className="text-brand mr-2" /> Today's Calculations Summary
+              </h3>
+              <div className="grid grid-cols-1 sm:grid-cols-4 gap-6">
+                
+                <div className="bg-gray-50/50 border border-gray-100 p-4 rounded-xl">
+                  <span className="text-xs text-gray-400 font-semibold">Lunch break duration</span>
+                  <p className="text-lg font-bold text-gray-800 mt-1">{todayRecord?.lunch_duration || '--'}</p>
                 </div>
+                
+                <div className="bg-gray-50/50 border border-gray-100 p-4 rounded-xl">
+                  <span className="text-xs text-gray-400 font-semibold">Lunch delay status</span>
+                  <div className="mt-1">
+                    {todayRecord?.late_after_lunch === 'On Time' ? (
+                      <span className="px-2.5 py-1 bg-green-100 text-green-700 rounded-full font-bold text-xs">On Time</span>
+                    ) : todayRecord?.late_after_lunch ? (
+                      <span className="px-2.5 py-1 bg-yellow-100 text-yellow-700 rounded-full font-bold text-xs">Late: {todayRecord.late_after_lunch}</span>
+                    ) : (
+                      <span className="text-gray-500 font-medium text-sm">--</span>
+                    )}
+                  </div>
+                </div>
+                
+                <div className="bg-gray-50/50 border border-gray-100 p-4 rounded-xl">
+                  <span className="text-xs text-gray-400 font-semibold">Total Net Working hours</span>
+                  <p className="text-lg font-bold text-gray-850 mt-1">{todayRecord?.total_working_hours || '--'}</p>
+                </div>
+
+                <div className="bg-gray-50/50 border border-gray-100 p-4 rounded-xl">
+                  <span className="text-xs text-gray-400 font-semibold">Official Office Hours</span>
+                  <p className="text-lg font-bold text-purple-600 mt-1">10:05 AM - 07:00 PM</p>
+                </div>
+
               </div>
-            )}
+            </div>
 
           </div>
         )}
