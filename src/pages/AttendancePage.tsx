@@ -25,7 +25,8 @@ const AttendancePage = () => {
   // Leave modal state
   const [showLeaveModal, setShowLeaveModal] = useState(false);
   const [leaveEmployeeId, setLeaveEmployeeId] = useState('');
-  const [leaveDate, setLeaveDate] = useState('');
+  const [leaveStartDate, setLeaveStartDate] = useState('');
+  const [leaveEndDate, setLeaveEndDate] = useState('');
   const [leaveRemark, setLeaveRemark] = useState('');
 
   // Admin filter states
@@ -261,17 +262,18 @@ const AttendancePage = () => {
   // Handle marking leave
   const handleMarkLeave = async (e: React.FormEvent) => {
     e.preventDefault();
-    if (!leaveEmployeeId || !leaveDate || !leaveRemark.trim()) {
+    if (!leaveEmployeeId || !leaveStartDate || !leaveEndDate || !leaveRemark.trim()) {
       alert('Please fill in all leave fields.');
       return;
     }
     const emp = workspaceUsers.find(u => u?.id === leaveEmployeeId);
     if (!emp) return;
 
-    await markLeave(leaveEmployeeId, emp.name || emp.email.split('@')[0], leaveDate, leaveRemark);
+    await markLeave(leaveEmployeeId, emp.name || emp.email.split('@')[0], leaveStartDate, leaveEndDate, leaveRemark);
     setShowLeaveModal(false);
     setLeaveEmployeeId('');
-    setLeaveDate('');
+    setLeaveStartDate('');
+    setLeaveEndDate('');
     setLeaveRemark('');
   };
 
@@ -1001,15 +1003,27 @@ const AttendancePage = () => {
                   </select>
                 </div>
 
-                <div>
-                  <label className="block text-xs font-semibold text-gray-600 mb-1.5">Leave Date</label>
-                  <input 
-                    type="date"
-                    required
-                    value={leaveDate}
-                    onChange={(e) => setLeaveDate(e.target.value)}
-                    className="w-full border border-gray-200 rounded-xl p-2.5 text-xs outline-none focus:border-brand focus:ring-1 focus:ring-brand"
-                  />
+                <div className="grid grid-cols-2 gap-4">
+                  <div>
+                    <label className="block text-xs font-semibold text-gray-600 mb-1.5">From Date</label>
+                    <input 
+                      type="date"
+                      required
+                      value={leaveStartDate}
+                      onChange={(e) => setLeaveStartDate(e.target.value)}
+                      className="w-full border border-gray-200 rounded-xl p-2.5 text-xs outline-none focus:border-brand focus:ring-1 focus:ring-brand"
+                    />
+                  </div>
+                  <div>
+                    <label className="block text-xs font-semibold text-gray-600 mb-1.5">To Date</label>
+                    <input 
+                      type="date"
+                      required
+                      value={leaveEndDate}
+                      onChange={(e) => setLeaveEndDate(e.target.value)}
+                      className="w-full border border-gray-200 rounded-xl p-2.5 text-xs outline-none focus:border-brand focus:ring-1 focus:ring-brand"
+                    />
+                  </div>
                 </div>
 
                 <div>

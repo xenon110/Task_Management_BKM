@@ -11,7 +11,7 @@ interface AttendanceState {
   markLunchOut: () => Promise<void>;
   markLunchIn: () => Promise<void>;
   markLogout: () => Promise<void>;
-  markLeave: (userId: string, employeeName: string, date: string, remark: string) => Promise<void>;
+  markLeave: (userId: string, employeeName: string, startDate: string, endDate: string, remark: string) => Promise<void>;
 }
 
 const formatDuration = (ms: number): string => {
@@ -219,17 +219,28 @@ export const useAttendanceStore = create<AttendanceState>((set, get) => ({
     }
   },
 
-  markLeave: async (userId, employeeName, date, remark) => {
+  markLeave: async (userId, employeeName, startDate, endDate, remark) => {
     try {
+      const start = new Date(startDate);
+      const end = new Date(endDate);
+      const dates: string[] = [];
+      let current = new Date(start);
+      while (current <= end) {
+        dates.push(current.toISOString().split('T')[0]);
+        current.setDate(current.getDate() + 1);
+      }
+
+      const rows = dates.map(d => ({
+        user_id: userId,
+        employee_name: employeeName,
+        date: d,
+        status: 'Leave' as const,
+        leave_remark: remark
+      }));
+
       const { error } = await supabase
         .from('attendance')
-        .upsert([{
-          user_id: userId,
-          employee_name: employeeName,
-          date,
-          status: 'Leave' as const,
-          leave_remark: remark
-        }], { onConflict: 'user_id,date' });
+        .upsert(rows, { onConflict: 'user_id,date' });
 
       if (error) throw error;
 
