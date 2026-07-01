@@ -48,7 +48,9 @@ const TeamsPage = () => {
   }, []);
 
   // Calculate workloads
-  const memberWorkloads = globalUsers.map(user => {
+  const memberWorkloads = globalUsers
+    .filter(u => u.id === currentUser?.id)
+    .map(user => {
     // Count active tasks for this member
     const activeTasksCount = tasks.filter(t =>
       !t.archived &&
@@ -339,8 +341,10 @@ const TeamsPage = () => {
               <div className="w-16 h-16 bg-[#f3e8ff] rounded-full flex items-center justify-center mb-4">
                 <BarChart2 size={32} className="text-[#aa3bff]" />
               </div>
-              <h3 className="text-lg font-bold text-gray-900 mb-2">Team Workload Dashboard</h3>
-              <p className="text-gray-500 max-w-md text-sm mb-6">Track capacity, prevent burnout, and rebalance tasks across your team effortlessly.</p>
+              <h3 className="text-lg font-bold text-gray-900 mb-2">
+                {currentUser?.name ? `${currentUser.name} Workload Dashboard` : 'My Workload Dashboard'}
+              </h3>
+              <p className="text-gray-500 max-w-md text-sm mb-6">Track your capacity, prevent burnout, and manage your tasks effortlessly.</p>
 
               <div className="w-full max-w-2xl bg-gray-50 rounded-lg p-6 border border-gray-100 text-left">
                 <div className="mb-4 flex items-center justify-between text-xs font-semibold text-gray-500 uppercase tracking-wide">

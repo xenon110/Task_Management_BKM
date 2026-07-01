@@ -179,8 +179,6 @@ export const useWorkspaceStore = create<WorkspaceState>((set, get) => ({
           .from('pending_invites')
           .update({ role, designation })
           .eq('email', email);
-      } else {
-        set({ pendingInvites: [...get().pendingInvites, { ...newInvite, id: `temp-${Date.now()}` } as any] });
       }
         
         const activeWorkspace = activeWs;

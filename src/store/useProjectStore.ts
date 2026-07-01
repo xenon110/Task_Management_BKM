@@ -52,8 +52,8 @@ export const useProjectStore = create<ProjectState>((set, get) => ({
         error = fallback.error;
       }
 
-      if (error || !data || data.length === 0) {
-        // Filter local projects by membership too
+      if (error) {
+        // Query failed (e.g. network/auth error) - fallback to local cache
         const filtered = currentUserId
           ? initialProjects.filter((p: any) => {
             const members = p.members || [];
@@ -64,8 +64,10 @@ export const useProjectStore = create<ProjectState>((set, get) => ({
         return;
       }
 
+      const dbRows = data || [];
+
       // Map DB rows to Project objects, parsing members from the color column
-      const mapped = data.map((row: any) => ({
+      const mapped = dbRows.map((row: any) => ({
         ...row,
         members: parseMembersFromColor(row.color),
       }));
