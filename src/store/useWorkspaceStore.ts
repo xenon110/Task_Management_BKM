@@ -189,7 +189,8 @@ export const useWorkspaceStore = create<WorkspaceState>((set, get) => ({
       const templateId = import.meta.env.VITE_EMAILJS_TEMPLATE_ID;
       const publicKey = import.meta.env.VITE_EMAILJS_PUBLIC_KEY;
 
-      const queryParams = `?email=${encodeURIComponent(cleanEmail)}&role=${encodeURIComponent(role)}&designation=${encodeURIComponent(designation || '')}&company=${encodeURIComponent(activeWorkspace?.name || 'BKM Industries')}&mode=signup`;
+      const defaultCompany = import.meta.env.VITE_DEFAULT_COMPANY_NAME || 'BKM Industries';
+      const queryParams = `?email=${encodeURIComponent(cleanEmail)}&role=${encodeURIComponent(role)}&designation=${encodeURIComponent(designation || '')}&company=${encodeURIComponent(activeWorkspace?.name || defaultCompany)}&mode=signup`;
 
       let emailSent = false;
       if (serviceId && templateId && publicKey) {
@@ -202,7 +203,7 @@ export const useWorkspaceStore = create<WorkspaceState>((set, get) => ({
               role: role,
               designation: designation || 'Member',
               workspace_name: activeWorkspace?.name || 'Your Team Workspace',
-              inviter_name: 'BKM Industries Admin',
+              inviter_name: `${defaultCompany} Admin`,
               invite_link: `${window.location.origin}/login${queryParams}`,
             },
             publicKey
