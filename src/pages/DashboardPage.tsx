@@ -35,10 +35,10 @@ const DashboardPage = () => {
   const activeTasks = tasks.filter(t => !t.archived);
   const myTasks = activeTasks.filter(t => t.assignee_id === currentUserId);
   
-  const todoCount = activeTasks.filter(t => t.status === 'To Do' || t.status === 'to-do' || t.status === 'backlog').length;
-  const inProgressCount = activeTasks.filter(t => t.status === 'In Progress' || t.status === 'in-progress').length;
-  const reviewCount = activeTasks.filter(t => t.status === 'Under Review' || t.status === 'review').length;
-  const completedCount = activeTasks.filter(t => t.status === 'Completed' || t.status === 'done' || t.status === 'Work Done').length;
+  const todoCount = myTasks.filter(t => t.status === 'To Do' || t.status === 'to-do' || t.status === 'backlog').length;
+  const inProgressCount = myTasks.filter(t => t.status === 'In Progress' || t.status === 'in-progress').length;
+  const reviewCount = myTasks.filter(t => t.status === 'Under Review' || t.status === 'review').length;
+  const completedCount = myTasks.filter(t => t.status === 'Completed' || t.status === 'done' || t.status === 'Work Done').length;
   const unassignedCount = activeTasks.filter(t => !t.assignee_id).length;
 
   // Due Soon & Overdue
@@ -131,7 +131,7 @@ const DashboardPage = () => {
                 </div>
               </div>
               <div className="flex items-baseline justify-between">
-                <span className="text-3xl font-extrabold text-gray-900">{activeTasks.length}</span>
+                <span className="text-3xl font-extrabold text-gray-900">{myTasks.length}</span>
                 <span className="text-xs font-medium text-blue-600 bg-blue-50 px-2 py-0.5 rounded-full flex items-center">
                   {completedCount} Done <ChevronRight size={12} className="ml-0.5" />
                 </span>
