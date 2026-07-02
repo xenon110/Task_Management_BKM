@@ -2,6 +2,7 @@ import { create } from 'zustand';
 import type { User, Workspace } from '../types';
 import { supabase } from '../lib/supabase';
 import { useWorkspaceStore } from './useWorkspaceStore';
+import { useTaskStore } from './useTaskStore';
 
 interface AuthState {
   user: User | null;
@@ -321,6 +322,9 @@ export const useAuthStore = create<AuthState>((set, get) => ({
   },
 
   logout: async () => {
+    // Unsubscribe from task comments subscription if active
+    useTaskStore.getState().unsubscribeComments();
+    
     await supabase.auth.signOut();
     localStorage.removeItem('app_tasks');
     localStorage.removeItem('app_comments');

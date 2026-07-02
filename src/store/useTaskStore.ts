@@ -20,7 +20,12 @@ interface TaskState {
   resolveComment: (id: string) => Promise<void>;
   resolveAllComments: () => Promise<void>;
   assignUserToTask: (taskId: string, userId: string) => Promise<void>;
+  subscribeComments: () => void;
+  unsubscribeComments: () => void;
 }
+
+// Global reference for Supabase Realtime channel
+let commentsChannel: any = null;
 
 // Fallback user ID if none is found. Matches the seeded user in schema.sql.
 const DEFAULT_USER_ID = '00000000-0000-0000-0000-000000000001';
@@ -151,6 +156,7 @@ export const useTaskStore = create<TaskState>((set, get) => ({
       });
       localStorage.setItem('app_tasks', JSON.stringify(filtered));
       if (commentsRes.data) localStorage.setItem('app_comments', JSON.stringify(commentsRes.data));
+      get().subscribeComments();
     } catch (error) {
       console.error('Error initializing task data:', error);
       const localTasks = localStorage.getItem('app_tasks');
@@ -160,6 +166,7 @@ export const useTaskStore = create<TaskState>((set, get) => ({
         comments: localComments ? JSON.parse(localComments) : [],
         isInitialized: true
       });
+      get().subscribeComments();
     }
   },
 
@@ -447,6 +454,50 @@ export const useTaskStore = create<TaskState>((set, get) => ({
           link: task.id
         });
       }
+    }
+  },
+
+  subscribeComments: () => {
+    if (commentsChannel) return;
+
+    commentsChannel = supabase
+      .channel('comments-realtime-channel')
+      .on(
+        'postgres_changes',
+        { event: '*', schema: 'public', table: 'comments' },
+        (payload) => {
+          if (payload.eventType === 'INSERT') {
+            const newComment = payload.new as Comment;
+            set((state) => {
+              if (state.comments.some(c => c.id === newComment.id)) return state;
+              const updated = [...state.comments, newComment];
+              localStorage.setItem('app_comments', JSON.stringify(updated));
+              return { comments: updated };
+            });
+          } else if (payload.eventType === 'UPDATE') {
+            const updatedComment = payload.new as Comment;
+            set((state) => {
+              const updated = state.comments.map(c => c.id === updatedComment.id ? updatedComment : c);
+              localStorage.setItem('app_comments', JSON.stringify(updated));
+              return { comments: updated };
+            });
+          } else if (payload.eventType === 'DELETE') {
+            const deletedComment = payload.old as { id: string };
+            set((state) => {
+              const updated = state.comments.filter(c => c.id !== deletedComment.id);
+              localStorage.setItem('app_comments', JSON.stringify(updated));
+              return { comments: updated };
+            });
+          }
+        }
+      )
+      .subscribe();
+  },
+
+  unsubscribeComments: () => {
+    if (commentsChannel) {
+      supabase.removeChannel(commentsChannel);
+      commentsChannel = null;
     }
   },
 }));
