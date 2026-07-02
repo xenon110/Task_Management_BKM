@@ -334,7 +334,7 @@ ${employeeName}`;
           serviceId,
           templateId,
           {
-            to_email: 'mayankrajdto@gmail.com',
+            to_email: 'hr@bkmindustries.in',
             subject: subject,
             message: emailBody,
             from_name: currentUser?.name || 'Employee'
@@ -352,7 +352,7 @@ ${employeeName}`;
       }
     }
 
-    const mailtoUrl = `mailto:mayankrajdto@gmail.com?subject=${encodeURIComponent(subject)}&body=${encodeURIComponent(emailBody)}`;
+    const mailtoUrl = `mailto:hr@bkmindustries.in?subject=${encodeURIComponent(subject)}&body=${encodeURIComponent(emailBody)}`;
     window.location.href = mailtoUrl;
     setShowEmailModal(false);
     setEmailFromDate('');
@@ -1170,7 +1170,7 @@ ${employeeName}`;
               <div className="space-y-2.5 pb-3 border-b border-gray-100">
                 <div className="flex items-center text-xs">
                   <span className="w-12 text-gray-400 font-medium">To:</span>
-                  <span className="px-2 py-0.5 bg-gray-100 border border-gray-200 rounded text-gray-700 font-semibold select-all">mayankrajdto@gmail.com</span>
+                  <span className="px-2 py-0.5 bg-gray-100 border border-gray-200 rounded text-gray-700 font-semibold select-all">hr@bkmindustries.in</span>
                 </div>
                 <div className="flex items-center text-xs">
                   <span className="w-12 text-gray-400 font-medium">Subject:</span>
