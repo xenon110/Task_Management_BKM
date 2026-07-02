@@ -322,6 +322,11 @@ export const useAuthStore = create<AuthState>((set, get) => ({
 
   logout: async () => {
     await supabase.auth.signOut();
+    localStorage.removeItem('app_tasks');
+    localStorage.removeItem('app_comments');
+    localStorage.removeItem('app_projects');
+    localStorage.removeItem('snoozed_notification_ids');
+    localStorage.removeItem('loginRedirectMode');
     set({ user: null, isAuthenticated: false, token: null, activeWorkspace: null });
   },
     
