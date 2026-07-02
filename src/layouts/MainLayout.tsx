@@ -12,7 +12,7 @@ import {
   Home, Calendar, Zap, Users, Grid, Settings, 
   Inbox, Reply, MessageSquare, User, MoreHorizontal,
   Plus, ChevronRight, ChevronDown, Hash, Target, Search, Bell, HelpCircle,
-  Menu, X, Sparkles, CheckSquare, Check, Kanban, Mail, Clock
+  Menu, X, Sparkles, CheckSquare, Check, Kanban, Mail, Clock, CheckCircle2, AlertCircle
 } from 'lucide-react';
 import ProfileDropdown from '../components/ProfileDropdown';
 import { usePermissions } from '../hooks/usePermissions';
@@ -32,7 +32,7 @@ const MainLayout = () => {
   React.useEffect(() => {
     setMobileMenuOpen(false);
   }, [location.pathname]);
-  const { openCreateTaskModal, openInviteModal } = useUiStore();
+  const { openCreateTaskModal, openInviteModal, globalNotification, hideGlobalNotification } = useUiStore();
   const { canCreateTasks, canInviteUsers } = usePermissions();
   const { notifications } = useNotificationStore();
   const { channels } = useChatStore();
@@ -257,6 +257,36 @@ const MainLayout = () => {
           </div>
         );
       })()}
+      {/* Global Notification Modal */}
+      {globalNotification.show && (
+        <div className="fixed inset-0 bg-gray-900/40 backdrop-blur-xs z-[250] flex items-center justify-center p-4 animate-in fade-in duration-200">
+          <div className="bg-white rounded-xl shadow-2xl w-full max-w-sm overflow-hidden transform transition-all border border-gray-100 animate-in zoom-in-95 duration-200 p-6 flex flex-col items-center text-center">
+            <div className={`w-12 h-12 rounded-full flex items-center justify-center mb-4 ${
+              globalNotification.type === 'success' ? 'bg-green-100 text-green-600' :
+              globalNotification.type === 'error' ? 'bg-red-100 text-red-600' : 'bg-blue-100 text-blue-600'
+            }`}>
+              {globalNotification.type === 'success' ? (
+                <CheckCircle2 size={24} />
+              ) : (
+                <AlertCircle size={24} />
+              )}
+            </div>
+            
+            <h3 className="text-base font-bold text-gray-900 mb-1">{globalNotification.title}</h3>
+            <p className="text-gray-500 text-xs mb-6 px-2">{globalNotification.message}</p>
+            
+            <button
+              onClick={hideGlobalNotification}
+              className={`w-full py-2 text-xs font-bold rounded-lg text-white shadow-sm transition-opacity hover:opacity-90 ${
+                globalNotification.type === 'success' ? 'bg-green-600' :
+                globalNotification.type === 'error' ? 'bg-red-600' : 'bg-brand'
+              }`}
+            >
+              Okay
+            </button>
+          </div>
+        </div>
+      )}
     </div>
   );
 };

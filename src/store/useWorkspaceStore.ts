@@ -3,6 +3,7 @@ import type { Workspace, WorkspaceMember, User, PendingInvite } from '../types';
 import { supabase } from '../lib/supabase';
 import emailjs from '@emailjs/browser';
 import { useAuthStore } from './useAuthStore';
+import { useUiStore } from './useUiStore';
 
 interface WorkspaceState {
   workspaces: Workspace[];
@@ -148,7 +149,7 @@ export const useWorkspaceStore = create<WorkspaceState>((set, get) => ({
       if (userData) {
         const existingMember = get().members.find(m => m.user_id === userData.id);
         if (existingMember) {
-          alert('This user is already a member of the workspace.');
+          useUiStore.getState().showGlobalNotification('Already a Member', 'This user is already a member of the workspace.', 'info');
           return;
         }
       }
@@ -208,7 +209,7 @@ export const useWorkspaceStore = create<WorkspaceState>((set, get) => ({
               publicKey
             );
             emailSent = true;
-            alert('Email invitation sent successfully!');
+            useUiStore.getState().showGlobalNotification('Success', 'Email invitation sent successfully!', 'success');
           } catch (eErr) {
             console.warn('EmailJS attempt failed, trying Supabase Auth...', eErr);
           }
@@ -228,17 +229,17 @@ export const useWorkspaceStore = create<WorkspaceState>((set, get) => ({
               }
             });
             if (otpError) throw otpError;
-            alert('Email invitation sent successfully!');
+            useUiStore.getState().showGlobalNotification('Success', 'Email invitation sent successfully!', 'success');
           } catch (emailErr: any) {
             console.error('Failed to send email:', emailErr);
-            alert('Email Error: ' + (emailErr?.message || 'Please check SMTP credentials in Supabase Dashboard'));
+            useUiStore.getState().showGlobalNotification('Email Error', emailErr?.message || 'Please check SMTP credentials in Supabase Dashboard', 'error');
           }
         }
 
         // We removed the alert here so the modal closes professionally!
     } catch (error) {
       console.error('Error inviting member:', error);
-      alert('Failed to send invite.');
+      useUiStore.getState().showGlobalNotification('Error', 'Failed to send invite.', 'error');
     }
   },
 
@@ -278,11 +279,11 @@ export const useWorkspaceStore = create<WorkspaceState>((set, get) => ({
       set({
         pendingInvites: state.pendingInvites.filter(i => i.id !== inviteId)
       });
-      alert('Invite accepted successfully!');
+      useUiStore.getState().showGlobalNotification('Success', 'Invite accepted successfully!', 'success');
       window.location.reload();
     } catch (error) {
       console.error('Error accepting invite:', error);
-      alert('Failed to accept invite.');
+      useUiStore.getState().showGlobalNotification('Error', 'Failed to accept invite.', 'error');
     }
   },
 

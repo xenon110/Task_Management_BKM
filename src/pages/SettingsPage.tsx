@@ -1,6 +1,7 @@
 import React, { useState } from 'react';
 import { useAuthStore } from '../store/useAuthStore';
 import { useWorkspaceStore } from '../store/useWorkspaceStore';
+import { useUiStore } from '../store/useUiStore';
 import { Camera, Save, UserPlus, Trash2, Shield } from 'lucide-react';
 import { usePermissions } from '../hooks/usePermissions';
 
@@ -49,7 +50,7 @@ const ProfileSettings = () => {
   const handleSave = (e: React.FormEvent) => {
     e.preventDefault();
     updateUser({ name, email });
-    alert('Profile saved!');
+    useUiStore.getState().showGlobalNotification('Success', 'Profile saved successfully!', 'success');
   };
 
   return (
@@ -108,7 +109,7 @@ const WorkspaceSettings = () => {
     e.preventDefault();
     if (activeWorkspace) {
       setActiveWorkspace({ ...activeWorkspace, name });
-      alert('Workspace saved!');
+      useUiStore.getState().showGlobalNotification('Success', 'Workspace saved successfully!', 'success');
     }
   };
 
@@ -148,7 +149,6 @@ const MemberManagement = () => {
     if (inviteEmail) {
       inviteMember(inviteEmail, inviteRole);
       setInviteEmail('');
-      alert(`Invited ${inviteEmail} as ${inviteRole}`);
     }
   };
 
