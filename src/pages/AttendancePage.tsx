@@ -91,9 +91,34 @@ ${employeeName}`;
   const isAdmin = currentUser?.role === 'owner' || currentUser?.role === 'admin';
   const isOwner = currentUser?.role === 'owner';
 
+  // Fetch current month's records by default
   useEffect(() => {
     fetchRecords();
   }, []);
+
+  // Fetch records dynamically for admin controls tab based on selected month/year
+  useEffect(() => {
+    if (activeTab === 'admin' && isAdmin) {
+      const startStr = `${adminYear}-${String(adminMonth).padStart(2, '0')}-01`;
+      const lastDay = new Date(adminYear, adminMonth, 0).getDate();
+      const endStr = `${adminYear}-${String(adminMonth).padStart(2, '0')}-${String(lastDay).padStart(2, '0')}`;
+      fetchRecords(startStr, endStr);
+    }
+  }, [adminMonth, adminYear, activeTab, isAdmin]);
+
+  // Fetch records dynamically for custom history date ranges
+  useEffect(() => {
+    if (activeTab === 'history' && historyFilter === 'custom' && startDate) {
+      fetchRecords(startDate, endDate || undefined);
+    }
+  }, [startDate, endDate, historyFilter, activeTab]);
+
+  // Refetch when switching back to clock in/out tab to ensure today's records are loaded
+  useEffect(() => {
+    if (activeTab === 'clock') {
+      fetchRecords();
+    }
+  }, [activeTab]);
 
   const todayStr = useMemo(() => {
     const d = new Date();

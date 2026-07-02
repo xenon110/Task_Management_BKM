@@ -6,7 +6,7 @@ import type { Attendance } from '../types';
 interface AttendanceState {
   records: Attendance[];
   loading: boolean;
-  fetchRecords: () => Promise<void>;
+  fetchRecords: (startDate?: string, endDate?: string) => Promise<void>;
   markLogin: () => Promise<void>;
   markLunchOut: () => Promise<void>;
   markLunchIn: () => Promise<void>;
@@ -37,7 +37,7 @@ export const useAttendanceStore = create<AttendanceState>((set, get) => ({
   records: [],
   loading: false,
 
-  fetchRecords: async () => {
+  fetchRecords: async (startDate?: string, endDate?: string) => {
     try {
       set({ loading: true });
       const user = useAuthStore.getState().user;
@@ -49,6 +49,21 @@ export const useAttendanceStore = create<AttendanceState>((set, get) => ({
       if (!isAdmin) {
         // Employees can only fetch their own attendance
         query = query.eq('user_id', user.id);
+      } else {
+        // Apply date range filters if provided
+        if (startDate) {
+          query = query.gte('date', startDate);
+        }
+        if (endDate) {
+          query = query.lte('date', endDate);
+        }
+        // Default: If no query boundaries are set, fetch from the 1st of the current month to keep it fast
+        if (!startDate && !endDate) {
+          const firstOfMonth = new Date();
+          firstOfMonth.setDate(1);
+          const limitStr = firstOfMonth.toISOString().split('T')[0];
+          query = query.gte('date', limitStr);
+        }
       }
 
       const { data, error } = await query;
