@@ -39,6 +39,22 @@ const AttendancePage = () => {
   const [emailBody, setEmailBody] = useState('');
   const [lastAutoTemplate, setLastAutoTemplate] = useState('');
 
+  const [notification, setNotification] = useState<{
+    show: boolean;
+    title: string;
+    message: string;
+    type: 'success' | 'error' | 'info';
+  }>({
+    show: false,
+    title: '',
+    message: '',
+    type: 'info',
+  });
+
+  const showNotification = (title: string, message: string, type: 'success' | 'error' | 'info' = 'info') => {
+    setNotification({ show: true, title, message, type });
+  };
+
   useEffect(() => {
     if (showEmailModal) {
       setEmailFromDate('');
@@ -301,7 +317,7 @@ ${employeeName}`;
   const handleMarkLeave = async (e: React.FormEvent) => {
     e.preventDefault();
     if (!leaveEmployeeId || !leaveStartDate || !leaveEndDate || !leaveRemark.trim()) {
-      alert('Please fill in all leave fields.');
+      showNotification('Required Fields Missing', 'Please fill in all leave fields.', 'error');
       return;
     }
     const emp = workspaceUsers.find(u => u?.id === leaveEmployeeId);
@@ -318,7 +334,7 @@ ${employeeName}`;
   const handleSendEmail = async (e: React.FormEvent) => {
     e.preventDefault();
     if (!emailFromDate || !emailToDate || !emailReason.trim()) {
-      alert('Please fill in dates and reason.');
+      showNotification('Required Fields Missing', 'Please fill in dates and reason.', 'error');
       return;
     }
     const subject = `Leave Request: ${currentUser?.name || 'Employee'} (${emailFromDate} to ${emailToDate})`;
@@ -341,7 +357,7 @@ ${employeeName}`;
           },
           publicKey
         );
-        alert('Leave application email sent automatically in the background!');
+        showNotification('Success', 'Leave application email sent automatically in the background!', 'success');
         setShowEmailModal(false);
         setEmailFromDate('');
         setEmailToDate('');
@@ -1242,6 +1258,37 @@ ${employeeName}`;
                 </button>
               </div>
             </form>
+          </div>
+        </div>
+      )}
+
+      {/* Notification Modal */}
+      {notification.show && (
+        <div className="fixed inset-0 bg-gray-900/40 backdrop-blur-xs z-[200] flex items-center justify-center p-4 animate-in fade-in duration-200">
+          <div className="bg-white rounded-xl shadow-2xl w-full max-w-sm overflow-hidden transform transition-all border border-gray-100 animate-in zoom-in-95 duration-200 p-6 flex flex-col items-center text-center">
+            <div className={`w-12 h-12 rounded-full flex items-center justify-center mb-4 ${
+              notification.type === 'success' ? 'bg-green-100 text-green-600' :
+              notification.type === 'error' ? 'bg-red-100 text-red-600' : 'bg-blue-100 text-blue-600'
+            }`}>
+              {notification.type === 'success' ? (
+                <CheckCircle2 size={24} />
+              ) : (
+                <AlertCircle size={24} />
+              )}
+            </div>
+            
+            <h3 className="text-base font-bold text-gray-900 mb-1">{notification.title}</h3>
+            <p className="text-gray-500 text-xs mb-6 px-2">{notification.message}</p>
+            
+            <button
+              onClick={() => setNotification(prev => ({ ...prev, show: false }))}
+              className={`w-full py-2 text-xs font-bold rounded-lg text-white shadow-sm transition-opacity hover:opacity-90 ${
+                notification.type === 'success' ? 'bg-green-600' :
+                notification.type === 'error' ? 'bg-red-600' : 'bg-brand'
+              }`}
+            >
+              Okay
+            </button>
           </div>
         </div>
       )}
