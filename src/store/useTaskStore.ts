@@ -304,24 +304,52 @@ export const useTaskStore = create<TaskState>((set, get) => ({
   deleteTask: async (id) => {
     const state = get();
 
-    // Optimistic delete - remove immediately from UI
+    // Optimistic delete - remove parent, subtasks, and task comments from UI immediately
     set((state) => {
-      const updated = state.tasks.filter(t => t.id !== id);
-      localStorage.setItem('app_tasks', JSON.stringify(updated));
-      return { tasks: updated };
+      const updatedTasks = state.tasks.filter(t => t.id !== id && t.parent_task_id !== id);
+      const updatedComments = state.comments.filter(c => c.task_id !== id);
+      localStorage.setItem('app_tasks', JSON.stringify(updatedTasks));
+      localStorage.setItem('app_comments', JSON.stringify(updatedComments));
+      return { tasks: updatedTasks, comments: updatedComments };
     });
 
     try {
+      // 1. Delete associated comments in database
+      const { error: commentsErr } = await supabase
+        .from('comments')
+        .delete()
+        .eq('task_id', id);
+      if (commentsErr) console.warn('Failed to delete associated comments (may be empty):', commentsErr);
+
+      // 2. Delete associated subtasks in database
+      const { error: subtasksErr } = await supabase
+        .from('tasks')
+        .delete()
+        .eq('parent_task_id', id);
+      if (subtasksErr) console.warn('Failed to delete associated subtasks (may be empty):', subtasksErr);
+
+      // 3. Delete the parent task in database
       const { error } = await supabase
         .from('tasks')
         .delete()
         .eq('id', id);
 
       if (error) {
-        await supabase.from('tasks').update({ archived: true }).eq('id', id);
+        // Retry with soft delete if delete policy fails
+        console.warn('Delete policy failed, trying soft delete...', error);
+        const { error: updateError } = await supabase
+          .from('tasks')
+          .update({ archived: true })
+          .eq('id', id);
+        
+        if (updateError) throw updateError;
       }
     } catch (error) {
-      console.error('Error deleting task (RLS/Offline):', error);
+      console.error('Error deleting task:', error);
+      // Revert optimistic delete on error
+      set({ tasks: state.tasks, comments: state.comments });
+      localStorage.setItem('app_tasks', JSON.stringify(state.tasks));
+      localStorage.setItem('app_comments', JSON.stringify(state.comments));
     }
   },
 

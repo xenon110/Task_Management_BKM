@@ -281,13 +281,17 @@ export const useAttendanceStore = create<AttendanceState>((set, get) => ({
 
   markLeave: async (userId, employeeName, startDate, endDate, remark) => {
     try {
-      const start = new Date(startDate);
-      const end = new Date(endDate);
+      const [startYear, startMonth, startDay] = startDate.split('-').map(Number);
+      const [endYear, endMonth, endDay] = endDate.split('-').map(Number);
+
+      const start = new Date(Date.UTC(startYear, startMonth - 1, startDay));
+      const end = new Date(Date.UTC(endYear, endMonth - 1, endDay));
+
       const dates: string[] = [];
       let current = new Date(start);
       while (current <= end) {
         dates.push(current.toISOString().split('T')[0]);
-        current.setDate(current.getDate() + 1);
+        current.setUTCDate(current.getUTCDate() + 1);
       }
 
       const rows = dates.map(d => ({
