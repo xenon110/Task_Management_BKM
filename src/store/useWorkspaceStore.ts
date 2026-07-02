@@ -3,7 +3,6 @@ import type { Workspace, WorkspaceMember, User, PendingInvite } from '../types';
 import { supabase } from '../lib/supabase';
 import emailjs from '@emailjs/browser';
 import { useAuthStore } from './useAuthStore';
-import { useUiStore } from './useUiStore';
 
 interface WorkspaceState {
   workspaces: Workspace[];
@@ -124,13 +123,13 @@ export const useWorkspaceStore = create<WorkspaceState>((set, get) => ({
 
   removeMember: async (memberId) => {
     const state = get();
-      // Clear local state
-      set({ members: state.members.filter(m => m.id !== memberId) });
+    // Clear local state
+    set({ members: state.members.filter(m => m.id !== memberId) });
 
-      const { error } = await supabase
-        .from('workspace_members')
-        .delete()
-        .eq('id', memberId);
+    const { error } = await supabase
+      .from('workspace_members')
+      .delete()
+      .eq('id', memberId);
 
     if (error) {
       console.error('Error removing member:', error);
@@ -149,7 +148,7 @@ export const useWorkspaceStore = create<WorkspaceState>((set, get) => ({
       if (userData) {
         const existingMember = get().members.find(m => m.user_id === userData.id);
         if (existingMember) {
-          useUiStore.getState().showGlobalNotification('Already a Member', 'This user is already a member of the workspace.', 'info');
+          alert('This user is already a member of the workspace.');
           return;
         }
       }
@@ -182,64 +181,64 @@ export const useWorkspaceStore = create<WorkspaceState>((set, get) => ({
           .update({ role, designation })
           .eq('email', cleanEmail);
       }
-        
-        const activeWorkspace = activeWs;
 
-        // Send email via EmailJS (primary) or Supabase (fallback)
-        const serviceId = import.meta.env.VITE_EMAILJS_SERVICE_ID;
-        const templateId = import.meta.env.VITE_EMAILJS_TEMPLATE_ID;
-        const publicKey = import.meta.env.VITE_EMAILJS_PUBLIC_KEY;
+      const activeWorkspace = activeWs;
 
-        const queryParams = `?email=${encodeURIComponent(cleanEmail)}&role=${encodeURIComponent(role)}&designation=${encodeURIComponent(designation || '')}&company=${encodeURIComponent(activeWorkspace?.name || 'BKM Industries')}&mode=signup`;
+      // Send email via EmailJS (primary) or Supabase (fallback)
+      const serviceId = import.meta.env.VITE_EMAILJS_SERVICE_ID;
+      const templateId = import.meta.env.VITE_EMAILJS_TEMPLATE_ID;
+      const publicKey = import.meta.env.VITE_EMAILJS_PUBLIC_KEY;
 
-        let emailSent = false;
-        if (serviceId && templateId && publicKey) {
-          try {
-            await emailjs.send(
-              serviceId,
-              templateId,
-              {
-                to_email: cleanEmail,
-                role: role,
-                designation: designation || 'Member',
+      const queryParams = `?email=${encodeURIComponent(cleanEmail)}&role=${encodeURIComponent(role)}&designation=${encodeURIComponent(designation || '')}&company=${encodeURIComponent(activeWorkspace?.name || 'BKM Industries')}&mode=signup`;
+
+      let emailSent = false;
+      if (serviceId && templateId && publicKey) {
+        try {
+          await emailjs.send(
+            serviceId,
+            templateId,
+            {
+              to_email: cleanEmail,
+              role: role,
+              designation: designation || 'Member',
+              workspace_name: activeWorkspace?.name || 'Your Team Workspace',
+              inviter_name: 'BKM Industries Admin',
+              invite_link: `${window.location.origin}/login${queryParams}`,
+            },
+            publicKey
+          );
+          emailSent = true;
+          alert('Email invitation sent successfully!');
+        } catch (eErr) {
+          console.warn('EmailJS attempt failed, trying Supabase Auth...', eErr);
+        }
+      }
+
+      if (!emailSent) {
+        try {
+          const { error: otpError } = await supabase.auth.signInWithOtp({
+            email: cleanEmail,
+            options: {
+              emailRedirectTo: `${window.location.origin}/login${queryParams}`,
+              data: {
                 workspace_name: activeWorkspace?.name || 'Your Team Workspace',
-                inviter_name: 'BKM Industries Admin',
-                invite_link: `${window.location.origin}/login${queryParams}`,
-              },
-              publicKey
-            );
-            emailSent = true;
-            useUiStore.getState().showGlobalNotification('Success', 'Email invitation sent successfully!', 'success');
-          } catch (eErr) {
-            console.warn('EmailJS attempt failed, trying Supabase Auth...', eErr);
-          }
-        }
-
-        if (!emailSent) {
-          try {
-            const { error: otpError } = await supabase.auth.signInWithOtp({
-              email: cleanEmail,
-              options: {
-                emailRedirectTo: `${window.location.origin}/login${queryParams}`,
-                data: {
-                  workspace_name: activeWorkspace?.name || 'Your Team Workspace',
-                  role,
-                  designation: designation || 'Member'
-                }
+                role,
+                designation: designation || 'Member'
               }
-            });
-            if (otpError) throw otpError;
-            useUiStore.getState().showGlobalNotification('Success', 'Email invitation sent successfully!', 'success');
-          } catch (emailErr: any) {
-            console.error('Failed to send email:', emailErr);
-            useUiStore.getState().showGlobalNotification('Email Error', emailErr?.message || 'Please check SMTP credentials in Supabase Dashboard', 'error');
-          }
+            }
+          });
+          if (otpError) throw otpError;
+          alert('Email invitation sent successfully!');
+        } catch (emailErr: any) {
+          console.error('Failed to send email:', emailErr);
+          alert('Email Error: ' + (emailErr?.message || 'Please check SMTP credentials in Supabase Dashboard'));
         }
+      }
 
-        // We removed the alert here so the modal closes professionally!
+      // We removed the alert here so the modal closes professionally!
     } catch (error) {
       console.error('Error inviting member:', error);
-      useUiStore.getState().showGlobalNotification('Error', 'Failed to send invite.', 'error');
+      alert('Failed to send invite.');
     }
   },
 
@@ -279,11 +278,11 @@ export const useWorkspaceStore = create<WorkspaceState>((set, get) => ({
       set({
         pendingInvites: state.pendingInvites.filter(i => i.id !== inviteId)
       });
-      useUiStore.getState().showGlobalNotification('Success', 'Invite accepted successfully!', 'success');
+      alert('Invite accepted successfully!');
       window.location.reload();
     } catch (error) {
       console.error('Error accepting invite:', error);
-      useUiStore.getState().showGlobalNotification('Error', 'Failed to accept invite.', 'error');
+      alert('Failed to accept invite.');
     }
   },
 
@@ -293,9 +292,9 @@ export const useWorkspaceStore = create<WorkspaceState>((set, get) => ({
         .from('pending_invites')
         .delete()
         .eq('id', inviteId);
-      
+
       if (error) throw error;
-      
+
       set(state => ({
         pendingInvites: state.pendingInvites.filter(i => i.id !== inviteId)
       }));
@@ -303,11 +302,11 @@ export const useWorkspaceStore = create<WorkspaceState>((set, get) => ({
       console.error('Error declining invite:', error);
     }
   },
-  
+
   updateMemberUser: (userId, data) => {
     set((state) => ({
-      members: state.members.map(m => 
-        m.user_id === userId 
+      members: state.members.map(m =>
+        m.user_id === userId
           ? { ...m, user: m.user ? { ...m.user, ...data } : undefined }
           : m
       )

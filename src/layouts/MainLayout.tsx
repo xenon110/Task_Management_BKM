@@ -8,11 +8,11 @@ import { useChatStore } from '../store/useChatStore';
 import { useProjectStore } from '../store/useProjectStore';
 import { useWorkspaceStore } from '../store/useWorkspaceStore';
 import { useGoalStore } from '../store/useGoalStore';
-import { 
-  Home, Calendar, Zap, Users, Grid, Settings, 
+import {
+  Home, Calendar, Zap, Users, Grid, Settings,
   Inbox, Reply, MessageSquare, User, MoreHorizontal,
   Plus, ChevronRight, ChevronDown, Hash, Target, Search, Bell, HelpCircle,
-  Menu, X, Sparkles, CheckSquare, Check, Kanban, Mail, Clock, CheckCircle2, AlertCircle
+  Menu, X, Sparkles, CheckSquare, Check, Kanban, Mail, Clock
 } from 'lucide-react';
 import ProfileDropdown from '../components/ProfileDropdown';
 import { usePermissions } from '../hooks/usePermissions';
@@ -32,14 +32,14 @@ const MainLayout = () => {
   React.useEffect(() => {
     setMobileMenuOpen(false);
   }, [location.pathname]);
-  const { openCreateTaskModal, openInviteModal, globalNotification, hideGlobalNotification } = useUiStore();
+  const { openCreateTaskModal, openInviteModal } = useUiStore();
   const { canCreateTasks, canInviteUsers } = usePermissions();
   const { notifications } = useNotificationStore();
   const { channels } = useChatStore();
   const { projects, initProjects } = useProjectStore();
   const { tasks, initData, isInitialized: tasksInitialized } = useTaskStore();
   const unreadCount = notifications.filter(n => !n.read).length;
-  
+
   React.useEffect(() => {
     if (initData) initData();
   }, [initData, user?.id]);
@@ -69,7 +69,7 @@ const MainLayout = () => {
 
   React.useEffect(() => {
     const workspaceId = activeWorkspace?.id || '00000000-0000-0000-0000-000000000010';
-    
+
     const { initGoals } = useGoalStore.getState();
     if (initGoals) initGoals(workspaceId);
 
@@ -86,20 +86,19 @@ const MainLayout = () => {
     <div className="flex h-[100dvh] w-screen overflow-hidden bg-white text-gray-800 font-sans text-sm selection:bg-brand/20">
       {/* Backdrop */}
       {mobileMenuOpen && (
-        <div 
+        <div
           onClick={() => setMobileMenuOpen(false)}
           className="fixed inset-0 bg-black/40 backdrop-blur-[1px] z-40 md:hidden animate-in fade-in duration-200"
         />
       )}
 
       {/* App Sidebar (Far Left) */}
-      <div className={`w-[68px] bg-[#0A0A0A] text-white flex flex-col items-center py-4 border-r border-gray-800 flex-shrink-0 transition-transform duration-200 z-50 fixed md:relative inset-y-0 md:inset-auto md:h-full left-0 ${
-        mobileMenuOpen ? 'translate-x-0' : '-translate-x-full md:translate-x-0'
-      }`}>
+      <div className={`w-[68px] bg-[#0A0A0A] text-white flex flex-col items-center py-4 border-r border-gray-800 flex-shrink-0 transition-transform duration-200 z-50 fixed md:relative inset-y-0 md:inset-auto md:h-full left-0 ${mobileMenuOpen ? 'translate-x-0' : '-translate-x-full md:translate-x-0'
+        }`}>
         <div className="w-8 h-8 rounded-lg bg-gradient-to-br from-[#FF007A] to-[#aa3bff] mb-6 flex items-center justify-center font-bold text-white shadow-lg cursor-pointer">
           C
         </div>
-        
+
         <div className="flex flex-col space-y-4 w-full">
           <Link to="/" className="w-full"><SidebarIcon icon={<Home size={22} strokeWidth={1.5} />} label="Home" active={location.pathname === '/'} /></Link>
           <Link to="/calendar" className="w-full"><SidebarIcon icon={<Calendar size={22} strokeWidth={1.5} />} label="Planner" active={location.pathname === '/calendar'} /></Link>
@@ -111,15 +110,15 @@ const MainLayout = () => {
 
         <div className="mt-auto flex flex-col space-y-4 w-full mb-2">
           {canInviteUsers && <div onClick={openInviteModal}><SidebarIcon icon={<User size={22} strokeWidth={1.5} />} label="Invite" /></div>}
-          <div 
+          <div
             className="w-8 h-8 mx-auto rounded-md bg-gradient-to-r from-purple-600 to-brand flex items-center justify-center cursor-pointer hover:opacity-90 transition-opacity mt-2"
             title={activeWorkspace?.name || 'Workspace'}
           >
             <span className="text-[10px] font-bold">
-              {activeWorkspace?.name 
-                ? (activeWorkspace.name.split(' ').length >= 2 
-                    ? (activeWorkspace.name.split(' ')[0][0] + activeWorkspace.name.split(' ')[1][0]).toUpperCase() 
-                    : activeWorkspace.name.substring(0, 2).toUpperCase())
+              {activeWorkspace?.name
+                ? (activeWorkspace.name.split(' ').length >= 2
+                  ? (activeWorkspace.name.split(' ')[0][0] + activeWorkspace.name.split(' ')[1][0]).toUpperCase()
+                  : activeWorkspace.name.substring(0, 2).toUpperCase())
                 : 'WS'
               }
             </span>
@@ -132,7 +131,7 @@ const MainLayout = () => {
         <header className="h-[48px] border-b border-gray-200 flex items-center justify-between px-4 bg-white flex-shrink-0 relative z-20">
           <div className="flex items-center w-64 flex-shrink-0">
             {/* Hamburger Button */}
-            <button 
+            <button
               onClick={() => setMobileMenuOpen(!mobileMenuOpen)}
               className="md:hidden p-1.5 text-gray-500 hover:text-gray-700 hover:bg-gray-100 rounded-md transition-colors mr-2 flex-shrink-0"
               aria-label="Toggle navigation menu"
@@ -154,9 +153,9 @@ const MainLayout = () => {
             <div className="flex items-center w-full space-x-2">
               <div className="relative flex-1 group">
                 <Search size={14} className="absolute left-3 top-1/2 transform -translate-y-1/2 text-gray-400 group-hover:text-gray-600 transition-colors" />
-                <input 
-                  type="text" 
-                  placeholder="Search Ctrl K" 
+                <input
+                  type="text"
+                  placeholder="Search Ctrl K"
                   className="w-full pl-9 pr-4 py-1.5 bg-gray-50 border border-gray-200 hover:border-gray-300 focus:bg-white focus:border-brand focus:ring-1 focus:ring-brand focus:shadow-sm rounded-md text-sm transition-all outline-none"
                 />
               </div>
@@ -170,9 +169,8 @@ const MainLayout = () => {
 
         <div className="flex-1 flex overflow-hidden">
           {/* Secondary Sidebar */}
-          <div className={`w-[260px] bg-gray-50/50 border-r border-gray-200 flex flex-col flex-shrink-0 fixed md:relative inset-y-0 md:inset-auto md:h-full left-0 z-50 transition-transform duration-200 ${
-            mobileMenuOpen ? 'translate-x-[68px]' : '-translate-x-full md:translate-x-0'
-          }`}>
+          <div className={`w-[260px] bg-gray-50/50 border-r border-gray-200 flex flex-col flex-shrink-0 fixed md:relative inset-y-0 md:inset-auto md:h-full left-0 z-50 transition-transform duration-200 ${mobileMenuOpen ? 'translate-x-[68px]' : '-translate-x-full md:translate-x-0'
+            }`}>
             <div className="px-4 py-3 flex items-center justify-between group cursor-pointer hover:bg-gray-100/50 transition-colors">
               <h2 className="font-semibold text-[15px] text-gray-900">Home</h2>
               <button onClick={openCreateTaskModal} className="bg-gray-900 text-white px-2 py-1 rounded text-xs font-medium flex items-center hover:bg-black transition-colors shadow-sm">
@@ -234,15 +232,15 @@ const MainLayout = () => {
                     <div key={invite.id} className="bg-gray-50 border border-gray-200 rounded-lg p-4">
                       <div className="font-semibold text-gray-900 mb-1">{invite.workspace?.name || 'A Workspace'}</div>
                       <div className="text-xs text-gray-500 mb-3">Role: <span className="capitalize font-medium text-gray-700">{invite.role}</span></div>
-                      
+
                       <div className="flex space-x-2">
-                        <button 
+                        <button
                           onClick={() => acceptInvite(invite.id, user.id)}
                           className="flex-1 bg-brand text-white py-2 rounded-md font-medium text-sm hover:bg-brand/90 transition-colors flex items-center justify-center"
                         >
                           <Check size={16} className="mr-1.5" /> Accept
                         </button>
-                        <button 
+                        <button
                           onClick={() => declineInvite(invite.id)}
                           className="px-4 py-2 bg-white border border-gray-200 text-gray-600 rounded-md font-medium text-sm hover:bg-gray-50 transition-colors"
                         >
@@ -257,36 +255,6 @@ const MainLayout = () => {
           </div>
         );
       })()}
-      {/* Global Notification Modal */}
-      {globalNotification.show && (
-        <div className="fixed inset-0 bg-gray-900/40 backdrop-blur-xs z-[250] flex items-center justify-center p-4 animate-in fade-in duration-200">
-          <div className="bg-white rounded-xl shadow-2xl w-full max-w-sm overflow-hidden transform transition-all border border-gray-100 animate-in zoom-in-95 duration-200 p-6 flex flex-col items-center text-center">
-            <div className={`w-12 h-12 rounded-full flex items-center justify-center mb-4 ${
-              globalNotification.type === 'success' ? 'bg-green-100 text-green-600' :
-              globalNotification.type === 'error' ? 'bg-red-100 text-red-600' : 'bg-blue-100 text-blue-600'
-            }`}>
-              {globalNotification.type === 'success' ? (
-                <CheckCircle2 size={24} />
-              ) : (
-                <AlertCircle size={24} />
-              )}
-            </div>
-            
-            <h3 className="text-base font-bold text-gray-900 mb-1">{globalNotification.title}</h3>
-            <p className="text-gray-500 text-xs mb-6 px-2">{globalNotification.message}</p>
-            
-            <button
-              onClick={hideGlobalNotification}
-              className={`w-full py-2 text-xs font-bold rounded-lg text-white shadow-sm transition-opacity hover:opacity-90 ${
-                globalNotification.type === 'success' ? 'bg-green-600' :
-                globalNotification.type === 'error' ? 'bg-red-600' : 'bg-brand'
-              }`}
-            >
-              Okay
-            </button>
-          </div>
-        </div>
-      )}
     </div>
   );
 };

@@ -68,6 +68,51 @@ export const useAttendanceStore = create<AttendanceState>((set, get) => ({
       const today = getLocalDateString();
       const now = new Date().toISOString();
 
+      // Scan and auto-close any open sessions from previous days
+      const { data: openRecords, error: findErr } = await supabase
+        .from('attendance')
+        .select('*')
+        .eq('user_id', user.id)
+        .is('logout_time', null)
+        .neq('date', today);
+
+      if (findErr) throw findErr;
+
+      if (openRecords && openRecords.length > 0) {
+        for (const record of openRecords) {
+          // Set checkout time to 7:00 PM (19:00) of that day
+          const logoutDate = new Date(`${record.date}T19:00:00`);
+          const logoutIso = logoutDate.toISOString();
+          
+          const loginMs = new Date(record.login_time).getTime();
+          const logoutMs = logoutDate.getTime();
+          
+          let totalMs = logoutMs - loginMs;
+          if (totalMs < 0) totalMs = 0;
+
+          // Adjust for lunch breaks
+          if (record.lunch_out_time && record.lunch_in_time) {
+            const lunchOutMs = new Date(record.lunch_out_time).getTime();
+            const lunchInMs = new Date(record.lunch_in_time).getTime();
+            totalMs = totalMs - (lunchInMs - lunchOutMs);
+          } else if (record.lunch_out_time && !record.lunch_in_time) {
+            // Estimate 1 hour lunch if they started lunch but forgot to return
+            totalMs = totalMs - 3600000;
+          }
+
+          const totalHoursText = formatDuration(totalMs);
+
+          await supabase
+            .from('attendance')
+            .update({
+              logout_time: logoutIso,
+              total_working_hours: totalHoursText,
+              leave_remark: 'Auto-checkout (Forgot to logout)'
+            })
+            .eq('id', record.id);
+        }
+      }
+
       const newRecord = {
         user_id: user.id,
         employee_name: user.name || user.email.split('@')[0],

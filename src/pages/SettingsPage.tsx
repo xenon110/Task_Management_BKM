@@ -1,31 +1,30 @@
 import React, { useState } from 'react';
 import { useAuthStore } from '../store/useAuthStore';
 import { useWorkspaceStore } from '../store/useWorkspaceStore';
-import { useUiStore } from '../store/useUiStore';
 import { Camera, Save, UserPlus, Trash2, Shield } from 'lucide-react';
 import { usePermissions } from '../hooks/usePermissions';
 
 const SettingsPage = () => {
   const [activeTab, setActiveTab] = useState<'profile' | 'workspace' | 'members'>('profile');
-  
+
   return (
     <div className="max-w-5xl mx-auto p-6">
       <h1 className="text-3xl font-bold mb-8 text-gray-900 dark:text-white">Settings</h1>
-      
+
       <div className="flex space-x-1 mb-6 bg-gray-100 dark:bg-gray-800 p-1 rounded-xl w-fit">
-        <button 
+        <button
           onClick={() => setActiveTab('profile')}
           className={`px-6 py-2.5 rounded-lg font-medium transition-colors ${activeTab === 'profile' ? 'bg-white dark:bg-gray-700 text-gray-900 dark:text-white shadow-sm' : 'text-gray-500 hover:text-gray-900 dark:hover:text-white'}`}
         >
           Profile
         </button>
-        <button 
+        <button
           onClick={() => setActiveTab('workspace')}
           className={`px-6 py-2.5 rounded-lg font-medium transition-colors ${activeTab === 'workspace' ? 'bg-white dark:bg-gray-700 text-gray-900 dark:text-white shadow-sm' : 'text-gray-500 hover:text-gray-900 dark:hover:text-white'}`}
         >
           Workspace
         </button>
-        <button 
+        <button
           onClick={() => setActiveTab('members')}
           className={`px-6 py-2.5 rounded-lg font-medium transition-colors ${activeTab === 'members' ? 'bg-white dark:bg-gray-700 text-gray-900 dark:text-white shadow-sm' : 'text-gray-500 hover:text-gray-900 dark:hover:text-white'}`}
         >
@@ -50,16 +49,16 @@ const ProfileSettings = () => {
   const handleSave = (e: React.FormEvent) => {
     e.preventDefault();
     updateUser({ name, email });
-    useUiStore.getState().showGlobalNotification('Success', 'Profile saved successfully!', 'success');
+    alert('Profile saved!');
   };
 
   return (
     <div className="p-8">
       <div className="flex items-center space-x-8 mb-8">
         <div className="relative">
-          <img 
-            src={user?.avatar_url || `https://ui-avatars.com/api/?name=${user?.name}&background=random`} 
-            alt="Profile" 
+          <img
+            src={user?.avatar_url || `https://ui-avatars.com/api/?name=${user?.name}&background=random`}
+            alt="Profile"
             className="w-24 h-24 rounded-full object-cover border-4 border-white dark:border-gray-800 shadow-lg"
           />
         </div>
@@ -109,7 +108,7 @@ const WorkspaceSettings = () => {
     e.preventDefault();
     if (activeWorkspace) {
       setActiveWorkspace({ ...activeWorkspace, name });
-      useUiStore.getState().showGlobalNotification('Success', 'Workspace saved successfully!', 'success');
+      alert('Workspace saved!');
     }
   };
 
@@ -149,6 +148,7 @@ const MemberManagement = () => {
     if (inviteEmail) {
       inviteMember(inviteEmail, inviteRole);
       setInviteEmail('');
+      alert(`Invited ${inviteEmail} as ${inviteRole}`);
     }
   };
 
@@ -161,31 +161,31 @@ const MemberManagement = () => {
       {canInviteUsers && (
         <div className="bg-gray-50 dark:bg-gray-900/50 p-6 rounded-2xl mb-8 border border-gray-100 dark:border-gray-800">
           <h4 className="text-sm font-medium text-gray-700 dark:text-gray-300 mb-4">Invite New Member</h4>
-        <form onSubmit={handleInvite} className="flex gap-4">
-          <input
-            type="email"
-            required
-            placeholder="Email address"
-            value={inviteEmail}
-            onChange={(e) => setInviteEmail(e.target.value)}
-            className="flex-1 px-4 py-2 border border-gray-300 dark:border-gray-600 rounded-xl bg-white dark:bg-gray-800 text-gray-900 dark:text-white focus:ring-2 focus:ring-brand focus:border-transparent transition-colors"
-          />
-          <select
-            value={inviteRole}
-            onChange={(e) => setInviteRole(e.target.value as any)}
-            className="px-4 py-2 border border-gray-300 dark:border-gray-600 rounded-xl bg-white dark:bg-gray-800 text-gray-900 dark:text-white focus:ring-2 focus:ring-brand focus:border-transparent transition-colors"
-          >
-            {currentUserRole === 'owner' && <option value="owner">Owner</option>}
-            <option value="admin">Admin</option>
-            <option value="member">Member</option>
-            <option value="guest">Guest</option>
-          </select>
-          <button type="submit" className="flex items-center px-6 py-2.5 bg-brand text-white rounded-xl hover:bg-brand-dark transition-colors font-medium">
-            <UserPlus size={18} className="mr-2" />
-            Send Invite
-          </button>
-        </form>
-      </div>
+          <form onSubmit={handleInvite} className="flex gap-4">
+            <input
+              type="email"
+              required
+              placeholder="Email address"
+              value={inviteEmail}
+              onChange={(e) => setInviteEmail(e.target.value)}
+              className="flex-1 px-4 py-2 border border-gray-300 dark:border-gray-600 rounded-xl bg-white dark:bg-gray-800 text-gray-900 dark:text-white focus:ring-2 focus:ring-brand focus:border-transparent transition-colors"
+            />
+            <select
+              value={inviteRole}
+              onChange={(e) => setInviteRole(e.target.value as any)}
+              className="px-4 py-2 border border-gray-300 dark:border-gray-600 rounded-xl bg-white dark:bg-gray-800 text-gray-900 dark:text-white focus:ring-2 focus:ring-brand focus:border-transparent transition-colors"
+            >
+              {currentUserRole === 'owner' && <option value="owner">Owner</option>}
+              <option value="admin">Admin</option>
+              <option value="member">Member</option>
+              <option value="guest">Guest</option>
+            </select>
+            <button type="submit" className="flex items-center px-6 py-2.5 bg-brand text-white rounded-xl hover:bg-brand-dark transition-colors font-medium">
+              <UserPlus size={18} className="mr-2" />
+              Send Invite
+            </button>
+          </form>
+        </div>
       )}
 
       <div className="overflow-x-auto">
