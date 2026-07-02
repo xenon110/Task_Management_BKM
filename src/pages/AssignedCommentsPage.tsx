@@ -10,6 +10,7 @@ const AssignedCommentsPage = () => {
   const { members } = useWorkspaceStore();
   const { user } = useAuthStore();
   const { openTaskDetailPanel } = useUiStore();
+  const [searchQuery, setSearchQuery] = React.useState('');
   
   // Filter for unresolved comments where the user isn't the one who posted it, OR it mentions the user.
   const myName = user?.name || '';
@@ -29,6 +30,19 @@ const AssignedCommentsPage = () => {
     const mentionsMe = (myName && c.content.includes(`@${myName}`)) || (myEmailPrefix && c.content.includes(`@${myEmailPrefix}`));
     
     return !!task || mentionsMe;
+  });
+
+  const filteredComments = activeComments.filter(c => {
+    if (!searchQuery) return true;
+    
+    const task = tasks.find(t => t.id === c.task_id);
+    const taskTitle = task?.title?.toLowerCase() || '';
+    const content = c.content.toLowerCase();
+    const commenter = members.find(m => m.user?.id === c.user_id || m.user_id === c.user_id)?.user;
+    const commenterName = commenter?.name?.toLowerCase() || commenter?.email?.toLowerCase() || '';
+    const query = searchQuery.toLowerCase();
+    
+    return content.includes(query) || taskTitle.includes(query) || commenterName.includes(query);
   });
 
   const renderCommentContent = (content: string) => {
@@ -80,7 +94,13 @@ const AssignedCommentsPage = () => {
           <div className="flex items-center justify-between px-4 py-3 border-b border-gray-100 bg-[#fbfbfb]">
             <div className="relative w-64 group">
               <Search size={14} className="absolute left-3 top-1/2 transform -translate-y-1/2 text-gray-400 group-hover:text-gray-600 transition-colors" />
-              <input type="text" placeholder="Search comments..." className="w-full pl-9 pr-3 py-1.5 bg-white border border-gray-200 rounded-md text-xs outline-none focus:border-blue-500 focus:ring-1 focus:ring-blue-500 transition-all shadow-sm" />
+              <input 
+                type="text" 
+                placeholder="Search comments..." 
+                value={searchQuery}
+                onChange={e => setSearchQuery(e.target.value)}
+                className="w-full pl-9 pr-3 py-1.5 bg-white border border-gray-200 rounded-md text-xs outline-none focus:border-blue-500 focus:ring-1 focus:ring-blue-500 transition-all shadow-sm" 
+              />
             </div>
             <div className="flex items-center space-x-2">
               <button className="flex items-center space-x-1.5 px-2.5 py-1 rounded border border-gray-200 hover:bg-gray-50 text-gray-600 transition-colors text-xs shadow-sm">
@@ -97,13 +117,13 @@ const AssignedCommentsPage = () => {
           {/* Comments List */}
           <div className="flex-1 overflow-y-auto p-2">
             <div className="divide-y divide-gray-100">
-              {activeComments.length === 0 ? (
+              {filteredComments.length === 0 ? (
                 <div className="flex flex-col items-center justify-center py-20 text-gray-400">
                   <CheckCircle2 size={32} className="mb-2 text-gray-300" />
-                  <p>No assigned comments. You're all caught up!</p>
+                  <p>{searchQuery ? 'No matching comments found.' : 'No assigned comments. You\'re all caught up!'}</p>
                 </div>
               ) : (
-                activeComments.map(comment => {
+                filteredComments.map(comment => {
                   const author = members.find(m => m.user?.id === comment.user_id || m.user_id === comment.user_id)?.user;
                   const task = tasks.find(t => t.id === comment.task_id);
                   const authorName = author ? author.name : 'Unknown User';

@@ -418,12 +418,49 @@ export const useTaskStore = create<TaskState>((set, get) => ({
   },
 
   resolveAllComments: async () => {
-    // Basic optimistic update for UI
+    const user = useAuthStore.getState().user;
+    if (!user) return;
+
+    const myName = user.name || '';
+    const myEmailPrefix = user.email?.split('@')[0] || '';
+    const currentUserId = user.id;
+
+    const { comments, tasks } = get();
+
+    // Find all unresolved comments assigned to or mentioning the current user
+    const commentsToResolve = comments.filter(c => {
+      if (c.resolved) return false;
+      
+      const isMe = c.user_id === currentUserId;
+      if (isMe) return false;
+
+      const task = tasks.find(t => t.id === c.task_id);
+      const mentionsMe = (myName && c.content.includes(`@${myName}`)) || (myEmailPrefix && c.content.includes(`@${myEmailPrefix}`));
+      
+      return !!task || mentionsMe;
+    });
+
+    if (commentsToResolve.length === 0) return;
+
+    const idsToResolve = commentsToResolve.map(c => c.id);
+
+    // Optimistic UI update
     set((state) => ({
-      comments: state.comments.map(c => ({ ...c, resolved: true }))
+      comments: state.comments.map(c => idsToResolve.includes(c.id) ? { ...c, resolved: true } : c)
     }));
-    // In a real scenario, this would likely take a task ID and update all for that task.
-    // Omitted full DB sync here due to potential complexity without task scoping.
+
+    try {
+      const { error } = await supabase
+        .from('comments')
+        .update({ resolved: true })
+        .in('id', idsToResolve);
+
+      if (error) throw error;
+    } catch (err) {
+      console.error('Failed to resolve all comments in DB:', err);
+      // Revert to original comments array on failure
+      set({ comments });
+    }
   },
 
   assignUserToTask: async (taskId, userId) => {
