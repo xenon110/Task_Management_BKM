@@ -12,8 +12,39 @@ const AssignedCommentsPage = () => {
   const { openTaskDetailPanel } = useUiStore();
   
   // Filter for unresolved comments where the user isn't the one who posted it, OR it mentions the user.
-  // For simplicity, we'll just show all unresolved comments that aren't by the current user.
-  const activeComments = comments.filter(c => !c.resolved && c.user_id !== user?.id);
+  const myName = user?.name || '';
+  const myEmailPrefix = user?.email?.split('@')[0] || '';
+
+  const activeComments = comments.filter(c => {
+    if (c.resolved) return false;
+    
+    // Cannot be posted by the current user
+    const isMe = c.user_id === user?.id;
+    if (isMe) return false;
+
+    // Check if it belongs to one of the tasks the user can view
+    const task = tasks.find(t => t.id === c.task_id);
+    
+    // Check if it mentions the user
+    const mentionsMe = (myName && c.content.includes(`@${myName}`)) || (myEmailPrefix && c.content.includes(`@${myEmailPrefix}`));
+    
+    return !!task || mentionsMe;
+  });
+
+  const renderCommentContent = (content: string) => {
+    if (!content) return '';
+    const words = content.split(/(\s+)/);
+    return words.map((word, index) => {
+      if (word.startsWith('@') && word.length > 1) {
+        return (
+          <span key={index} className="text-blue-600 font-bold bg-blue-50 px-1 rounded">
+            {word}
+          </span>
+        );
+      }
+      return word;
+    });
+  };
 
   const getRelativeTime = (isoDate: string) => {
     const diff = Date.now() - new Date(isoDate).getTime();
@@ -93,7 +124,7 @@ const AssignedCommentsPage = () => {
                             <span className="text-[11px] font-medium text-gray-400">{getRelativeTime(comment.created_at)}</span>
                           </div>
                           <div className="bg-[#f0f7ff] border border-[#dbeafe] p-3 rounded-lg text-[13px] text-gray-700 font-medium">
-                            {comment.content}
+                            {renderCommentContent(comment.content)}
                           </div>
                           <div className="mt-3 flex items-center space-x-3 opacity-0 group-hover:opacity-100 transition-opacity">
                             <button 

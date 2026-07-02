@@ -47,6 +47,9 @@ const TaskDetailPanel = () => {
   const { canManageTasks, getAssignableMembers } = usePermissions();
   const currentUserId = user?.id || '00000000-0000-0000-0000-000000000001';
   const [comment, setComment] = useState('');
+  const [showMentionsDropdown, setShowMentionsDropdown] = useState(false);
+  const [mentionSearchQuery, setMentionSearchQuery] = useState('');
+  const [mentionTriggerIndex, setMentionTriggerIndex] = useState(-1);
   const [activeTab, setActiveTab] = useState<'comments' | 'history'>('comments');
   const [showAssignDropdown, setShowAssignDropdown] = useState(false);
   const [showPriorityDropdown, setShowPriorityDropdown] = useState(false);
@@ -58,6 +61,29 @@ const TaskDetailPanel = () => {
   const [descriptionDraft, setDescriptionDraft] = useState('');
   const titleRef = useRef<HTMLInputElement>(null);
   const descRef = useRef<HTMLTextAreaElement>(null);
+
+  const handleSelectMention = (name: string) => {
+    const textBeforeMention = comment.slice(0, mentionTriggerIndex);
+    const textAfterMention = comment.slice(mentionTriggerIndex + mentionSearchQuery.length + 1);
+    const newComment = `${textBeforeMention}@${name} ${textAfterMention}`;
+    setComment(newComment);
+    setShowMentionsDropdown(false);
+  };
+
+  const renderCommentContent = (content: string) => {
+    if (!content) return '';
+    const words = content.split(/(\s+)/);
+    return words.map((word, index) => {
+      if (word.startsWith('@') && word.length > 1) {
+        return (
+          <span key={index} className="text-blue-600 font-bold bg-blue-50 px-1 rounded">
+            {word}
+          </span>
+        );
+      }
+      return word;
+    });
+  };
   const dateRef = useRef<HTMLInputElement>(null);
 
   if (!isTaskDetailPanelOpen || !selectedTaskId) return null;
@@ -536,7 +562,7 @@ const TaskDetailPanel = () => {
                               <span className="font-bold text-[13px] text-gray-900">{isMe ? 'Me' : (author ? author.name : 'Unknown User')}</span>
                               <span className="text-[10px] text-gray-400">{new Date(c.created_at).toLocaleString([], {month: 'short', day: 'numeric', hour: '2-digit', minute: '2-digit'})}</span>
                             </div>
-                            <p className="text-[13px] text-gray-700 mt-1 bg-white border border-gray-100 rounded-lg p-2.5 shadow-sm">{c.content}</p>
+                            <p className="text-[13px] text-gray-700 mt-1 bg-white border border-gray-100 rounded-lg p-2.5 shadow-sm">{renderCommentContent(c.content)}</p>
                           </div>
                         </div>
                       );
@@ -556,18 +582,74 @@ const TaskDetailPanel = () => {
              </div>
 
              {/* Comment Input — ALWAYS available for everyone */}
-             <div className="p-4 bg-white border-t border-gray-200">
+             <div className="p-4 bg-white border-t border-gray-200 relative">
+               
+               {/* Mention Suggestions Dropdown */}
+               {showMentionsDropdown && (
+                 (() => {
+                   const users = members.map(m => m.user).filter(Boolean);
+                   const filteredUsers = !mentionSearchQuery 
+                     ? users 
+                     : users.filter(u => u.name?.toLowerCase().includes(mentionSearchQuery.toLowerCase()));
+                   
+                   if (filteredUsers.length === 0) return null;
+                   
+                   return (
+                     <div className="absolute bottom-full left-4 mb-2 w-64 bg-white border border-gray-200 rounded-xl shadow-xl z-50 max-h-48 overflow-y-auto divide-y divide-gray-50">
+                       {filteredUsers.map(u => {
+                         const displayName = u.name || u.email.split('@')[0];
+                         return (
+                           <button
+                             key={u.id}
+                             type="button"
+                             onClick={() => handleSelectMention(displayName)}
+                             className="w-full text-left px-3 py-2 hover:bg-gray-50 flex items-center space-x-2.5 transition-colors"
+                           >
+                             <div className="w-6 h-6 rounded-full bg-brand/10 text-brand text-[10px] font-bold flex items-center justify-center overflow-hidden">
+                               <img src={`https://ui-avatars.com/api/?name=${encodeURIComponent(displayName)}&background=random`} className="w-full h-full object-cover" alt="" />
+                             </div>
+                             <div className="flex-1 min-w-0">
+                               <div className="text-xs font-bold text-gray-800 truncate">{u.name || 'Unknown User'}</div>
+                               <div className="text-[10px] text-gray-400 font-medium truncate">{u.email}</div>
+                             </div>
+                           </button>
+                         );
+                       })}
+                     </div>
+                   );
+                 })()
+               )}
+
                <div className="border border-gray-300 rounded-lg focus-within:border-brand focus-within:ring-1 focus-within:ring-brand shadow-sm bg-white overflow-hidden transition-all">
                   <textarea 
                     placeholder="Ask a question or post an update..."
                     className="w-full min-h-[60px] p-3 text-[13px] outline-none resize-none"
                     value={comment}
-                    onChange={e => setComment(e.target.value)}
+                    onChange={e => {
+                      const val = e.target.value;
+                      setComment(val);
+                      
+                      const caretPos = e.target.selectionStart;
+                      const textBeforeCaret = val.slice(0, caretPos);
+                      const lastAtPos = textBeforeCaret.lastIndexOf('@');
+                      
+                      if (lastAtPos !== -1 && (lastAtPos === 0 || /\s/.test(textBeforeCaret[lastAtPos - 1]))) {
+                        const query = textBeforeCaret.slice(lastAtPos + 1);
+                        if (!/\s/.test(query)) {
+                          setShowMentionsDropdown(true);
+                          setMentionSearchQuery(query);
+                          setMentionTriggerIndex(lastAtPos);
+                          return;
+                        }
+                      }
+                      setShowMentionsDropdown(false);
+                    }}
                     onKeyDown={e => {
                       if (e.key === 'Enter' && !e.shiftKey && comment.trim()) {
                         e.preventDefault();
                         addComment(task.id, comment.trim());
                         setComment('');
+                        setShowMentionsDropdown(false);
                       }
                     }}
                   />
@@ -581,6 +663,7 @@ const TaskDetailPanel = () => {
                          if (comment.trim()) {
                            addComment(task.id, comment.trim());
                            setComment('');
+                           setShowMentionsDropdown(false);
                          }
                        }}
                      >
