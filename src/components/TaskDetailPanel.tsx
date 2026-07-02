@@ -623,7 +623,7 @@ const TaskDetailPanel = () => {
                <div className="border border-gray-300 rounded-lg focus-within:border-brand focus-within:ring-1 focus-within:ring-brand shadow-sm bg-white overflow-hidden transition-all">
                   <textarea 
                     placeholder="Ask a question or post an update..."
-                    className="w-full min-h-[60px] p-3 text-[13px] outline-none resize-none"
+                    className="w-full min-h-[60px] p-3 text-[13px] text-gray-900 outline-none resize-none bg-white"
                     value={comment}
                     onChange={e => {
                       const val = e.target.value;
