@@ -4,6 +4,7 @@ import { ArrowRight, Sparkles, CheckCircle2, AlertCircle, Shield, Briefcase } fr
 import { supabase } from '../lib/supabase';
 
 const LoginPage = () => {
+  const defaultCompany = import.meta.env.VITE_DEFAULT_COMPANY_NAME || 'BKM Industries Limited';
   const [isLogin, setIsLogin] = useState(true);
   const [email, setEmail] = useState('');
   const [password, setPassword] = useState('');
@@ -164,7 +165,7 @@ const LoginPage = () => {
           <div className="w-10 h-10 rounded-xl bg-gradient-to-br from-[#059669] to-[#10B981] flex items-center justify-center font-bold text-white shadow-lg text-lg">
             B
           </div>
-          <span className="text-xl font-bold tracking-tight">BKM Industries</span>
+          <span className="text-xl font-bold tracking-tight">{defaultCompany}</span>
         </div>
 
         <div className="z-10 max-w-md">
@@ -186,7 +187,7 @@ const LoginPage = () => {
         </div>
 
         <div className="z-10 flex items-center space-x-4 text-sm text-gray-500">
-          <span>© 2026 BKM Industries</span>
+          <span>© 2026 {defaultCompany}</span>
         </div>
       </div>
 
@@ -197,7 +198,7 @@ const LoginPage = () => {
           <div className="w-8 h-8 rounded-lg bg-gradient-to-br from-[#059669] to-[#10B981] flex items-center justify-center font-bold text-white shadow-md">
             B
           </div>
-          <span className="text-lg font-bold tracking-tight text-gray-900">BKM Industries</span>
+          <span className="text-lg font-bold tracking-tight text-gray-900">{defaultCompany}</span>
         </div>
 
         <div className="w-full max-w-md mx-auto">
