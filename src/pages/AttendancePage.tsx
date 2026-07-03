@@ -31,6 +31,9 @@ const AttendancePage = () => {
   const [leaveEndDate, setLeaveEndDate] = useState('');
   const [leaveRemark, setLeaveRemark] = useState('');
 
+  // Detailed user log modal state
+  const [selectedDetailedUser, setSelectedDetailedUser] = useState<any>(null);
+
   // Email Leave request modal state
   const [showEmailModal, setShowEmailModal] = useState(false);
   const [emailFromDate, setEmailFromDate] = useState('');
@@ -207,6 +210,55 @@ ${employeeName}`;
   const workspaceUsers = useMemo(() => {
     return members.map(m => m.user).filter(Boolean);
   }, [members]);
+
+  // Daily attendance generator for selected detailed user
+  const getDetailedUserDays = useMemo(() => {
+    if (!selectedDetailedUser) return [];
+
+    const daysList = [];
+    const monthStr = `${adminYear}-${String(adminMonth).padStart(2, '0')}`;
+    const empRecords = records.filter(r => r.user_id === selectedDetailedUser.id && r.date.startsWith(monthStr));
+
+    // Get number of days in the selected month
+    const totalDaysInMonth = new Date(adminYear, adminMonth, 0).getDate();
+    
+    // Determine the upper bound for days we show (e.g. today's date if selectedMonth/year is current, else full month)
+    const now = new Date();
+    const isCurrentMonth = now.getFullYear() === adminYear && (now.getMonth() + 1) === adminMonth;
+    const maxDay = isCurrentMonth ? now.getDate() : totalDaysInMonth;
+
+    for (let day = 1; day <= maxDay; day++) {
+      const dateStr = `${adminYear}-${String(adminMonth).padStart(2, '0')}-${String(day).padStart(2, '0')}`;
+      const record = empRecords.find(r => r.date === dateStr);
+      
+      const dayDate = new Date(adminYear, adminMonth - 1, day);
+      const isWeekend = dayDate.getDay() === 0 || dayDate.getDay() === 6; // 0 = Sunday, 6 = Saturday
+      const dayName = dayDate.toLocaleDateString([], { weekday: 'short' });
+
+      if (record) {
+        daysList.push({
+          date: dateStr,
+          dayName,
+          status: record.status,
+          loginTime: record.login_time,
+          logoutTime: record.logout_time,
+          remark: record.leave_remark
+        });
+      } else {
+        daysList.push({
+          date: dateStr,
+          dayName,
+          status: isWeekend ? 'Weekend' : 'Absent',
+          loginTime: undefined,
+          logoutTime: undefined,
+          remark: isWeekend ? 'Weekly Off' : 'No check-in record'
+        });
+      }
+    }
+
+    // Sort descending by date so most recent is on top
+    return daysList.reverse();
+  }, [selectedDetailedUser, records, adminMonth, adminYear]);
 
   // Calculations for current user's stats
   const userStats = useMemo(() => {
@@ -1031,6 +1083,7 @@ ${employeeName}`;
                       <th className="px-5 py-3">Avg Logout</th>
                       <th className="px-5 py-3">Late After Lunch Sum</th>
                       <th className="px-5 py-3">Attendance Rate</th>
+                      <th className="px-5 py-3 text-right">Actions</th>
                     </tr>
                   </thead>
                   <tbody className="divide-y divide-gray-50">
@@ -1092,6 +1145,14 @@ ${employeeName}`;
                             <td className="px-5 py-3 text-gray-500">{formatMins(logoutNum > 0 ? logoutMinsSum / logoutNum : 0)}</td>
                             <td className="px-5 py-3 text-yellow-600 font-bold">{totalLunchLateMins} mins</td>
                             <td className="px-5 py-3 text-brand font-bold">{attendancePercentage.toFixed(1)}%</td>
+                            <td className="px-5 py-3 text-right">
+                              <button
+                                onClick={() => setSelectedDetailedUser(u)}
+                                className="px-2.5 py-1.5 bg-brand hover:opacity-95 text-white font-bold rounded-lg text-[10px] transition-opacity shadow-sm shadow-brand/10"
+                              >
+                                View Days
+                              </button>
+                            </td>
                           </tr>
                         );
                       })}
@@ -1323,6 +1384,89 @@ ${employeeName}`;
         </div>
       )}
 
+      {/* Detailed User Days Modal */}
+      {selectedDetailedUser && (
+        <div className="fixed inset-0 bg-gray-900/40 backdrop-blur-sm z-[100] flex items-center justify-center p-4">
+          <div className="bg-white rounded-2xl shadow-2xl w-full max-w-2xl overflow-hidden transform transition-all border border-gray-150 flex flex-col max-h-[85vh] animate-in fade-in zoom-in-95 duration-200">
+            {/* Header */}
+            <div className="px-6 py-4 border-b border-gray-150 flex items-center justify-between bg-gray-50/50">
+              <div>
+                <h3 className="text-sm font-bold text-gray-950">
+                  Daily Attendance Log: {selectedDetailedUser.name || selectedDetailedUser.email.split('@')[0]}
+                </h3>
+                <p className="text-xs text-gray-500 mt-0.5">
+                  Breakdown for {new Date(adminYear, adminMonth - 1).toLocaleString([], { month: 'long', year: 'numeric' })}
+                </p>
+              </div>
+              <button 
+                onClick={() => setSelectedDetailedUser(null)} 
+                className="text-gray-400 hover:text-gray-600 transition-colors p-1"
+              >
+                <X size={18} />
+              </button>
+            </div>
+
+            {/* List */}
+            <div className="flex-1 overflow-y-auto p-6 custom-scrollbar">
+              <div className="overflow-x-auto rounded-xl border border-gray-200">
+                <table className="w-full text-left border-collapse text-xs">
+                  <thead>
+                    <tr className="bg-gray-50 border-b border-gray-200 text-gray-400 font-bold uppercase tracking-wider text-[10px]">
+                      <th className="px-5 py-3">Date</th>
+                      <th className="px-5 py-3">Day</th>
+                      <th className="px-5 py-3">Status</th>
+                      <th className="px-5 py-3">Clock In</th>
+                      <th className="px-5 py-3">Clock Out</th>
+                      <th className="px-5 py-3">Remark / Reason</th>
+                    </tr>
+                  </thead>
+                  <tbody className="divide-y divide-gray-100">
+                    {getDetailedUserDays.map(d => {
+                      let statusBadge = '';
+                      if (d.status === 'Present') {
+                        statusBadge = 'bg-green-50 text-green-700 border-green-150 border';
+                      } else if (d.status === 'Leave') {
+                        statusBadge = 'bg-orange-50 text-orange-700 border-orange-150 border';
+                      } else if (d.status === 'Weekend') {
+                        statusBadge = 'bg-gray-50 text-gray-500 border-gray-150 border';
+                      } else {
+                        statusBadge = 'bg-red-50 text-red-700 border-red-150 border';
+                      }
+
+                      return (
+                        <tr key={d.date} className="hover:bg-gray-50/30 transition-colors">
+                          <td className="px-5 py-3.5 font-bold text-gray-900">{d.date}</td>
+                          <td className="px-5 py-3.5 text-gray-500">{d.dayName}</td>
+                          <td className="px-5 py-3.5">
+                            <span className={`px-2.5 py-0.5 rounded-full text-[9px] font-bold tracking-wide uppercase ${statusBadge}`}>
+                              {d.status}
+                            </span>
+                          </td>
+                          <td className="px-5 py-3.5 text-gray-700 font-medium">{d.loginTime ? formatTime(d.loginTime) : '-'}</td>
+                          <td className="px-5 py-3.5 text-gray-700 font-medium">{d.logoutTime ? formatTime(d.logoutTime) : '-'}</td>
+                          <td className="px-5 py-3.5 text-gray-500 italic max-w-[200px] truncate" title={d.remark || ''}>
+                            {d.remark || '-'}
+                          </td>
+                        </tr>
+                      );
+                    })}
+                  </tbody>
+                </table>
+              </div>
+            </div>
+
+            {/* Footer */}
+            <div className="px-6 py-4 bg-gray-50 border-t border-gray-150 flex justify-end">
+              <button 
+                onClick={() => setSelectedDetailedUser(null)}
+                className="px-4 py-2 bg-white border border-gray-200 text-gray-700 rounded-xl font-bold text-xs hover:bg-gray-50 transition-colors shadow-sm"
+              >
+                Close
+              </button>
+            </div>
+          </div>
+        </div>
+      )}
     </div>
   );
 };
