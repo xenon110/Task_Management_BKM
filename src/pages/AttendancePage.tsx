@@ -959,7 +959,7 @@ ${employeeName}`;
                 </div>
 
                 <div className="bg-white rounded-xl shadow-sm border border-gray-200 p-5">
-                  <span className="text-xs font-semibold text-gray-400">Cumulative Leaves</span>
+                  <span className="text-xs font-semibold text-gray-400">Paid Leaves</span>
                   <p className="text-xl font-bold text-orange-500 mt-1">{userStats.yearly.leave} / 15</p>
                 </div>
 
