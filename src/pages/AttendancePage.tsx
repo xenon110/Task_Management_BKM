@@ -129,10 +129,14 @@ ${employeeName}`;
     const month = String(d.getMonth() + 1).padStart(2, '0');
     const date = String(d.getDate()).padStart(2, '0');
     return `${year}-${month}-${date}`;
-  }, []);
+  }, [records]);
 
   // Today's attendance record for current logged in user
   const todayRecord = useMemo(() => {
+    const mostRecent = records.find(r => r.user_id === currentUser?.id);
+    if (mostRecent && mostRecent.date >= todayStr) {
+      return mostRecent;
+    }
     return records.find(r => r.user_id === currentUser?.id && r.date === todayStr);
   }, [records, currentUser?.id, todayStr]);
 
@@ -188,7 +192,7 @@ ${employeeName}`;
       list = list.filter(r => r.employee_name.toLowerCase().includes(searchName.toLowerCase()));
     }
 
-    const today = new Date().toISOString().split('T')[0];
+    const today = todayStr;
 
     if (historyFilter === 'today') {
       list = list.filter(r => r.date === today);
@@ -196,7 +200,7 @@ ${employeeName}`;
       const { start, end } = getWeekRange();
       list = list.filter(r => r.date >= start && r.date <= end);
     } else if (historyFilter === 'month') {
-      const currentMonthStr = new Date().toISOString().substring(0, 7); // YYYY-MM
+      const currentMonthStr = todayStr.substring(0, 7); // YYYY-MM
       list = list.filter(r => r.date.startsWith(currentMonthStr));
     } else if (historyFilter === 'custom') {
       if (startDate) list = list.filter(r => r.date >= startDate);
