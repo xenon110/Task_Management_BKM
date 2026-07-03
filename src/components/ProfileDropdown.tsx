@@ -91,6 +91,14 @@ const ProfileDropdown = () => {
               <span>My Profile</span>
             </button>
             
+            <button 
+              onClick={() => { navigate('/settings'); setIsOpen(false); }}
+              className="w-full flex items-center space-x-2.5 px-3 py-2 text-sm text-gray-700 hover:bg-gray-100 rounded-lg transition-colors"
+            >
+              <Settings size={16} className="text-gray-400" />
+              <span>Workspace Settings</span>
+            </button>
+            
             <div className="h-px bg-gray-100 my-1.5 mx-2"></div>
             
             <button 
