@@ -10,7 +10,7 @@ import 'react-big-calendar/lib/css/react-big-calendar.css';
 import 'react-big-calendar/lib/addons/dragAndDrop/styles.css';
 import { useTaskStore } from '../store/useTaskStore';
 import { useUiStore } from '../store/useUiStore';
-import { GripVertical, Plus, Calendar as CalendarIcon, Clock, Filter, Search, Flag } from 'lucide-react';
+import { GripVertical, Plus, Calendar as CalendarIcon, Clock, Filter, Search, Flag, Trash2 } from 'lucide-react';
 
 const locales = {
   'en-US': enUS,
@@ -103,7 +103,7 @@ const CustomEvent = ({ event }: any) => {
 };
 
 const PlannerPage = () => {
-  const { tasks, updateTask } = useTaskStore();
+  const { tasks, updateTask, deleteTask } = useTaskStore();
   const { openCreateTaskModal, openTaskDetailPanel } = useUiStore();
   const [searchQuery, setSearchQuery] = useState('');
   const [priorityFilter, setPriorityFilter] = useState('all');
@@ -239,10 +239,10 @@ const PlannerPage = () => {
               key={task.id}
               draggable="true"
               onDragStart={() => handleDragStart(task)}
-              className="bg-white border border-gray-200 rounded-lg p-3 shadow-sm cursor-grab active:cursor-grabbing hover:border-gray-300 hover:shadow-md transition-all group flex items-start"
+              className="bg-white border border-gray-200 rounded-lg p-3 shadow-sm cursor-grab active:cursor-grabbing hover:border-gray-300 hover:shadow-md transition-all group flex items-start relative"
             >
               <GripVertical size={14} className="text-gray-300 mr-2 mt-0.5 opacity-0 group-hover:opacity-100 transition-opacity flex-shrink-0" />
-              <div className="flex-1">
+              <div className="flex-1 pr-6">
                 <h4 className="font-semibold text-gray-800 text-[13px] leading-tight">{task.title}</h4>
                 <div className="flex items-center space-x-2 mt-2.5">
                   <span className={`text-[9px] uppercase font-bold px-1.5 py-0.5 rounded-sm shadow-sm ${task.priority === 'urgent' ? 'bg-red-100 text-red-700' : task.priority === 'high' ? 'bg-orange-100 text-orange-700' : 'bg-gray-100 text-gray-600'}`}>
@@ -251,6 +251,13 @@ const PlannerPage = () => {
                   <span className="text-[10px] text-gray-400 font-medium truncate max-w-[120px]">{task.status}</span>
                 </div>
               </div>
+              <button 
+                onClick={(e) => { e.stopPropagation(); deleteTask(task.id); }}
+                className="absolute top-2 right-2 p-1.5 text-red-400 hover:text-red-600 hover:bg-red-50 rounded-md opacity-0 group-hover:opacity-100 transition-all shadow-sm"
+                title="Delete task"
+              >
+                <Trash2 size={14} />
+              </button>
             </div>
           ))}
           {unscheduledTasks.length === 0 && (
