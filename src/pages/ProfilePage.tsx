@@ -53,6 +53,12 @@ const ProfilePage = () => {
   const [name, setName] = useState(user?.name || '');
   const [saving, setSaving] = useState(false);
   const [uploading, setUploading] = useState(false);
+  const [toast, setToast] = useState<{ title: string; message: string; type: 'success' | 'error' } | null>(null);
+
+  const showToast = (title: string, message: string, type: 'success' | 'error' = 'success') => {
+    setToast({ title, message, type });
+    setTimeout(() => setToast(null), 4000);
+  };
 
   const handleImageUpload = async (e: React.ChangeEvent<HTMLInputElement>) => {
     const file = e.target.files?.[0];
@@ -79,16 +85,16 @@ const ProfilePage = () => {
         .getPublicUrl(filePath);
 
       await updateUser({ avatar_url: publicUrl });
-      alert('Profile picture updated!');
+      showToast('Success', 'Profile picture updated successfully!');
     } catch (err) {
       console.warn('Supabase storage upload failed, falling back to base64...', err);
       try {
         const base64 = await compressImage(file);
         await updateUser({ avatar_url: base64 });
-        alert('Profile picture updated!');
+        showToast('Success', 'Profile picture updated successfully!');
       } catch (compressErr) {
         console.error('Compression failed', compressErr);
-        alert('Failed to update profile picture.');
+        showToast('Error', 'Failed to update profile picture.', 'error');
       }
     } finally {
       setUploading(false);
@@ -108,6 +114,7 @@ const ProfilePage = () => {
     await updateUser({ name: name.trim() });
     setIsEditing(false);
     setSaving(false);
+    showToast('Success', 'Profile name updated successfully!');
   };
 
   return (
@@ -247,6 +254,21 @@ const ProfilePage = () => {
         </div>
 
       </div>
+      {toast && (
+        <div className="fixed top-4 right-4 z-[9999] flex items-center p-4 mb-4 text-gray-800 bg-white/80 backdrop-blur-md rounded-xl border border-gray-100 shadow-[0_8px_30px_rgba(0,0,0,0.06)] animate-in fade-in slide-in-from-top-4 duration-300 max-w-sm">
+          <div className={`w-8 h-8 rounded-full flex items-center justify-center mr-3 shrink-0 ${toast.type === 'success' ? 'bg-green-50 text-green-500' : 'bg-red-50 text-red-500'}`}>
+            {toast.type === 'success' ? (
+              <svg className="w-5 h-5" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path strokeLinecap="round" strokeLinejoin="round" strokeWidth="2.5" d="M5 13l4 4L19 7"></path></svg>
+            ) : (
+              <svg className="w-5 h-5" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path strokeLinecap="round" strokeLinejoin="round" strokeWidth="2.5" d="M6 18L18 6M6 6l12 12"></path></svg>
+            )}
+          </div>
+          <div>
+            <h4 className="font-bold text-gray-900 text-sm leading-none">{toast.title}</h4>
+            <p className="text-gray-500 text-xs mt-1.5 leading-snug">{toast.message}</p>
+          </div>
+        </div>
+      )}
     </div>
   );
 };

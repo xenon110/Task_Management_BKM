@@ -7,6 +7,12 @@ import { supabase } from '../lib/supabase';
 
 const SettingsPage = () => {
   const [activeTab, setActiveTab] = useState<'profile' | 'workspace' | 'members'>('profile');
+  const [toast, setToast] = useState<{ title: string; message: string; type: 'success' | 'error' } | null>(null);
+
+  const showToast = (title: string, message: string, type: 'success' | 'error' = 'success') => {
+    setToast({ title, message, type });
+    setTimeout(() => setToast(null), 4000);
+  };
 
   return (
     <div className="max-w-5xl mx-auto p-6">
@@ -34,10 +40,26 @@ const SettingsPage = () => {
       </div>
 
       <div className="bg-white dark:bg-gray-800 rounded-2xl shadow-sm border border-gray-100 dark:border-gray-700 overflow-hidden">
-        {activeTab === 'profile' && <ProfileSettings />}
-        {activeTab === 'workspace' && <WorkspaceSettings />}
-        {activeTab === 'members' && <MemberManagement />}
+        {activeTab === 'profile' && <ProfileSettings showToast={showToast} />}
+        {activeTab === 'workspace' && <WorkspaceSettings showToast={showToast} />}
+        {activeTab === 'members' && <MemberManagement showToast={showToast} />}
       </div>
+
+      {toast && (
+        <div className="fixed top-4 right-4 z-[9999] flex items-center p-4 mb-4 text-gray-800 bg-white/80 backdrop-blur-md rounded-xl border border-gray-100 shadow-[0_8px_30px_rgba(0,0,0,0.06)] animate-in fade-in slide-in-from-top-4 duration-300 max-w-sm">
+          <div className={`w-8 h-8 rounded-full flex items-center justify-center mr-3 shrink-0 ${toast.type === 'success' ? 'bg-green-50 text-green-500' : 'bg-red-50 text-red-500'}`}>
+            {toast.type === 'success' ? (
+              <svg className="w-5 h-5" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path strokeLinecap="round" strokeLinejoin="round" strokeWidth="2.5" d="M5 13l4 4L19 7"></path></svg>
+            ) : (
+              <svg className="w-5 h-5" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path strokeLinecap="round" strokeLinejoin="round" strokeWidth="2.5" d="M6 18L18 6M6 6l12 12"></path></svg>
+            )}
+          </div>
+          <div>
+            <h4 className="font-bold text-gray-900 text-sm leading-none">{toast.title}</h4>
+            <p className="text-gray-500 text-xs mt-1.5 leading-snug">{toast.message}</p>
+          </div>
+        </div>
+      )}
     </div>
   );
 };
@@ -84,7 +106,7 @@ const compressImage = (file: File): Promise<string> => {
   });
 };
 
-const ProfileSettings = () => {
+const ProfileSettings = ({ showToast }: { showToast: (title: string, message: string, type?: 'success' | 'error') => void }) => {
   const { user, updateUser } = useAuthStore();
   const [name, setName] = useState(user?.name || '');
   const [email, setEmail] = useState(user?.email || '');
@@ -115,16 +137,16 @@ const ProfileSettings = () => {
         .getPublicUrl(filePath);
 
       await updateUser({ avatar_url: publicUrl });
-      alert('Profile picture updated!');
+      showToast('Success', 'Profile picture updated successfully!');
     } catch (err) {
       console.warn('Supabase storage upload failed, falling back to base64...', err);
       try {
         const base64 = await compressImage(file);
         await updateUser({ avatar_url: base64 });
-        alert('Profile picture updated!');
+        showToast('Success', 'Profile picture updated successfully!');
       } catch (compressErr) {
         console.error('Compression failed', compressErr);
-        alert('Failed to update profile picture.');
+        showToast('Error', 'Failed to update profile picture.', 'error');
       }
     } finally {
       setUploading(false);
@@ -134,7 +156,7 @@ const ProfileSettings = () => {
   const handleSave = (e: React.FormEvent) => {
     e.preventDefault();
     updateUser({ name, email });
-    alert('Profile saved!');
+    showToast('Success', 'Profile details saved successfully!');
   };
 
   return (
@@ -200,7 +222,7 @@ const ProfileSettings = () => {
   );
 };
 
-const WorkspaceSettings = () => {
+const WorkspaceSettings = ({ showToast }: { showToast: (title: string, message: string, type?: 'success' | 'error') => void }) => {
   const { activeWorkspace, setActiveWorkspace } = useAuthStore();
   const [name, setName] = useState(activeWorkspace?.name || '');
 
@@ -208,7 +230,7 @@ const WorkspaceSettings = () => {
     e.preventDefault();
     if (activeWorkspace) {
       setActiveWorkspace({ ...activeWorkspace, name });
-      alert('Workspace saved!');
+      showToast('Success', 'Workspace name updated successfully!');
     }
   };
 
@@ -236,7 +258,7 @@ const WorkspaceSettings = () => {
   );
 };
 
-const MemberManagement = () => {
+const MemberManagement = ({ showToast }: { showToast: (title: string, message: string, type?: 'success' | 'error') => void }) => {
   const { members, updateMemberRole, removeMember, inviteMember } = useWorkspaceStore();
   const [inviteEmail, setInviteEmail] = useState('');
   const [inviteRole, setInviteRole] = useState<'admin' | 'member' | 'guest'>('member');
@@ -248,7 +270,7 @@ const MemberManagement = () => {
     if (inviteEmail) {
       inviteMember(inviteEmail, inviteRole);
       setInviteEmail('');
-      alert(`Invited ${inviteEmail} as ${inviteRole}`);
+      // Redundant double alert removed here. The store will trigger the notification popup.
     }
   };
 
