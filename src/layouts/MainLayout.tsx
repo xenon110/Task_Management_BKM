@@ -95,8 +95,8 @@ const MainLayout = () => {
       {/* App Sidebar (Far Left) */}
       <div className={`w-[68px] bg-[#0A0A0A] text-white flex flex-col items-center py-4 border-r border-gray-800 flex-shrink-0 transition-transform duration-200 z-50 fixed md:relative inset-y-0 md:inset-auto md:h-full left-0 ${mobileMenuOpen ? 'translate-x-0' : '-translate-x-full md:translate-x-0'
         }`}>
-        <div className="w-8 h-8 rounded-lg bg-gradient-to-br from-[#FF007A] to-[#aa3bff] mb-6 flex items-center justify-center font-bold text-white shadow-lg cursor-pointer">
-          C
+        <div className="w-8 h-8 rounded-lg bg-gradient-to-br from-[#FF007A] to-[#aa3bff] mb-6 flex items-center justify-center font-bold text-white shadow-lg cursor-pointer text-[10px]">
+          BKM
         </div>
 
         <div className="flex flex-col space-y-4 w-full">
