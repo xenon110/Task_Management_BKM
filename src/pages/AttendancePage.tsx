@@ -99,15 +99,15 @@ ${employeeName}`;
     fetchRecords();
   }, []);
 
-  // Fetch records dynamically for admin controls tab based on selected month/year
+  // Fetch records dynamically for admin controls tab or selected detailed user breakdown
   useEffect(() => {
-    if (activeTab === 'admin' && isAdmin) {
+    if ((activeTab === 'admin' && isAdmin) || selectedDetailedUser) {
       const startStr = `${adminYear}-${String(adminMonth).padStart(2, '0')}-01`;
       const lastDay = new Date(adminYear, adminMonth, 0).getDate();
       const endStr = `${adminYear}-${String(adminMonth).padStart(2, '0')}-${String(lastDay).padStart(2, '0')}`;
       fetchRecords(startStr, endStr);
     }
-  }, [adminMonth, adminYear, activeTab, isAdmin]);
+  }, [adminMonth, adminYear, activeTab, isAdmin, selectedDetailedUser]);
 
   // Fetch records dynamically for custom history date ranges
   useEffect(() => {
@@ -796,6 +796,13 @@ ${employeeName}`;
                   )}
 
                   <button 
+                    onClick={() => setSelectedDetailedUser(currentUser)}
+                    className="flex items-center px-3 py-1.5 bg-brand hover:opacity-95 text-white text-xs font-bold rounded-lg shadow-sm transition-all"
+                  >
+                    <Calendar size={14} className="mr-1.5" /> View My Calendar Log
+                  </button>
+
+                  <button 
                     onClick={handleCSVExport}
                     className="flex items-center px-3 py-1.5 bg-[#10b981] hover:bg-[#059669] text-white text-xs font-semibold rounded-lg shadow-sm transition-colors"
                   >
@@ -1389,21 +1396,43 @@ ${employeeName}`;
         <div className="fixed inset-0 bg-gray-900/40 backdrop-blur-sm z-[100] flex items-center justify-center p-4">
           <div className="bg-white rounded-2xl shadow-2xl w-full max-w-2xl overflow-hidden transform transition-all border border-gray-150 flex flex-col max-h-[85vh] animate-in fade-in zoom-in-95 duration-200">
             {/* Header */}
-            <div className="px-6 py-4 border-b border-gray-150 flex items-center justify-between bg-gray-50/50">
+            <div className="px-6 py-4 border-b border-gray-150 flex flex-col sm:flex-row sm:items-center justify-between gap-4 bg-gray-50/50">
               <div>
-                <h3 className="text-sm font-bold text-gray-950">
+                <h3 className="text-sm font-bold text-gray-955">
                   Daily Attendance Log: {selectedDetailedUser.name || selectedDetailedUser.email.split('@')[0]}
                 </h3>
                 <p className="text-xs text-gray-500 mt-0.5">
-                  Breakdown for {new Date(adminYear, adminMonth - 1).toLocaleString([], { month: 'long', year: 'numeric' })}
+                  Detailed logs breakdown
                 </p>
               </div>
-              <button 
-                onClick={() => setSelectedDetailedUser(null)} 
-                className="text-gray-400 hover:text-gray-600 transition-colors p-1"
-              >
-                <X size={18} />
-              </button>
+              <div className="flex items-center space-x-2 shrink-0">
+                <select 
+                  value={adminMonth} 
+                  onChange={(e) => setAdminMonth(parseInt(e.target.value))}
+                  className="border border-gray-200 bg-white rounded-lg p-1.5 text-xs outline-none font-semibold text-gray-700 focus:border-brand"
+                >
+                  {Array.from({ length: 12 }, (_, i) => i + 1).map(m => (
+                    <option key={m} value={m}>{new Date(2000, m - 1).toLocaleString([], { month: 'short' })}</option>
+                  ))}
+                </select>
+
+                <select 
+                  value={adminYear} 
+                  onChange={(e) => setAdminYear(parseInt(e.target.value))}
+                  className="border border-gray-200 bg-white rounded-lg p-1.5 text-xs outline-none font-semibold text-gray-700 focus:border-brand"
+                >
+                  {[2024, 2025, 2026, 2027].map(y => (
+                    <option key={y} value={y}>{y}</option>
+                  ))}
+                </select>
+
+                <button 
+                  onClick={() => setSelectedDetailedUser(null)} 
+                  className="text-gray-400 hover:text-gray-600 transition-colors p-1.5 ml-2 shrink-0"
+                >
+                  <X size={18} />
+                </button>
+              </div>
             </div>
 
             {/* List */}
