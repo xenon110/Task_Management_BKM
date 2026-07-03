@@ -1,23 +1,23 @@
 import React, { useState } from 'react';
-import { 
-  Hash, Send
-} from 'lucide-react';
+import { Hash, Send } from 'lucide-react';
 import { useChatStore } from '../store/useChatStore';
+import { useAuthStore } from '../store/useAuthStore';
 
 const ChatPage = () => {
   const { messages, addMessage } = useChatStore();
+  const { user } = useAuthStore();
   const channelMessages = messages.filter(m => m.channel_id === 'c-1');
   const [input, setInput] = useState('');
 
   const handleSend = (e: React.FormEvent) => {
     e.preventDefault();
-    if (!input.trim()) return;
+    if (!input.trim() || !user) return;
     
     addMessage({
       channel_id: 'c-1',
-      sender_id: 'user-1',
-      sender_name: 'Mayank Raj',
-      sender_avatar: 'MR',
+      sender_id: user.id,
+      sender_name: user.name || user.email.split('@')[0],
+      sender_avatar: user.name ? user.name.split(' ').map(n => n[0]).join('').toUpperCase() : 'U',
       content: input,
       reactions: {}
     });
@@ -43,22 +43,30 @@ const ChatPage = () => {
           </div>
         </div>
         
-        {channelMessages.map(msg => (
-          <div key={msg.id} className="flex items-start group">
-            <div className={`w-10 h-10 rounded-lg flex items-center justify-center text-white font-bold mr-4 flex-shrink-0 shadow-sm ${msg.sender_name === 'Mayank Raj' ? 'bg-gray-900' : msg.sender_name === 'Sarah Chen' ? 'bg-blue-600' : 'bg-green-600'}`}>
-              {msg.sender_avatar}
-            </div>
-            <div className="flex-1">
-              <div className="flex items-baseline mb-1">
-                <span className="font-bold text-gray-900 mr-2 text-[15px]">{msg.sender_name}</span>
-                <span className="text-xs text-gray-400 font-medium">{new Date(msg.timestamp).toLocaleTimeString([], { hour: '2-digit', minute: '2-digit' })}</span>
+        {channelMessages.map(msg => {
+          const senderName = msg.sender?.name || msg.sender_name || 'Unknown User';
+          const senderAvatar = msg.sender?.avatar_url 
+            ? (msg.sender.avatar_url.startsWith('http') ? msg.sender.avatar_url : msg.sender.avatar_url.substring(0, 2).toUpperCase()) 
+            : (msg.sender_avatar || senderName.substring(0, 2).toUpperCase());
+          const isAvatarUrl = senderAvatar.startsWith('http');
+
+          return (
+            <div key={msg.id} className="flex items-start group">
+              <div className={`w-10 h-10 rounded-lg flex items-center justify-center text-white font-bold mr-4 flex-shrink-0 shadow-sm overflow-hidden ${senderName === 'Mayank Raj' ? 'bg-gray-900' : senderName === 'Sarah Chen' ? 'bg-blue-600' : 'bg-green-600'}`}>
+                {isAvatarUrl ? <img src={senderAvatar} alt="" className="w-full h-full object-cover" /> : senderAvatar}
               </div>
-              <div className="text-gray-700 text-[15px] leading-relaxed">
-                {msg.content}
+              <div className="flex-1">
+                <div className="flex items-baseline mb-1">
+                  <span className="font-bold text-gray-900 mr-2 text-[15px]">{senderName}</span>
+                  <span className="text-xs text-gray-400 font-medium">{new Date(msg.created_at || Date.now()).toLocaleTimeString([], { hour: '2-digit', minute: '2-digit' })}</span>
+                </div>
+                <div className="text-gray-700 text-[15px] leading-relaxed">
+                  {msg.content}
+                </div>
               </div>
             </div>
-          </div>
-        ))}
+          );
+        })}
       </div>
 
       {/* Input Area */}

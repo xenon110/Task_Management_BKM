@@ -3,6 +3,7 @@ import { useAuthStore } from '../store/useAuthStore';
 import { useWorkspaceStore } from '../store/useWorkspaceStore';
 import { Camera, Save, UserPlus, Trash2, Shield } from 'lucide-react';
 import { usePermissions } from '../hooks/usePermissions';
+import { supabase } from '../lib/supabase';
 
 const SettingsPage = () => {
   const [activeTab, setActiveTab] = useState<'profile' | 'workspace' | 'members'>('profile');
@@ -41,10 +42,94 @@ const SettingsPage = () => {
   );
 };
 
+const compressImage = (file: File): Promise<string> => {
+  return new Promise((resolve, reject) => {
+    const reader = new FileReader();
+    reader.onload = (e) => {
+      const img = new Image();
+      img.onload = () => {
+        const canvas = document.createElement('canvas');
+        const MAX_WIDTH = 150;
+        const MAX_HEIGHT = 150;
+        let width = img.width;
+        let height = img.height;
+
+        if (width > height) {
+          if (width > MAX_WIDTH) {
+            height *= MAX_WIDTH / width;
+            width = MAX_WIDTH;
+          }
+        } else {
+          if (height > MAX_HEIGHT) {
+            width *= MAX_HEIGHT / height;
+            height = MAX_HEIGHT;
+          }
+        }
+
+        canvas.width = width;
+        canvas.height = height;
+        const ctx = canvas.getContext('2d');
+        if (ctx) {
+          ctx.drawImage(img, 0, 0, width, height);
+          resolve(canvas.toDataURL('image/jpeg', 0.7));
+        } else {
+          resolve(img.src);
+        }
+      };
+      img.onerror = () => reject(new Error('Failed to load image'));
+      img.src = e.target?.result as string;
+    };
+    reader.onerror = () => reject(new Error('Failed to read file'));
+    reader.readAsDataURL(file);
+  });
+};
+
 const ProfileSettings = () => {
   const { user, updateUser } = useAuthStore();
   const [name, setName] = useState(user?.name || '');
   const [email, setEmail] = useState(user?.email || '');
+  const [uploading, setUploading] = useState(false);
+
+  const handleImageUpload = async (e: React.ChangeEvent<HTMLInputElement>) => {
+    const file = e.target.files?.[0];
+    if (!file || !user) return;
+
+    setUploading(true);
+    try {
+      // 1. Try uploading to Supabase Storage bucket 'avatars'
+      const fileExt = file.name.split('.').pop();
+      const fileName = `${user.id}-${Date.now()}.${fileExt}`;
+      const filePath = `${fileName}`;
+
+      const { error: uploadError } = await supabase.storage
+        .from('avatars')
+        .upload(filePath, file, { upsert: true });
+
+      if (uploadError) {
+        throw uploadError;
+      }
+
+      // Get public URL
+      const { data: { publicUrl } } = supabase.storage
+        .from('avatars')
+        .getPublicUrl(filePath);
+
+      await updateUser({ avatar_url: publicUrl });
+      alert('Profile picture updated!');
+    } catch (err) {
+      console.warn('Supabase storage upload failed, falling back to base64...', err);
+      try {
+        const base64 = await compressImage(file);
+        await updateUser({ avatar_url: base64 });
+        alert('Profile picture updated!');
+      } catch (compressErr) {
+        console.error('Compression failed', compressErr);
+        alert('Failed to update profile picture.');
+      }
+    } finally {
+      setUploading(false);
+    }
+  };
 
   const handleSave = (e: React.FormEvent) => {
     e.preventDefault();
@@ -55,12 +140,27 @@ const ProfileSettings = () => {
   return (
     <div className="p-8">
       <div className="flex items-center space-x-8 mb-8">
-        <div className="relative">
+        <div className="relative group">
           <img
             src={user?.avatar_url || `https://ui-avatars.com/api/?name=${user?.name}&background=random`}
             alt="Profile"
-            className="w-24 h-24 rounded-full object-cover border-4 border-white dark:border-gray-800 shadow-lg"
+            className="w-24 h-24 rounded-full object-cover border-4 border-white dark:border-gray-800 shadow-lg group-hover:opacity-85 transition-opacity"
           />
+          <label className="absolute bottom-0 right-0 bg-brand hover:bg-brand-dark text-white p-2 rounded-full cursor-pointer shadow-md transition-all border-2 border-white dark:border-gray-800 flex items-center justify-center">
+            <Camera size={14} />
+            <input
+              type="file"
+              accept="image/*"
+              className="hidden"
+              onChange={handleImageUpload}
+              disabled={uploading}
+            />
+          </label>
+          {uploading && (
+            <div className="absolute inset-0 bg-black/45 rounded-full flex items-center justify-center text-white text-[11px] font-semibold backdrop-blur-[1px]">
+              Uploading...
+            </div>
+          )}
         </div>
         <div>
           <h3 className="text-xl font-semibold text-gray-900 dark:text-white">{user?.name}</h3>

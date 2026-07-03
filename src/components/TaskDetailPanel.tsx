@@ -114,7 +114,7 @@ const TaskDetailPanel = () => {
   const priorityOptions: { value: TaskPriority; label: string; color: string }[] = [
     { value: 'urgent' as TaskPriority, label: 'Urgent', color: 'text-red-500' },
     { value: 'high' as TaskPriority, label: 'High', color: 'text-orange-500' },
-    { value: 'medium' as TaskPriority, label: 'Medium', color: 'text-yellow-500' },
+    { value: 'normal' as TaskPriority, label: 'Normal', color: 'text-gray-400' },
     { value: 'low' as TaskPriority, label: 'Low', color: 'text-blue-500' },
   ];
 
@@ -181,7 +181,7 @@ const TaskDetailPanel = () => {
     switch(p) {
       case 'urgent': return 'text-red-500';
       case 'high': return 'text-orange-500';
-      case 'medium': return 'text-yellow-500';
+      case 'normal': return 'text-gray-400';
       case 'low': return 'text-blue-500';
       default: return 'text-gray-400';
     }

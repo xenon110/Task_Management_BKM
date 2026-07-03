@@ -56,22 +56,30 @@ const ProjectChannelView: React.FC<ProjectChannelViewProps> = ({ channelId = 'pr
           </div>
         </div>
         
-        {channelMessages.map(msg => (
-          <div key={msg.id} className="flex items-start group">
-            <div className={`w-10 h-10 rounded-lg flex items-center justify-center text-white font-bold mr-4 flex-shrink-0 shadow-sm ${msg.sender_id === user?.id ? 'bg-brand' : 'bg-blue-600'}`}>
-              {msg.sender_avatar}
-            </div>
-            <div className="flex-1">
-              <div className="flex items-baseline mb-1">
-                <span className="font-bold text-gray-900 mr-2 text-[15px]">{msg.sender_name}</span>
-                <span className="text-xs text-gray-400 font-medium">{new Date(msg.created_at || Date.now()).toLocaleTimeString([], { hour: '2-digit', minute: '2-digit' })}</span>
+        {channelMessages.map(msg => {
+          const senderName = msg.sender?.name || msg.sender_name || 'Unknown User';
+          const senderAvatar = msg.sender?.avatar_url 
+            ? (msg.sender.avatar_url.startsWith('http') ? msg.sender.avatar_url : msg.sender.avatar_url.substring(0, 2).toUpperCase()) 
+            : (msg.sender_avatar || senderName.substring(0, 2).toUpperCase());
+          const isAvatarUrl = senderAvatar.startsWith('http');
+
+          return (
+            <div key={msg.id} className="flex items-start group">
+              <div className={`w-10 h-10 rounded-lg flex items-center justify-center text-white font-bold mr-4 flex-shrink-0 shadow-sm overflow-hidden ${msg.sender_id === user?.id ? 'bg-brand' : 'bg-blue-600'}`}>
+                {isAvatarUrl ? <img src={senderAvatar} alt="" className="w-full h-full object-cover" /> : senderAvatar}
               </div>
-              <div className="text-gray-700 text-[15px] leading-relaxed">
-                {msg.content}
+              <div className="flex-1">
+                <div className="flex items-baseline mb-1">
+                  <span className="font-bold text-gray-900 mr-2 text-[15px]">{senderName}</span>
+                  <span className="text-xs text-gray-400 font-medium">{new Date(msg.created_at || Date.now()).toLocaleTimeString([], { hour: '2-digit', minute: '2-digit' })}</span>
+                </div>
+                <div className="text-gray-700 text-[15px] leading-relaxed">
+                  {msg.content}
+                </div>
               </div>
             </div>
-          </div>
-        ))}
+          );
+        })}
       </div>
 
       {/* Input Area */}

@@ -97,9 +97,11 @@ export const useProjectStore = create<ProjectState>((set, get) => ({
       projectMembers.push(currentUserId);
     }
 
+    const activeWorkspaceId = useAuthStore.getState().activeWorkspace?.id || DEFAULT_WORKSPACE_ID;
+
     const newProject = {
       ...project,
-      workspace_id: DEFAULT_WORKSPACE_ID,
+      workspace_id: activeWorkspaceId,
       members: projectMembers,
     };
 

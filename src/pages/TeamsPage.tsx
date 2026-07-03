@@ -49,7 +49,6 @@ const TeamsPage = () => {
 
   // Calculate workloads
   const memberWorkloads = globalUsers
-    .filter(u => u.id === currentUser?.id)
     .map(user => {
     // Count active tasks for this member
     const activeTasksCount = tasks.filter(t =>

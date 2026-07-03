@@ -6,6 +6,7 @@ import { useProjectStore } from '../store/useProjectStore';
 import { useAuthStore } from '../store/useAuthStore';
 import { X, Calendar, User, Flag, AlignLeft, Paperclip, CheckSquare, Maximize2, Minimize2 } from 'lucide-react';
 import type { TaskPriority, TaskStatus } from '../types';
+import { usePermissions } from '../hooks/usePermissions';
 
 const CreateTaskModal = () => {
   const { isCreateTaskModalOpen, closeCreateTaskModal } = useUiStore();
@@ -13,6 +14,7 @@ const CreateTaskModal = () => {
   const { members } = useWorkspaceStore();
   const { projects } = useProjectStore();
   const { user } = useAuthStore();
+  const { getAssignableMembers } = usePermissions();
   const currentUserId = user?.id || '00000000-0000-0000-0000-000000000001';
   
   const [title, setTitle] = useState('');
@@ -124,7 +126,7 @@ const CreateTaskModal = () => {
                   >
                     <option value="">Unassigned</option>
                     <option value={currentUserId}>Me</option>
-                    {members.filter(m => m.user).map(m => (
+                    {getAssignableMembers().filter(m => m.user && m.user.id !== currentUserId).map(m => (
                       <option key={m.user!.id} value={m.user!.id}>{m.user!.name}</option>
                     ))}
                   </select>
