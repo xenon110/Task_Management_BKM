@@ -1,7 +1,7 @@
 // Trigger redeployment for email change
 import React, { useState, useEffect, useMemo } from 'react';
-import { 
-  Clock, Calendar, Play, CheckCircle2, AlertCircle, FileSpreadsheet, 
+import {
+  Clock, Calendar, Play, CheckCircle2, AlertCircle, FileSpreadsheet,
   Search, Filter, Plus, LogOut, Coffee, ArrowRight, UserCheck, X, RefreshCw,
   TrendingUp, Award, Activity, Mail
 } from 'lucide-react';
@@ -17,7 +17,7 @@ const AttendancePage = () => {
   const { members } = useWorkspaceStore();
 
   const [activeTab, setActiveTab] = useState<'clock' | 'history' | 'analytics' | 'admin'>('clock');
-  
+
   // History filters
   const [historyFilter, setHistoryFilter] = useState<'today' | 'week' | 'month' | 'custom'>('month');
   const [startDate, setStartDate] = useState('');
@@ -180,7 +180,7 @@ ${employeeName}`;
   // Filter history records
   const filteredHistory = useMemo(() => {
     let list = records;
-    
+
     // Non-owner can only see their own
     if (!isOwner) {
       list = list.filter(r => r.user_id === currentUser?.id);
@@ -189,7 +189,7 @@ ${employeeName}`;
     }
 
     const today = new Date().toISOString().split('T')[0];
-    
+
     if (historyFilter === 'today') {
       list = list.filter(r => r.date === today);
     } else if (historyFilter === 'week') {
@@ -221,7 +221,7 @@ ${employeeName}`;
 
     // Get number of days in the selected month
     const totalDaysInMonth = new Date(adminYear, adminMonth, 0).getDate();
-    
+
     // Determine the upper bound for days we show (e.g. today's date if selectedMonth/year is current, else full month)
     const now = new Date();
     const isCurrentMonth = now.getFullYear() === adminYear && (now.getMonth() + 1) === adminMonth;
@@ -230,7 +230,7 @@ ${employeeName}`;
     for (let day = 1; day <= maxDay; day++) {
       const dateStr = `${adminYear}-${String(adminMonth).padStart(2, '0')}-${String(day).padStart(2, '0')}`;
       const record = empRecords.find(r => r.date === dateStr);
-      
+
       const dayDate = new Date(adminYear, adminMonth - 1, day);
       const isWeekend = dayDate.getDay() === 0; // 0 = Sunday is the only weekend day (Saturday is a working day)
       const dayName = dayDate.toLocaleDateString([], { weekday: 'short' });
@@ -264,7 +264,7 @@ ${employeeName}`;
   const userStats = useMemo(() => {
     const userRecords = records.filter(r => r.user_id === currentUser?.id);
     const presentRecords = userRecords.filter(r => r.status === 'Present');
-    
+
     // Current month/year filter for display
     const now = new Date();
     const curMonthStr = now.toISOString().substring(0, 7);
@@ -292,8 +292,8 @@ ${employeeName}`;
     const rawTotalWorkingDaysYearly = Math.max(yearlyRecords.length, 260);
     const totalWorkingDaysYearly = Math.max(0, rawTotalWorkingDaysYearly - TOTAL_LEAVES_ALLOWED); // 245 expected working days
 
-    const yearlyRate = totalWorkingDaysYearly > 0 
-      ? Math.min(100, (presentCountYearly / totalWorkingDaysYearly) * 100) 
+    const yearlyRate = totalWorkingDaysYearly > 0
+      ? Math.min(100, (presentCountYearly / totalWorkingDaysYearly) * 100)
       : 100;
 
     // Averages (Login / Logout / Lunch Late)
@@ -361,7 +361,7 @@ ${employeeName}`;
 
     const present = todayList.filter(r => r.status === 'Present').length;
     const leave = todayList.filter(r => r.status === 'Leave').length;
-    
+
     // Assume absent is total members minus today present & leave
     const totalMembers = workspaceUsers.length;
     const absent = Math.max(0, totalMembers - present - leave);
@@ -369,7 +369,7 @@ ${employeeName}`;
     // Active Status Counters
     const loggedIn = todayList.filter(r => r.login_time && !r.logout_time).length;
     const outForLunch = todayList.filter(r => r.lunch_out_time && !r.lunch_in_time).length;
-    
+
     // Not returned after lunch > 1 hour
     const notReturnedLunch = todayList.filter(r => {
       if (r.lunch_out_time && !r.lunch_in_time) {
@@ -416,7 +416,7 @@ ${employeeName}`;
       return;
     }
     const subject = `Leave Request: ${currentUser?.name || 'Employee'} (${emailFromDate} to ${emailToDate})`;
-    
+
     const serviceId = import.meta.env.VITE_EMAILJS_SERVICE_ID;
     const publicKey = import.meta.env.VITE_EMAILJS_PUBLIC_KEY;
     // Look for VITE_EMAILJS_LEAVE_TEMPLATE_ID or default to template_8406qye
@@ -476,7 +476,7 @@ ${employeeName}`;
       r.leave_remark || '-'
     ]);
 
-    let csvContent = '\uFEFF' + csvHeaders.join(',') + '\n' + csvRows.map(row => 
+    let csvContent = '\uFEFF' + csvHeaders.join(',') + '\n' + csvRows.map(row =>
       row.map(val => `"${val.replace(/"/g, '""')}"`).join(',')
     ).join('\n');
 
@@ -506,26 +506,26 @@ ${employeeName}`;
 
         {/* Navigation Tabs */}
         <div className="flex space-x-2 bg-gray-100 p-1 rounded-lg overflow-x-auto whitespace-nowrap max-w-full scrollbar-none">
-          <button 
+          <button
             onClick={() => setActiveTab('clock')}
             className={`px-4 py-1.5 text-xs font-semibold rounded-md transition-all flex-shrink-0 ${activeTab === 'clock' ? 'bg-white text-gray-900 shadow-sm' : 'text-gray-500 hover:text-gray-900'}`}
           >
             Clock In/Out
           </button>
-          <button 
+          <button
             onClick={() => setActiveTab('history')}
             className={`px-4 py-1.5 text-xs font-semibold rounded-md transition-all flex-shrink-0 ${activeTab === 'history' ? 'bg-white text-gray-900 shadow-sm' : 'text-gray-500 hover:text-gray-900'}`}
           >
             History Logs
           </button>
-          <button 
+          <button
             onClick={() => setActiveTab('analytics')}
             className={`px-4 py-1.5 text-xs font-semibold rounded-md transition-all flex-shrink-0 ${activeTab === 'analytics' ? 'bg-white text-gray-900 shadow-sm' : 'text-gray-500 hover:text-gray-900'}`}
           >
             My Analytics
           </button>
           {isAdmin && (
-            <button 
+            <button
               onClick={() => setActiveTab('admin')}
               className={`px-4 py-1.5 text-xs font-semibold rounded-md transition-all flex-shrink-0 ${activeTab === 'admin' ? 'bg-white text-gray-900 shadow-sm' : 'text-gray-500 hover:text-gray-900'}`}
             >
@@ -537,33 +537,32 @@ ${employeeName}`;
 
       {/* Main Panel Content */}
       <div className="flex-1 overflow-y-auto p-8 max-w-[1200px] w-full mx-auto">
-        
+
         {/* TAB 1: CLOCK SYSTEM */}
         {activeTab === 'clock' && (
           <div className="space-y-6">
-            
+
             {/* Clock Status Summary */}
             <div className="bg-white rounded-xl shadow-sm border border-gray-200 p-6 flex flex-col md:flex-row md:items-center justify-between gap-6">
               <div>
                 <span className="text-xs font-bold uppercase tracking-wider text-gray-400">Current Session Status</span>
                 <h2 className="text-2xl font-bold text-gray-900 mt-1 flex items-center">
-                  <span className={`w-3 h-3 rounded-full mr-3 animate-pulse ${
-                    clockState.status === 'Logged In' || clockState.status === 'Returned from Lunch' ? 'bg-green-500' :
-                    clockState.status === 'Out for Lunch' ? 'bg-yellow-500' : 'bg-gray-400'
-                  }`}></span>
+                  <span className={`w-3 h-3 rounded-full mr-3 animate-pulse ${clockState.status === 'Logged In' || clockState.status === 'Returned from Lunch' ? 'bg-green-500' :
+                      clockState.status === 'Out for Lunch' ? 'bg-yellow-500' : 'bg-gray-400'
+                    }`}></span>
                   {clockState.status}
                 </h2>
                 <p className="text-xs text-gray-500 mt-1">Official Hours: <span className="font-semibold text-gray-700">10:05 AM - 07:00 PM</span></p>
               </div>
-              
+
               <div className="flex items-center space-x-2 text-xs">
-                <button 
+                <button
                   onClick={() => setShowEmailModal(true)}
                   className="px-3 py-1.5 bg-[#aa3bff] hover:opacity-95 text-white font-semibold rounded-lg shadow-sm transition-opacity flex items-center h-8"
                 >
                   <Mail size={13} className="mr-1.5" /> Apply for Leave
                 </button>
-                <button 
+                <button
                   onClick={() => fetchRecords()}
                   className="p-2 border border-gray-200 rounded-lg bg-gray-50 hover:bg-gray-100 text-gray-600 transition-colors flex items-center h-8"
                   title="Refresh"
@@ -575,12 +574,11 @@ ${employeeName}`;
 
             {/* Attendance Sequenced Actions */}
             <div className="grid grid-cols-1 sm:grid-cols-2 md:grid-cols-4 gap-4">
-              
+
               {/* Action 1: Login */}
-              <div className={`p-5 rounded-xl border transition-all flex flex-col justify-between h-40 shadow-sm ${
-                todayRecord?.login_time ? 'bg-green-50/50 border-green-200/50' : 
-                clockState.canLogin ? 'bg-white border-brand/20 hover:border-brand/40 cursor-pointer' : 'bg-gray-50 border-gray-100 opacity-60'
-              }`}>
+              <div className={`p-5 rounded-xl border transition-all flex flex-col justify-between h-40 shadow-sm ${todayRecord?.login_time ? 'bg-green-50/50 border-green-200/50' :
+                  clockState.canLogin ? 'bg-white border-brand/20 hover:border-brand/40 cursor-pointer' : 'bg-gray-50 border-gray-100 opacity-60'
+                }`}>
                 <div className="flex items-center justify-between">
                   <span className="w-8 h-8 rounded-lg bg-emerald-100 text-emerald-700 flex items-center justify-center font-bold">1</span>
                   {todayRecord?.login_time ? (
@@ -597,7 +595,7 @@ ${employeeName}`;
                   {todayRecord?.login_time ? (
                     <span className="text-sm font-bold text-green-700">{formatTime(todayRecord.login_time)}</span>
                   ) : (
-                    <button 
+                    <button
                       onClick={markLogin}
                       disabled={!clockState.canLogin}
                       className="w-full py-1.5 bg-brand text-white text-xs font-bold rounded-lg hover:opacity-90 disabled:opacity-30 transition-opacity"
@@ -609,10 +607,9 @@ ${employeeName}`;
               </div>
 
               {/* Action 2: Lunch Out */}
-              <div className={`p-5 rounded-xl border transition-all flex flex-col justify-between h-40 shadow-sm ${
-                todayRecord?.lunch_out_time ? 'bg-green-50/50 border-green-200/50' : 
-                clockState.canLunchOut ? 'bg-white border-brand/20 hover:border-brand/40 cursor-pointer' : 'bg-gray-50 border-gray-100 opacity-60'
-              }`}>
+              <div className={`p-5 rounded-xl border transition-all flex flex-col justify-between h-40 shadow-sm ${todayRecord?.lunch_out_time ? 'bg-green-50/50 border-green-200/50' :
+                  clockState.canLunchOut ? 'bg-white border-brand/20 hover:border-brand/40 cursor-pointer' : 'bg-gray-50 border-gray-100 opacity-60'
+                }`}>
                 <div className="flex items-center justify-between">
                   <span className="w-8 h-8 rounded-lg bg-orange-100 text-orange-700 flex items-center justify-center font-bold">2</span>
                   {todayRecord?.lunch_out_time ? (
@@ -629,7 +626,7 @@ ${employeeName}`;
                   {todayRecord?.lunch_out_time ? (
                     <span className="text-sm font-bold text-green-700">{formatTime(todayRecord.lunch_out_time)}</span>
                   ) : (
-                    <button 
+                    <button
                       onClick={markLunchOut}
                       disabled={!clockState.canLunchOut}
                       className="w-full py-1.5 bg-orange-500 text-white text-xs font-bold rounded-lg hover:opacity-90 disabled:opacity-30 transition-opacity"
@@ -641,10 +638,9 @@ ${employeeName}`;
               </div>
 
               {/* Action 3: Lunch In */}
-              <div className={`p-5 rounded-xl border transition-all flex flex-col justify-between h-40 shadow-sm ${
-                todayRecord?.lunch_in_time ? 'bg-green-50/50 border-green-200/50' : 
-                clockState.canLunchIn ? 'bg-white border-brand/20 hover:border-brand/40 cursor-pointer' : 'bg-gray-50 border-gray-100 opacity-60'
-              }`}>
+              <div className={`p-5 rounded-xl border transition-all flex flex-col justify-between h-40 shadow-sm ${todayRecord?.lunch_in_time ? 'bg-green-50/50 border-green-200/50' :
+                  clockState.canLunchIn ? 'bg-white border-brand/20 hover:border-brand/40 cursor-pointer' : 'bg-gray-50 border-gray-100 opacity-60'
+                }`}>
                 <div className="flex items-center justify-between">
                   <span className="w-8 h-8 rounded-lg bg-orange-100 text-orange-700 flex items-center justify-center font-bold">3</span>
                   {todayRecord?.lunch_in_time ? (
@@ -661,7 +657,7 @@ ${employeeName}`;
                   {todayRecord?.lunch_in_time ? (
                     <span className="text-sm font-bold text-green-700">{formatTime(todayRecord.lunch_in_time)}</span>
                   ) : (
-                    <button 
+                    <button
                       onClick={markLunchIn}
                       disabled={!clockState.canLunchIn}
                       className="w-full py-1.5 bg-orange-600 text-white text-xs font-bold rounded-lg hover:opacity-90 disabled:opacity-30 transition-opacity"
@@ -673,10 +669,9 @@ ${employeeName}`;
               </div>
 
               {/* Action 4: Logout */}
-              <div className={`p-5 rounded-xl border transition-all flex flex-col justify-between h-40 shadow-sm ${
-                todayRecord?.logout_time ? 'bg-green-50/50 border-green-200/50' : 
-                clockState.canLogout ? 'bg-white border-brand/20 hover:border-brand/40 cursor-pointer' : 'bg-gray-50 border-gray-100 opacity-60'
-              }`}>
+              <div className={`p-5 rounded-xl border transition-all flex flex-col justify-between h-40 shadow-sm ${todayRecord?.logout_time ? 'bg-green-50/50 border-green-200/50' :
+                  clockState.canLogout ? 'bg-white border-brand/20 hover:border-brand/40 cursor-pointer' : 'bg-gray-50 border-gray-100 opacity-60'
+                }`}>
                 <div className="flex items-center justify-between">
                   <span className="w-8 h-8 rounded-lg bg-red-100 text-red-700 flex items-center justify-center font-bold">4</span>
                   {todayRecord?.logout_time ? (
@@ -693,7 +688,7 @@ ${employeeName}`;
                   {todayRecord?.logout_time ? (
                     <span className="text-sm font-bold text-green-700">{formatTime(todayRecord.logout_time)}</span>
                   ) : (
-                    <button 
+                    <button
                       onClick={markLogout}
                       disabled={!clockState.canLogout}
                       className="w-full py-1.5 bg-red-600 text-white text-xs font-bold rounded-lg hover:opacity-90 disabled:opacity-30 transition-opacity"
@@ -712,12 +707,12 @@ ${employeeName}`;
                 <Activity size={16} className="text-brand mr-2" /> Today's Calculations Summary
               </h3>
               <div className="grid grid-cols-1 sm:grid-cols-4 gap-6">
-                
+
                 <div className="bg-gray-50/50 border border-gray-100 p-4 rounded-xl">
                   <span className="text-xs text-gray-400 font-semibold">Lunch break duration</span>
                   <p className="text-lg font-bold text-gray-800 mt-1">{todayRecord?.lunch_duration || '--'}</p>
                 </div>
-                
+
                 <div className="bg-gray-50/50 border border-gray-100 p-4 rounded-xl">
                   <span className="text-xs text-gray-400 font-semibold">Lunch delay status</span>
                   <div className="mt-1">
@@ -730,7 +725,7 @@ ${employeeName}`;
                     )}
                   </div>
                 </div>
-                
+
                 <div className="bg-gray-50/50 border border-gray-100 p-4 rounded-xl">
                   <span className="text-xs text-gray-400 font-semibold">Total Net Working hours</span>
                   <p className="text-lg font-bold text-gray-850 mt-1">{todayRecord?.total_working_hours || '--'}</p>
@@ -751,29 +746,29 @@ ${employeeName}`;
         {activeTab === 'history' && (
           <div className="space-y-6">
             <div className="bg-white rounded-xl shadow-sm border border-gray-200 p-6">
-              
+
               {/* Toolbar */}
               <div className="flex flex-col md:flex-row md:items-center justify-between gap-4 mb-6">
                 <div className="flex flex-wrap items-center gap-2">
-                  <button 
+                  <button
                     onClick={() => setHistoryFilter('today')}
                     className={`px-3 py-1.5 text-xs font-semibold rounded-lg border transition-all ${historyFilter === 'today' ? 'bg-gray-900 border-gray-900 text-white' : 'bg-white border-gray-200 text-gray-600 hover:bg-gray-50'}`}
                   >
                     Today
                   </button>
-                  <button 
+                  <button
                     onClick={() => setHistoryFilter('week')}
                     className={`px-3 py-1.5 text-xs font-semibold rounded-lg border transition-all ${historyFilter === 'week' ? 'bg-gray-900 border-gray-900 text-white' : 'bg-white border-gray-200 text-gray-600 hover:bg-gray-50'}`}
                   >
                     This Week
                   </button>
-                  <button 
+                  <button
                     onClick={() => setHistoryFilter('month')}
                     className={`px-3 py-1.5 text-xs font-semibold rounded-lg border transition-all ${historyFilter === 'month' ? 'bg-gray-900 border-gray-900 text-white' : 'bg-white border-gray-200 text-gray-600 hover:bg-gray-50'}`}
                   >
                     This Month
                   </button>
-                  <button 
+                  <button
                     onClick={() => setHistoryFilter('custom')}
                     className={`px-3 py-1.5 text-xs font-semibold rounded-lg border transition-all ${historyFilter === 'custom' ? 'bg-gray-900 border-gray-900 text-white' : 'bg-white border-gray-200 text-gray-600 hover:bg-gray-50'}`}
                   >
@@ -785,8 +780,8 @@ ${employeeName}`;
                   {isOwner && (
                     <div className="relative group">
                       <Search size={14} className="absolute left-3 top-1/2 transform -translate-y-1/2 text-gray-400 group-hover:text-gray-600" />
-                      <input 
-                        type="text" 
+                      <input
+                        type="text"
                         placeholder="Search employee..."
                         value={searchName}
                         onChange={(e) => setSearchName(e.target.value)}
@@ -795,14 +790,14 @@ ${employeeName}`;
                     </div>
                   )}
 
-                  <button 
+                  <button
                     onClick={() => setSelectedDetailedUser(currentUser)}
                     className="flex items-center px-3 py-1.5 bg-brand hover:opacity-95 text-white text-xs font-bold rounded-lg shadow-sm transition-all"
                   >
                     <Calendar size={14} className="mr-1.5" /> View My Calendar Log
                   </button>
 
-                  <button 
+                  <button
                     onClick={handleCSVExport}
                     className="flex items-center px-3 py-1.5 bg-[#10b981] hover:bg-[#059669] text-white text-xs font-semibold rounded-lg shadow-sm transition-colors"
                   >
@@ -816,8 +811,8 @@ ${employeeName}`;
                 <div className="flex items-center space-x-3 bg-gray-50/50 p-4 rounded-xl border border-gray-100 mb-6 w-fit animate-in fade-in duration-200">
                   <div className="flex items-center space-x-2">
                     <label className="text-xs text-gray-500 font-medium">Start:</label>
-                    <input 
-                      type="date" 
+                    <input
+                      type="date"
                       value={startDate}
                       onChange={(e) => setStartDate(e.target.value)}
                       className="border border-gray-200 rounded-lg p-1.5 text-xs outline-none focus:border-brand"
@@ -825,8 +820,8 @@ ${employeeName}`;
                   </div>
                   <div className="flex items-center space-x-2">
                     <label className="text-xs text-gray-500 font-medium">End:</label>
-                    <input 
-                      type="date" 
+                    <input
+                      type="date"
                       value={endDate}
                       onChange={(e) => setEndDate(e.target.value)}
                       className="border border-gray-200 rounded-lg p-1.5 text-xs outline-none focus:border-brand"
@@ -877,10 +872,9 @@ ${employeeName}`;
                           </td>
                           <td className="px-5 py-3.5 text-gray-800 font-bold">{rec.total_working_hours || '--'}</td>
                           <td className="px-5 py-3.5">
-                            <span className={`inline-flex px-2 py-0.5 rounded text-[10px] font-bold capitalize ${
-                              rec.status === 'Present' ? 'bg-green-100 text-green-700' :
-                              rec.status === 'Leave' ? 'bg-orange-100 text-orange-700' : 'bg-red-100 text-red-700'
-                            }`}>
+                            <span className={`inline-flex px-2 py-0.5 rounded text-[10px] font-bold capitalize ${rec.status === 'Present' ? 'bg-green-100 text-green-700' :
+                                rec.status === 'Leave' ? 'bg-orange-100 text-orange-700' : 'bg-red-100 text-red-700'
+                              }`}>
                               {rec.status}
                             </span>
                           </td>
@@ -901,22 +895,22 @@ ${employeeName}`;
         {/* TAB 3: PERSONAL ANALYTICS */}
         {activeTab === 'analytics' && (
           <div className="space-y-6">
-            
+
             {/* Monthly Card Dashboard */}
             <div>
               <h3 className="font-bold text-gray-900 text-base mb-4 flex items-center"><TrendingUp size={18} className="text-brand mr-2" /> Monthly Performance Indicators</h3>
               <div className="grid grid-cols-1 sm:grid-cols-2 md:grid-cols-4 gap-4">
-                
+
                 <div className="bg-white rounded-xl shadow-sm border border-gray-200 p-5">
                   <span className="text-xs font-semibold text-gray-400">Total Working Days</span>
                   <p className="text-2xl font-bold text-gray-900 mt-1">{userStats.monthly.totalWorking}</p>
                 </div>
-                
+
                 <div className="bg-white rounded-xl shadow-sm border border-gray-200 p-5">
                   <span className="text-xs font-semibold text-gray-400">Attendance Percentage</span>
                   <p className="text-2xl font-bold text-brand mt-1">{userStats.monthly.percentage}%</p>
                 </div>
-                
+
                 <div className="bg-white rounded-xl shadow-sm border border-gray-200 p-5">
                   <span className="text-xs font-semibold text-gray-400">Days Present / Leaves</span>
                   <p className="text-2xl font-bold text-emerald-600 mt-1">
@@ -953,7 +947,7 @@ ${employeeName}`;
             <div className="mt-8">
               <h3 className="font-bold text-gray-900 text-base mb-4 flex items-center"><Award size={18} className="text-brand mr-2" /> Yearly Cumulative Summary</h3>
               <div className="grid grid-cols-1 sm:grid-cols-2 md:grid-cols-5 gap-4">
-                
+
                 <div className="bg-white rounded-xl shadow-sm border border-gray-200 p-5">
                   <span className="text-xs font-semibold text-gray-400">Working Days</span>
                   <p className="text-xl font-bold text-gray-900 mt-1">{userStats.yearly.totalWorking}</p>
@@ -988,20 +982,20 @@ ${employeeName}`;
         {/* TAB 4: OWNER/ADMIN CONTROLS */}
         {activeTab === 'admin' && isAdmin && adminStats && (
           <div className="space-y-6">
-            
+
             {/* Live Today Summary Grid */}
             <div className="bg-white rounded-xl shadow-sm border border-gray-200 p-6">
               <div className="flex items-center justify-between mb-4">
                 <h3 className="font-bold text-gray-950 text-[15px]">Today's Realtime Status (Workspace-wide)</h3>
-                
-                <button 
+
+                <button
                   onClick={() => setShowLeaveModal(true)}
                   className="flex items-center px-3.5 py-2 bg-brand hover:opacity-95 text-white text-xs font-bold rounded-lg shadow-sm transition-opacity"
                 >
                   <Plus size={14} className="mr-1.5" /> Mark Employee Leave
                 </button>
               </div>
-              
+
               <div className="grid grid-cols-2 md:grid-cols-6 gap-4">
                 <div className="bg-green-50 border border-green-100 p-4 rounded-xl text-center">
                   <span className="text-xs text-green-700 font-bold">Present Today</span>
@@ -1038,12 +1032,12 @@ ${employeeName}`;
             {/* Employee Directory grid list */}
             <div className="bg-white rounded-xl shadow-sm border border-gray-200 p-6">
               <h3 className="font-bold text-gray-900 text-sm mb-4">Workspace Employee Directory list</h3>
-              
+
               <div className="flex items-center space-x-3 mb-6 bg-gray-50 p-4 rounded-xl border border-gray-100 w-fit">
                 <div className="flex items-center space-x-2">
                   <label className="text-xs text-gray-600 font-bold">Filter Month:</label>
-                  <select 
-                    value={adminMonth} 
+                  <select
+                    value={adminMonth}
                     onChange={(e) => setAdminMonth(parseInt(e.target.value))}
                     className="border border-gray-200 bg-white rounded-lg p-1.5 text-xs outline-none focus:border-brand"
                   >
@@ -1055,8 +1049,8 @@ ${employeeName}`;
 
                 <div className="flex items-center space-x-2">
                   <label className="text-xs text-gray-600 font-bold">Filter Year:</label>
-                  <select 
-                    value={adminYear} 
+                  <select
+                    value={adminYear}
                     onChange={(e) => setAdminYear(parseInt(e.target.value))}
                     className="border border-gray-200 bg-white rounded-lg p-1.5 text-xs outline-none focus:border-brand"
                   >
@@ -1068,7 +1062,7 @@ ${employeeName}`;
 
                 <div className="relative">
                   <Search size={12} className="absolute left-2.5 top-1/2 transform -translate-y-1/2 text-gray-400" />
-                  <input 
+                  <input
                     type="text"
                     placeholder="Search by name..."
                     value={adminSearch}
@@ -1098,15 +1092,15 @@ ${employeeName}`;
                       .filter(u => u?.name?.toLowerCase().includes(adminSearch.toLowerCase()))
                       .map(u => {
                         if (!u) return null;
-                        
+
                         const monthStr = `${adminYear}-${String(adminMonth).padStart(2, '0')}`;
                         const empRecords = records.filter(r => r.user_id === u.id && r.date.startsWith(monthStr));
-                        
+
                         const totalDays = Math.max(empRecords.length, 22);
                         const presentCount = empRecords.filter(r => r.status === 'Present').length;
                         const leaveCount = empRecords.filter(r => r.status === 'Leave').length;
                         const attendancePercentage = totalDays > 0 ? ((presentCount + leaveCount) / totalDays) * 100 : 0;
-                        
+
                         let loginMinsSum = 0;
                         let loginNum = 0;
                         let logoutMinsSum = 0;
@@ -1180,7 +1174,7 @@ ${employeeName}`;
             <div className="p-6">
               <div className="flex items-center justify-between mb-4 border-b border-gray-100 pb-3">
                 <h3 className="text-base font-bold text-gray-900">Schedule Employee Leave</h3>
-                <button 
+                <button
                   onClick={() => setShowLeaveModal(false)}
                   className="p-1 hover:bg-gray-100 rounded-lg text-gray-400 hover:text-gray-700 transition-colors"
                 >
@@ -1191,7 +1185,7 @@ ${employeeName}`;
               <form onSubmit={handleMarkLeave} className="space-y-4">
                 <div>
                   <label className="block text-xs font-semibold text-gray-600 mb-1.5">Select Employee</label>
-                  <select 
+                  <select
                     value={leaveEmployeeId}
                     onChange={(e) => setLeaveEmployeeId(e.target.value)}
                     required
@@ -1207,7 +1201,7 @@ ${employeeName}`;
                 <div className="grid grid-cols-2 gap-4">
                   <div>
                     <label className="block text-xs font-semibold text-gray-600 mb-1.5">From Date</label>
-                    <input 
+                    <input
                       type="date"
                       required
                       value={leaveStartDate}
@@ -1217,7 +1211,7 @@ ${employeeName}`;
                   </div>
                   <div>
                     <label className="block text-xs font-semibold text-gray-600 mb-1.5">To Date</label>
-                    <input 
+                    <input
                       type="date"
                       required
                       value={leaveEndDate}
@@ -1229,7 +1223,7 @@ ${employeeName}`;
 
                 <div>
                   <label className="block text-xs font-semibold text-gray-600 mb-1.5">Reason & Leave Remark</label>
-                  <textarea 
+                  <textarea
                     placeholder="Enter reason details (e.g. Medical, Family Function, etc.)..."
                     value={leaveRemark}
                     required
@@ -1239,14 +1233,14 @@ ${employeeName}`;
                 </div>
 
                 <div className="flex space-x-2 justify-end pt-2">
-                  <button 
+                  <button
                     type="button"
                     onClick={() => setShowLeaveModal(false)}
                     className="px-4 py-2 bg-gray-100 hover:bg-gray-200 text-gray-700 text-xs font-semibold rounded-lg transition-colors"
                   >
                     Cancel
                   </button>
-                  <button 
+                  <button
                     type="submit"
                     className="px-4 py-2 bg-brand text-white text-xs font-bold rounded-lg hover:opacity-90 transition-opacity"
                   >
@@ -1269,7 +1263,7 @@ ${employeeName}`;
                 <Mail size={16} className="text-gray-400" />
                 <span className="text-xs font-bold tracking-wide uppercase">New Message: Leave Application</span>
               </div>
-              <button 
+              <button
                 onClick={() => setShowEmailModal(false)}
                 className="p-1 hover:bg-gray-800 rounded text-gray-400 hover:text-white transition-colors"
               >
@@ -1298,7 +1292,7 @@ ${employeeName}`;
               <div className="grid grid-cols-2 gap-4">
                 <div>
                   <label className="block text-[11px] font-bold text-gray-500 uppercase mb-1">From Date</label>
-                  <input 
+                  <input
                     type="date"
                     required
                     value={emailFromDate}
@@ -1308,7 +1302,7 @@ ${employeeName}`;
                 </div>
                 <div>
                   <label className="block text-[11px] font-bold text-gray-500 uppercase mb-1">To Date</label>
-                  <input 
+                  <input
                     type="date"
                     required
                     value={emailToDate}
@@ -1320,7 +1314,7 @@ ${employeeName}`;
 
               <div>
                 <label className="block text-[11px] font-bold text-gray-500 uppercase mb-1">Brief Reason</label>
-                <input 
+                <input
                   type="text"
                   required
                   placeholder="e.g. Medical Checkup, Out of Town"
@@ -1332,7 +1326,7 @@ ${employeeName}`;
 
               <div>
                 <label className="block text-[11px] font-bold text-gray-500 uppercase mb-1">Email Body Draft</label>
-                <textarea 
+                <textarea
                   value={emailBody}
                   onChange={(e) => setEmailBody(e.target.value)}
                   required
@@ -1341,14 +1335,14 @@ ${employeeName}`;
               </div>
 
               <div className="flex justify-end space-x-2 pt-2">
-                <button 
+                <button
                   type="button"
                   onClick={() => setShowEmailModal(false)}
                   className="px-4 py-2 bg-gray-100 hover:bg-gray-200 text-gray-700 text-xs font-semibold rounded-lg transition-colors"
                 >
                   Discard
                 </button>
-                <button 
+                <button
                   type="submit"
                   className="px-4 py-2 bg-[#aa3bff] text-white text-xs font-bold rounded-lg hover:opacity-90 transition-opacity flex items-center shadow-sm"
                 >
@@ -1364,26 +1358,24 @@ ${employeeName}`;
       {notification.show && (
         <div className="fixed inset-0 bg-gray-900/40 backdrop-blur-xs z-[200] flex items-center justify-center p-4 animate-in fade-in duration-200">
           <div className="bg-white rounded-xl shadow-2xl w-full max-w-sm overflow-hidden transform transition-all border border-gray-100 animate-in zoom-in-95 duration-200 p-6 flex flex-col items-center text-center">
-            <div className={`w-12 h-12 rounded-full flex items-center justify-center mb-4 ${
-              notification.type === 'success' ? 'bg-green-100 text-green-600' :
-              notification.type === 'error' ? 'bg-red-100 text-red-600' : 'bg-blue-100 text-blue-600'
-            }`}>
+            <div className={`w-12 h-12 rounded-full flex items-center justify-center mb-4 ${notification.type === 'success' ? 'bg-green-100 text-green-600' :
+                notification.type === 'error' ? 'bg-red-100 text-red-600' : 'bg-blue-100 text-blue-600'
+              }`}>
               {notification.type === 'success' ? (
                 <CheckCircle2 size={24} />
               ) : (
                 <AlertCircle size={24} />
               )}
             </div>
-            
+
             <h3 className="text-base font-bold text-gray-900 mb-1">{notification.title}</h3>
             <p className="text-gray-500 text-xs mb-6 px-2">{notification.message}</p>
-            
+
             <button
               onClick={() => setNotification(prev => ({ ...prev, show: false }))}
-              className={`w-full py-2 text-xs font-bold rounded-lg text-white shadow-sm transition-opacity hover:opacity-90 ${
-                notification.type === 'success' ? 'bg-green-600' :
-                notification.type === 'error' ? 'bg-red-600' : 'bg-brand'
-              }`}
+              className={`w-full py-2 text-xs font-bold rounded-lg text-white shadow-sm transition-opacity hover:opacity-90 ${notification.type === 'success' ? 'bg-green-600' :
+                  notification.type === 'error' ? 'bg-red-600' : 'bg-brand'
+                }`}
             >
               Okay
             </button>
@@ -1406,8 +1398,8 @@ ${employeeName}`;
                 </p>
               </div>
               <div className="flex items-center space-x-2 shrink-0">
-                <select 
-                  value={adminMonth} 
+                <select
+                  value={adminMonth}
                   onChange={(e) => setAdminMonth(parseInt(e.target.value))}
                   className="border border-gray-200 bg-white rounded-lg p-1.5 text-xs outline-none font-semibold text-gray-700 focus:border-brand"
                 >
@@ -1416,8 +1408,8 @@ ${employeeName}`;
                   ))}
                 </select>
 
-                <select 
-                  value={adminYear} 
+                <select
+                  value={adminYear}
                   onChange={(e) => setAdminYear(parseInt(e.target.value))}
                   className="border border-gray-200 bg-white rounded-lg p-1.5 text-xs outline-none font-semibold text-gray-700 focus:border-brand"
                 >
@@ -1426,8 +1418,8 @@ ${employeeName}`;
                   ))}
                 </select>
 
-                <button 
-                  onClick={() => setSelectedDetailedUser(null)} 
+                <button
+                  onClick={() => setSelectedDetailedUser(null)}
                   className="text-gray-400 hover:text-gray-600 transition-colors p-1.5 ml-2 shrink-0"
                 >
                   <X size={18} />
@@ -1486,7 +1478,7 @@ ${employeeName}`;
 
             {/* Footer */}
             <div className="px-6 py-4 bg-gray-50 border-t border-gray-150 flex justify-end">
-              <button 
+              <button
                 onClick={() => setSelectedDetailedUser(null)}
                 className="px-4 py-2 bg-white border border-gray-200 text-gray-700 rounded-xl font-bold text-xs hover:bg-gray-50 transition-colors shadow-sm"
               >
