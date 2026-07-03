@@ -1146,7 +1146,16 @@ ${employeeName}`;
                             <td className="px-5 py-3 text-gray-500">{formatMins(logoutNum > 0 ? logoutMinsSum / logoutNum : 0)}</td>
                             <td className="px-5 py-3 text-yellow-600 font-bold">{totalLunchLateMins} mins</td>
                             <td className="px-5 py-3 text-brand font-bold">{attendancePercentage.toFixed(1)}%</td>
-                            <td className="px-5 py-3 text-right">
+                            <td className="px-5 py-3 text-right flex items-center justify-end space-x-2 h-[52px]">
+                              <button
+                                onClick={() => {
+                                  setLeaveEmployeeId(u.id);
+                                  setShowLeaveModal(true);
+                                }}
+                                className="px-2.5 py-1.5 bg-purple-600 hover:opacity-95 text-white font-bold rounded-lg text-[10px] transition-opacity shadow-sm shadow-purple-600/10"
+                              >
+                                Mark Leave
+                              </button>
                               <button
                                 onClick={() => setSelectedDetailedUser(u)}
                                 className="px-2.5 py-1.5 bg-brand hover:opacity-95 text-white font-bold rounded-lg text-[10px] transition-opacity shadow-sm shadow-brand/10"
