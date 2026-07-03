@@ -253,7 +253,7 @@ const PlannerPage = () => {
               </div>
               <button 
                 onClick={(e) => { e.stopPropagation(); deleteTask(task.id); }}
-                className="absolute top-2 right-2 p-1.5 text-red-400 hover:text-red-600 hover:bg-red-50 rounded-md opacity-0 group-hover:opacity-100 transition-all shadow-sm"
+                className="absolute top-2 right-2 p-1.5 text-red-400 hover:text-red-600 hover:bg-red-50 rounded-md opacity-100 transition-all shadow-sm"
                 title="Delete task"
               >
                 <Trash2 size={14} />
