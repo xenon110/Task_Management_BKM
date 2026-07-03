@@ -9,6 +9,7 @@ interface ProjectState {
   initProjects: () => Promise<void>;
   addProject: (project: Omit<Project, 'id'>) => Promise<void>;
   removeProject: (id: string) => Promise<void>;
+  updateProjectMembers: (projectId: string, members: string[]) => Promise<void>;
 }
 
 // Assume a default workspace id matching the seeded one
@@ -166,6 +167,31 @@ export const useProjectStore = create<ProjectState>((set, get) => ({
       if (error) throw error;
     } catch (error) {
       console.error('Error removing project:', error);
+    }
+  },
+
+  updateProjectMembers: async (projectId, members) => {
+    // Optimistic update
+    set((state) => {
+      const updated = state.projects.map(p => p.id === projectId ? { ...p, members } : p);
+      localStorage.setItem('app_projects', JSON.stringify(updated));
+      return { projects: updated };
+    });
+
+    try {
+      const dbProject = {
+        color: serializeMembersToColor(members),
+        members: members.length,
+      };
+
+      const { error } = await supabase
+        .from('spaces')
+        .update(dbProject)
+        .eq('id', projectId);
+
+      if (error) throw error;
+    } catch (error) {
+      console.error('Error updating project members:', error);
     }
   }
 }));

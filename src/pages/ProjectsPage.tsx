@@ -22,7 +22,7 @@ const ProjectsPage = () => {
   const { id: projectId } = useParams();
   const { tasks, moveTask, users, addTask, assignUserToTask } = useTaskStore() as any;
   const { openTaskDetailPanel } = useUiStore();
-  const { projects, addProject } = useProjectStore();
+  const { projects, addProject, updateProjectMembers } = useProjectStore();
   const { members } = useWorkspaceStore() as any;
   const { user } = useAuthStore();
   const { canCreateTasks, getAssignableMembers } = usePermissions();
@@ -34,8 +34,26 @@ const ProjectsPage = () => {
   const [spaceModalOpen, setSpaceModalOpen] = useState(false);
   const [newSpaceName, setNewSpaceName] = useState('');
   const [newSpaceDesc, setNewSpaceDesc] = useState('');
+  const [manageMembersModalOpen, setManageMembersModalOpen] = useState(false);
+  const [selectedMembers, setSelectedMembers] = useState<string[]>([]);
   
   const currentProject = projects.find(p => p.id === projectId);
+
+  const openManageMembers = () => {
+    if (currentProject?.members) {
+      setSelectedMembers(currentProject.members);
+    } else {
+      setSelectedMembers([]);
+    }
+    setManageMembersModalOpen(true);
+  };
+
+  const handleUpdateMembers = async (e: React.FormEvent) => {
+    e.preventDefault();
+    if (!currentProject) return;
+    await updateProjectMembers(currentProject.id, selectedMembers);
+    setManageMembersModalOpen(false);
+  };
 
   const handleQuickAdd = async (e: React.FormEvent) => {
     e.preventDefault();
@@ -122,6 +140,9 @@ const ProjectsPage = () => {
           <span className="bg-brand/10 text-brand px-2 py-0.5 rounded-full text-xs border border-brand/20">Beta</span>
         </h1>
         <div className="flex items-center space-x-3">
+          {canCreateTasks && <button onClick={openManageMembers} className="bg-gray-100 hover:bg-gray-200 text-gray-700 px-3 py-1.5 rounded-md text-sm font-medium transition-colors shadow-sm flex items-center border border-gray-200">
+            <User size={16} className="mr-1.5" /> Manage Members
+          </button>}
           {canCreateTasks && <button onClick={() => setSpaceModalOpen(true)} className="bg-gray-900 hover:bg-black text-white px-3 py-1.5 rounded-md text-sm font-medium transition-colors shadow-sm flex items-center">
             <Plus size={16} className="mr-1" /> New space
           </button>}
@@ -397,6 +418,65 @@ const ProjectsPage = () => {
                   className="px-5 py-2 text-sm font-semibold rounded-lg shadow-sm transition-all bg-brand text-white hover:bg-brand-dark disabled:opacity-50 disabled:cursor-not-allowed"
                 >
                   Create Space
+                </button>
+              </div>
+            </form>
+          </div>
+        </div>
+      )}
+
+      {/* Manage Members Modal */}
+      {manageMembersModalOpen && (
+        <div className="fixed inset-0 bg-gray-900/40 backdrop-blur-sm z-[100] flex items-center justify-center p-4">
+          <div className="bg-white rounded-xl shadow-2xl w-full max-w-md overflow-hidden transform transition-all border border-gray-100 p-6">
+            <div className="flex items-center justify-between mb-4">
+              <h3 className="text-lg font-bold text-gray-900">Manage Members</h3>
+              <button onClick={() => setManageMembersModalOpen(false)} className="p-1 text-gray-400 hover:text-gray-600 rounded-lg hover:bg-gray-100 transition-colors">
+                <X size={18} />
+              </button>
+            </div>
+            <form onSubmit={handleUpdateMembers} className="space-y-4">
+              <div>
+                <label className="block text-xs font-semibold text-gray-700 uppercase tracking-wider mb-2">Space Members</label>
+                <div className="border border-gray-200 rounded-xl max-h-[40vh] overflow-y-auto custom-scrollbar p-2 space-y-1">
+                  {members.filter((m: any) => m.user).map((member: any) => (
+                    <label key={member.user_id} className="flex items-center space-x-3 p-2 hover:bg-gray-50 rounded-lg cursor-pointer transition-colors">
+                      <input 
+                        type="checkbox" 
+                        className="w-4 h-4 text-brand rounded border-gray-300 focus:ring-brand"
+                        checked={selectedMembers.includes(member.user_id)}
+                        onChange={(e) => {
+                          if (e.target.checked) {
+                            setSelectedMembers([...selectedMembers, member.user_id]);
+                          } else {
+                            setSelectedMembers(selectedMembers.filter(id => id !== member.user_id));
+                          }
+                        }}
+                      />
+                      <div className="w-6 h-6 rounded-full bg-brand/10 text-brand flex items-center justify-center text-xs font-bold">
+                        {member.user?.name?.substring(0, 1).toUpperCase()}
+                      </div>
+                      <span className="text-sm text-gray-700 font-medium">{member.user?.name}</span>
+                    </label>
+                  ))}
+                  {members.filter((m: any) => m.user).length === 0 && (
+                    <div className="p-2 text-sm text-gray-500 text-center">No members found in workspace.</div>
+                  )}
+                </div>
+              </div>
+              <div className="flex justify-end space-x-3 mt-6">
+                <button
+                  type="button"
+                  onClick={() => setManageMembersModalOpen(false)}
+                  className="px-4 py-2 text-sm font-medium text-gray-600 hover:text-gray-900 hover:bg-gray-100 rounded-lg transition-colors"
+                >
+                  Cancel
+                </button>
+                <button
+                  type="submit"
+                  className="px-5 py-2 text-sm font-semibold rounded-lg shadow-sm transition-all bg-brand text-white hover:bg-brand-dark disabled:opacity-50 disabled:cursor-not-allowed"
+                >
+                  Save Members
                 </button>
               </div>
             </form>
