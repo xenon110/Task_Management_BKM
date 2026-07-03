@@ -22,10 +22,13 @@ interface TaskState {
   assignUserToTask: (taskId: string, userId: string) => Promise<void>;
   subscribeComments: () => void;
   unsubscribeComments: () => void;
+  subscribeTasks: () => void;
+  unsubscribeTasks: () => void;
 }
 
 // Global reference for Supabase Realtime channel
 let commentsChannel: any = null;
+let tasksChannel: any = null;
 
 // Fallback user ID if none is found. Matches the seeded user in schema.sql.
 const DEFAULT_USER_ID = '00000000-0000-0000-0000-000000000001';
@@ -157,6 +160,7 @@ export const useTaskStore = create<TaskState>((set, get) => ({
       localStorage.setItem('app_tasks', JSON.stringify(filtered));
       if (commentsRes.data) localStorage.setItem('app_comments', JSON.stringify(commentsRes.data));
       get().subscribeComments();
+      get().subscribeTasks();
     } catch (error) {
       console.error('Error initializing task data:', error);
       const localTasks = localStorage.getItem('app_tasks');
@@ -167,6 +171,7 @@ export const useTaskStore = create<TaskState>((set, get) => ({
         isInitialized: true
       });
       get().subscribeComments();
+      get().subscribeTasks();
     }
   },
 
@@ -563,6 +568,65 @@ export const useTaskStore = create<TaskState>((set, get) => ({
     if (commentsChannel) {
       supabase.removeChannel(commentsChannel);
       commentsChannel = null;
+    }
+  },
+
+  subscribeTasks: () => {
+    if (tasksChannel) return;
+
+    tasksChannel = supabase
+      .channel('tasks-realtime-channel')
+      .on(
+        'postgres_changes',
+        { event: '*', schema: 'public', table: 'tasks' },
+        (payload) => {
+          const currentUserId = useAuthStore.getState().user?.id;
+          if (payload.eventType === 'INSERT') {
+            const newTask = payload.new as Task;
+            // Only add if user is assignee or creator
+            if (currentUserId && (newTask.assignee_id === currentUserId || newTask.created_by === currentUserId)) {
+              set((state) => {
+                if (state.tasks.some(t => t.id === newTask.id)) return state;
+                const updated = [...state.tasks, newTask];
+                localStorage.setItem('app_tasks', JSON.stringify(updated));
+                return { tasks: updated };
+              });
+            }
+          } else if (payload.eventType === 'UPDATE') {
+            const updatedTask = payload.new as Task;
+            // If user is no longer assignee or creator, remove it (or keep if they are)
+            set((state) => {
+              const isRelevant = currentUserId && (updatedTask.assignee_id === currentUserId || updatedTask.created_by === currentUserId);
+              let updated;
+              if (isRelevant) {
+                if (state.tasks.some(t => t.id === updatedTask.id)) {
+                  updated = state.tasks.map(t => t.id === updatedTask.id ? updatedTask : t);
+                } else {
+                  updated = [...state.tasks, updatedTask];
+                }
+              } else {
+                updated = state.tasks.filter(t => t.id !== updatedTask.id);
+              }
+              localStorage.setItem('app_tasks', JSON.stringify(updated));
+              return { tasks: updated };
+            });
+          } else if (payload.eventType === 'DELETE') {
+            const deletedTask = payload.old as { id: string };
+            set((state) => {
+              const updated = state.tasks.filter(t => t.id !== deletedTask.id);
+              localStorage.setItem('app_tasks', JSON.stringify(updated));
+              return { tasks: updated };
+            });
+          }
+        }
+      )
+      .subscribe();
+  },
+
+  unsubscribeTasks: () => {
+    if (tasksChannel) {
+      supabase.removeChannel(tasksChannel);
+      tasksChannel = null;
     }
   },
 }));

@@ -324,6 +324,7 @@ export const useAuthStore = create<AuthState>((set, get) => ({
   logout: async () => {
     // Unsubscribe from task comments subscription if active
     useTaskStore.getState().unsubscribeComments();
+    useTaskStore.getState().unsubscribeTasks();
     
     await supabase.auth.signOut();
     localStorage.removeItem('app_tasks');
