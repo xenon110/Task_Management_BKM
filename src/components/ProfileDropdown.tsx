@@ -44,9 +44,15 @@ const ProfileDropdown = () => {
     <div className="relative" ref={dropdownRef}>
       <button 
         onClick={() => setIsOpen(!isOpen)} 
-        className="w-8 h-8 bg-gradient-to-br from-gray-800 to-gray-900 hover:from-black hover:to-black text-white rounded-full flex items-center justify-center text-xs font-bold border border-gray-200 transition-all shadow-sm focus:outline-none focus:ring-2 focus:ring-brand focus:ring-offset-1"
+        className="w-8 h-8 rounded-full overflow-hidden border border-gray-200 transition-all shadow-sm focus:outline-none focus:ring-2 focus:ring-brand focus:ring-offset-1 flex items-center justify-center bg-white"
       >
-        {getInitials(user?.name || '')}
+        {user?.avatar_url ? (
+          <img src={user.avatar_url} alt="" className="w-full h-full object-cover" />
+        ) : (
+          <div className="w-full h-full bg-gradient-to-br from-gray-800 to-gray-900 hover:from-black hover:to-black text-white flex items-center justify-center text-xs font-bold">
+            {getInitials(user?.name || '')}
+          </div>
+        )}
       </button>
 
       {isOpen && (

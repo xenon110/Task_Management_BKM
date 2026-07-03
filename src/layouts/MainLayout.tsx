@@ -192,7 +192,21 @@ const MainLayout = () => {
                 </div>
                 {sections.tasks && (
                   <div className="pl-[22px] border-l border-gray-200 ml-[11px] mt-1 space-y-[1px]">
-                    <Link to="/assigned" className="block"><SidebarItem icon={<div className="w-[18px] h-[18px] bg-gray-800 rounded-full text-white flex items-center justify-center text-[9px] font-bold">{user?.name?.charAt(0)}</div>} label="Assigned to me" active={location.pathname === '/assigned'} /></Link>
+                    <Link to="/assigned" className="block">
+                      <SidebarItem 
+                        icon={
+                          user?.avatar_url ? (
+                            <img src={user.avatar_url} alt="" className="w-[18px] h-[18px] rounded-full object-cover" />
+                          ) : (
+                            <div className="w-[18px] h-[18px] bg-gray-800 rounded-full text-white flex items-center justify-center text-[9px] font-bold">
+                              {user?.name?.charAt(0)}
+                            </div>
+                          )
+                        } 
+                        label="Assigned to me" 
+                        active={location.pathname === '/assigned'} 
+                      />
+                    </Link>
                     <Link to="/today" className="block"><SidebarItem icon={<Calendar size={16} />} label="Today & Overdue" badge={overdueCount > 0 ? overdueCount.toString() : undefined} active={location.pathname === '/today'} /></Link>
                     <Link to="/tasks" className="block"><SidebarItem icon={<User size={16} />} label="Personal List" active={location.pathname === '/tasks'} /></Link>
                   </div>
