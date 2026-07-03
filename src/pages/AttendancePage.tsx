@@ -232,7 +232,7 @@ ${employeeName}`;
       const record = empRecords.find(r => r.date === dateStr);
       
       const dayDate = new Date(adminYear, adminMonth - 1, day);
-      const isWeekend = dayDate.getDay() === 0 || dayDate.getDay() === 6; // 0 = Sunday, 6 = Saturday
+      const isWeekend = dayDate.getDay() === 0; // 0 = Sunday is the only weekend day (Saturday is a working day)
       const dayName = dayDate.toLocaleDateString([], { weekday: 'short' });
 
       if (record) {
