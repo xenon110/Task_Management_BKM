@@ -103,7 +103,7 @@ const ProjectListPage = () => {
                         e.stopPropagation();
                         setSpaceToDelete(project.id);
                       }} 
-                      className="text-gray-400 hover:text-red-500 transition-colors opacity-0 group-hover:opacity-100 absolute right-0 top-0 bg-gray-50 rounded-md p-1.5 hover:bg-red-50"
+                      className="text-red-700 bg-red-50 hover:bg-red-100 hover:text-red-800 transition-colors absolute right-0 top-0 rounded-md p-1.5 shadow-sm border border-red-100/50"
                       title="Delete Space"
                     >
                       <Trash2 size={16} />
