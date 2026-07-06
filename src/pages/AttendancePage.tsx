@@ -18,6 +18,13 @@ const AttendancePage = () => {
 
   const [activeTab, setActiveTab] = useState<'clock' | 'history' | 'analytics' | 'admin'>('clock');
 
+  const [liveTime, setLiveTime] = useState(new Date());
+
+  useEffect(() => {
+    const timer = setInterval(() => setLiveTime(new Date()), 1000);
+    return () => clearInterval(timer);
+  }, []);
+
   // History filters
   const [historyFilter, setHistoryFilter] = useState<'today' | 'week' | 'month' | 'custom'>('month');
   const [startDate, setStartDate] = useState('');
@@ -556,7 +563,17 @@ ${employeeName}`;
                     }`}></span>
                   {clockState.status}
                 </h2>
-                <p className="text-xs text-gray-500 mt-1">Official Hours: <span className="font-semibold text-gray-700">10:05 AM - 07:00 PM</span></p>
+                <div className="flex flex-col sm:flex-row sm:items-center gap-1 sm:gap-4 mt-2">
+                  <p className="text-xs text-gray-500">
+                    Official Hours: <span className="font-semibold text-gray-700">10:05 AM - 07:00 PM</span>
+                  </p>
+                  <p className="text-xs text-gray-500 hidden sm:block">|</p>
+                  <p className="text-xs text-gray-500">
+                    <span className="font-semibold text-[#aa3bff]">
+                      {liveTime.toLocaleDateString('en-US', { weekday: 'short', year: 'numeric', month: 'short', day: 'numeric' })} • {liveTime.toLocaleTimeString('en-US', { hour: '2-digit', minute: '2-digit', second: '2-digit' })}
+                    </span>
+                  </p>
+                </div>
               </div>
 
               <div className="flex items-center space-x-2 text-xs">
