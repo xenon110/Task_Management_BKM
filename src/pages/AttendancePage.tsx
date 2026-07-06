@@ -183,9 +183,23 @@ ${employeeName}`;
   const getWeekRange = () => {
     const now = new Date();
     const first = now.getDate() - now.getDay(); // Sunday
-    const start = new Date(now.setDate(first));
-    const end = new Date(now.setDate(first + 6));
-    return { start: start.toISOString().split('T')[0], end: end.toISOString().split('T')[0] };
+    
+    // Clone 'now' to prevent mutation bugs across month boundaries
+    const start = new Date(now.getTime());
+    start.setDate(first);
+    
+    const end = new Date(now.getTime());
+    end.setDate(first + 6);
+
+    // Format safely to local YYYY-MM-DD (toISOString can shift days depending on timezone)
+    const formatDate = (d: Date) => {
+      const year = d.getFullYear();
+      const month = String(d.getMonth() + 1).padStart(2, '0');
+      const date = String(d.getDate()).padStart(2, '0');
+      return `${year}-${month}-${date}`;
+    };
+
+    return { start: formatDate(start), end: formatDate(end) };
   };
 
   // Filter history records
