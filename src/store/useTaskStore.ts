@@ -279,8 +279,13 @@ export const useTaskStore = create<TaskState>((set, get) => ({
       }
     }
 
+    // Sanitize updates: Supabase ignores undefined, so we convert undefined to null to properly clear fields
+    const sanitizedUpdates = Object.fromEntries(
+      Object.entries(updates).map(([k, v]) => [k, v === undefined ? null : v])
+    );
+
     const updatedTasks = [...state.tasks];
-    updatedTasks[taskIndex] = { ...task, ...updates };
+    updatedTasks[taskIndex] = { ...task, ...sanitizedUpdates } as Task;
 
     // Optimistic update
     set({ tasks: updatedTasks });
@@ -289,7 +294,7 @@ export const useTaskStore = create<TaskState>((set, get) => ({
     try {
       const { error } = await supabase
         .from('tasks')
-        .update(updates)
+        .update(sanitizedUpdates)
         .eq('id', id);
 
       if (error) throw error;
@@ -593,19 +598,24 @@ export const useTaskStore = create<TaskState>((set, get) => ({
               });
             }
           } else if (payload.eventType === 'UPDATE') {
-            const updatedTask = payload.new as Task;
+            const updatedData = payload.new;
             // If user is no longer assignee or creator, remove it (or keep if they are)
             set((state) => {
-              const isRelevant = currentUserId && (updatedTask.assignee_id === currentUserId || updatedTask.created_by === currentUserId);
+              const existingTask = state.tasks.find(t => t.id === updatedData.id);
+              // Merge existing task with updated data since payload.new might be partial
+              const mergedTask = existingTask ? { ...existingTask, ...updatedData } as Task : updatedData as Task;
+              
+              const isRelevant = currentUserId && (mergedTask.assignee_id === currentUserId || mergedTask.created_by === currentUserId);
+              
               let updated;
               if (isRelevant) {
-                if (state.tasks.some(t => t.id === updatedTask.id)) {
-                  updated = state.tasks.map(t => t.id === updatedTask.id ? updatedTask : t);
+                if (existingTask) {
+                  updated = state.tasks.map(t => t.id === mergedTask.id ? mergedTask : t);
                 } else {
-                  updated = [...state.tasks, updatedTask];
+                  updated = [...state.tasks, mergedTask];
                 }
               } else {
-                updated = state.tasks.filter(t => t.id !== updatedTask.id);
+                updated = state.tasks.filter(t => t.id !== mergedTask.id);
               }
               localStorage.setItem('app_tasks', JSON.stringify(updated));
               return { tasks: updated };

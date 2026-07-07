@@ -143,8 +143,15 @@ export const useProjectStore = create<ProjectState>((set, get) => ({
         localStorage.setItem('app_projects', JSON.stringify(updated));
         return { projects: updated };
       });
-    } catch (error) {
+    } catch (error: any) {
       console.error('Error adding project (RLS/Offline):', error);
+      // Revert optimistic update
+      set((state) => {
+        const reverted = state.projects.filter(p => p.id !== tempId);
+        localStorage.setItem('app_projects', JSON.stringify(reverted));
+        return { projects: reverted };
+      });
+      alert(`DATABASE ERROR: Failed to create space. ${error?.message || ''}`);
     }
   },
 
