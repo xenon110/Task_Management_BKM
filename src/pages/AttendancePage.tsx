@@ -18,7 +18,7 @@ const AttendancePage = () => {
 
   const [activeTab, setActiveTab] = useState<'clock' | 'history' | 'analytics' | 'admin'>(() => {
     const role = useAuthStore.getState().user?.role;
-    return (role === 'owner' || role === 'developer') ? 'admin' : 'clock';
+    return role === 'owner' ? 'admin' : 'clock';
   });
 
   const [liveTime, setLiveTime] = useState(new Date());
@@ -102,7 +102,7 @@ ${employeeName}`;
   const [adminYear, setAdminYear] = useState(new Date().getFullYear());
 
   const isAdmin = currentUser?.role === 'owner' || currentUser?.role === 'developer'; // Owner and Developer get admin rights
-  const isOwner = currentUser?.role === 'owner' || currentUser?.role === 'developer'; // Treat Developer as owner for bypassing attendance check
+  const isOwner = currentUser?.role === 'owner'; // Only true owners bypass attendance. Developers still mark attendance but have admin rights
 
   // Fetch current month's records by default
   useEffect(() => {
@@ -237,7 +237,7 @@ ${employeeName}`;
   // User list in workspace
   const workspaceUsers = useMemo(() => {
     return members
-      .filter(m => m.role !== 'owner' && m.role !== 'developer')
+      .filter(m => m.role !== 'owner') // Only filter out owners. Developers stay in the list to be tracked.
       .map(m => m.user)
       .filter(Boolean);
   }, [members]);
