@@ -132,8 +132,6 @@ const GoalsPage = () => {
   const [goalToDelete, setGoalToDelete] = useState<string | null>(null);
 
   const filteredGoals = goals.filter(goal => {
-    const isAdmin = currentUser?.role === 'owner' || currentUser?.role === 'admin' || currentUser?.role === 'developer';
-    if (isAdmin) return true;
     return goal.created_by === currentUser?.id || goal.assigned_to === currentUser?.id;
   });
 

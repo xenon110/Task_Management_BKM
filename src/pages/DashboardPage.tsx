@@ -46,8 +46,6 @@ const DashboardPage = () => {
   const overdueTasks = activeTasks.filter(t => t.due_date && new Date(t.due_date) < new Date(now.setHours(0,0,0,0)) && t.status !== 'done' && t.status !== 'Completed');
 
   const filteredGoals = goals.filter(goal => {
-    const isAdmin = user?.role === 'owner' || user?.role === 'admin' || user?.role === 'developer';
-    if (isAdmin) return true;
     return goal.created_by === currentUserId || goal.assigned_to === currentUserId;
   });
 
