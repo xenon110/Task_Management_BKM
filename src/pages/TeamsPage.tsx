@@ -40,12 +40,16 @@ const TeamsPage = () => {
     const fetchGlobalUsers = async () => {
       const { supabase } = await import('../lib/supabase');
       const { data } = await supabase.from('users').select('*').order('created_at');
-      if (data) {
+      if (data && data.length > 0) {
         setGlobalUsers(data);
+      } else {
+        // Fallback: If RLS blocks the global query (for non-admins), use the workspace members list
+        const fallbackUsers = members.map(m => m.user).filter(Boolean);
+        setGlobalUsers(fallbackUsers);
       }
     };
     fetchGlobalUsers();
-  }, []);
+  }, [members]);
 
   // Calculate workloads
   const memberWorkloads = globalUsers
