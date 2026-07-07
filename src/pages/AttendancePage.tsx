@@ -1336,7 +1336,7 @@ ${employeeName}`;
                 <div className="flex items-center text-xs">
                   <span className="w-12 text-gray-400 font-medium">To:</span>
                   <span className="px-2 py-0.5 bg-gray-100 border border-gray-200 rounded text-gray-700 font-semibold select-all">
-                    {import.meta.env.VITE_HR_EMAIL || 'hr@bkmindustries.in'}
+                    {'rmayank103@gmail.com'}
                   </span>
                 </div>
                 <div className="flex items-center text-xs">
