@@ -5,6 +5,7 @@ import type { Role } from '../types';
 // Role hierarchy: lower number = higher authority
 const ROLE_HIERARCHY: Record<string, number> = {
   owner: 0,
+  developer: 0,
   admin: 1,
   member: 2,
   guest: 3,
@@ -16,7 +17,7 @@ export const usePermissions = () => {
   
   const currentWorkspace = workspaces[0] || authWorkspace;
   const role: Role = (user?.role?.toLowerCase() as Role) || 'guest';
-  const isOwner = role === 'owner';
+  const isOwner = role === 'owner' || role === 'developer';
   const roleLevel = ROLE_HIERARCHY[role] ?? 3;
 
   /**

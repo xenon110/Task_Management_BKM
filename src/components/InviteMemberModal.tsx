@@ -91,7 +91,12 @@ const InviteMemberModal = () => {
                   value={role}
                   onChange={(e) => setRole(e.target.value as Role)}
                 >
-                  {currentUserRole === 'owner' && <option value="owner">Owner (Full Access)</option>}
+                  {(currentUserRole === 'owner' || currentUserRole === 'developer') && (
+                    <>
+                      <option value="owner">Owner (Full Access)</option>
+                      <option value="developer">Developer (Full Access)</option>
+                    </>
+                  )}
                   <option value="admin">Admin (Manage Members)</option>
                   <option value="member">Member (Standard Access)</option>
                   <option value="guest">Guest (External Access)</option>
@@ -108,6 +113,7 @@ const InviteMemberModal = () => {
 
             <p className="text-xs text-gray-500">
               {role === 'owner' && 'Has full administrative access to the entire workspace including billing.'}
+              {role === 'developer' && 'Has full administrative access just like the owner, but with developer controls.'}
               {role === 'admin' && 'Can manage users, roles, and workspace settings, but cannot delete the workspace.'}
               {role === 'member' && 'Can create and edit tasks, comments, and fully participate in projects.'}
               {role === 'guest' && 'Can only view tasks and comment. Cannot create or edit anything else.'}

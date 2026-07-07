@@ -341,17 +341,22 @@ const MemberManagement = ({ showToast }: { showToast: (title: string, message: s
                   <select
                     value={member.role}
                     onChange={(e) => updateMemberRole(member.id, e.target.value as any)}
-                    disabled={member.role === 'owner' || !canInviteUsers}
+                    disabled={member.role === 'owner' || member.role === 'developer' || !canInviteUsers}
                     className="bg-transparent border-gray-300 dark:border-gray-700 rounded text-sm text-gray-900 dark:text-white focus:ring-brand focus:border-brand disabled:opacity-50"
                   >
-                    {currentUserRole === 'owner' && <option value="owner">Owner</option>}
+                    {(currentUserRole === 'owner' || currentUserRole === 'developer') && (
+                      <>
+                        <option value="owner">Owner</option>
+                        <option value="developer">Developer</option>
+                      </>
+                    )}
                     <option value="admin">Admin</option>
                     <option value="member">Member</option>
                     <option value="guest">Guest</option>
                   </select>
                 </td>
                 <td className="py-4 px-4 text-right">
-                  {member.role !== 'owner' && canInviteUsers && (
+                  {member.role !== 'owner' && member.role !== 'developer' && canInviteUsers && (
                     <button
                       onClick={() => removeMember(member.id)}
                       className="p-2 text-gray-400 hover:text-red-500 rounded-lg transition-colors"

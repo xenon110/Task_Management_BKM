@@ -256,7 +256,7 @@ const TeamsPage = () => {
                   <tbody className="divide-y divide-gray-50">
                     {filteredUsers.map(user => {
                       const initials = (user.name || user.email || 'U').split(' ').map((n: string) => n[0]).join('').toUpperCase().substring(0, 2);
-                      const color = user.role === 'owner' ? 'bg-gray-900' : user.role === 'admin' ? 'bg-blue-600' : 'bg-green-600';
+                      const color = (user.role === 'owner' || user.role === 'developer') ? 'bg-gray-900' : user.role === 'admin' ? 'bg-blue-600' : 'bg-green-600';
                       return (
                         <tr key={user.id} className="hover:bg-gray-50/50 transition-colors group">
                           <td className="px-6 py-3.5">
@@ -282,7 +282,7 @@ const TeamsPage = () => {
                             </div>
                           </td>
                           <td className="px-6 py-3.5">
-                            <div className={`inline-flex items-center px-2 py-0.5 rounded text-[11px] font-bold capitalize ${user.role === 'owner' ? 'bg-purple-100 text-purple-700' :
+                            <div className={`inline-flex items-center px-2 py-0.5 rounded text-[11px] font-bold capitalize ${(user.role === 'owner' || user.role === 'developer') ? 'bg-purple-100 text-purple-700' :
                                 user.role === 'admin' ? 'bg-blue-100 text-blue-700' :
                                   user.role === 'guest' ? 'bg-gray-100 text-gray-600' :
                                     'bg-green-100 text-green-700'
