@@ -32,7 +32,7 @@ const DashboardPage = () => {
   const currentUserId = user?.id || '00000000-0000-0000-0000-000000000001';
 
   // Task Filtered & Status Metrics
-  const activeTasks = tasks.filter(t => !t.archived);
+  const activeTasks = tasks.filter(t => !t.archived && !t.parent_task_id);
   const myTasks = activeTasks.filter(t => t.assignee_id === currentUserId);
   
   const todoCount = myTasks.filter(t => t.status === 'To Do' || t.status === 'to-do' || t.status === 'backlog').length;

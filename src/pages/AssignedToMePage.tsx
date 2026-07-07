@@ -22,7 +22,7 @@ const AssignedToMePage = () => {
   const [priorityFilter, setPriorityFilter] = useState<'all' | TaskPriority>('all');
   const [isSearchActive, setIsSearchActive] = useState(false);
 
-  let filteredTasks = tasks.filter(t => !t.archived && t.assignee_id === user?.id);
+  let filteredTasks = tasks.filter(t => !t.archived && !t.parent_task_id && t.assignee_id === user?.id);
 
   if (!showClosed) {
     filteredTasks = filteredTasks.filter(t => t.status.toLowerCase() !== 'done' && t.status.toLowerCase() !== 'completed' && t.status.toLowerCase() !== 'work done');

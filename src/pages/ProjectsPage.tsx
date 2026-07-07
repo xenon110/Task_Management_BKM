@@ -84,8 +84,8 @@ const ProjectsPage = () => {
   };
 
   useEffect(() => {
-    // Filter active tasks for this project
-    const activeTasks = tasks.filter((t: any) => !t.archived && (!projectId || t.list_id === projectId));
+    // Filter active tasks for this project (exclude subtasks)
+    const activeTasks = tasks.filter((t: any) => !t.archived && !t.parent_task_id && (!projectId || t.list_id === projectId));
     
     // Group tasks
     const grouped = {

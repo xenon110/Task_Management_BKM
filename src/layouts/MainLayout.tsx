@@ -80,7 +80,7 @@ const MainLayout = () => {
   // Calculate overdue tasks
   const today = new Date();
   today.setHours(0, 0, 0, 0);
-  const overdueCount = tasks.filter(t => !t.archived && t.assignee_id === user?.id && t.due_date && new Date(t.due_date) < today && t.status !== 'done').length;
+  const overdueCount = tasks.filter(t => !t.archived && !t.parent_task_id && t.assignee_id === user?.id && t.due_date && new Date(t.due_date) < today && t.status !== 'done').length;
 
   return (
     <div className="flex h-[100dvh] w-screen overflow-hidden bg-white text-gray-800 font-sans text-sm selection:bg-brand/20">

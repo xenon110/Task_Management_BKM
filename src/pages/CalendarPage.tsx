@@ -111,7 +111,7 @@ const PlannerPage = () => {
   const [date, setDate] = useState<Date>(new Date());
   
   // Filter out archived tasks
-  const activeTasks = tasks.filter(t => !t.archived);
+  const activeTasks = tasks.filter(t => !t.archived && !t.parent_task_id);
 
   // Scheduled tasks (have a due date)
   const events: Event[] = activeTasks.filter(t => t.due_date).map(task => ({

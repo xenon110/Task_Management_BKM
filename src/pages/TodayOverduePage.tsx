@@ -25,7 +25,7 @@ const TodayOverduePage = () => {
   };
 
   // Filter tasks by active tab
-  let filteredTasks = tasks.filter(t => !t.archived);
+  let filteredTasks = tasks.filter(t => !t.archived && !t.parent_task_id);
 
   if (activeTab === 'todo') {
     filteredTasks = filteredTasks.filter(t => t.assignee_id === user?.id && t.status !== 'done' && t.status !== 'Completed' && t.status !== 'Work Done' && t.status !== 'In Progress' && t.status !== 'Under Review');
