@@ -45,6 +45,12 @@ const DashboardPage = () => {
   const now = new Date();
   const overdueTasks = activeTasks.filter(t => t.due_date && new Date(t.due_date) < new Date(now.setHours(0,0,0,0)) && t.status !== 'done' && t.status !== 'Completed');
 
+  const filteredGoals = goals.filter(goal => {
+    const isAdmin = user?.role === 'owner' || user?.role === 'admin' || user?.role === 'developer';
+    if (isAdmin) return true;
+    return goal.created_by === currentUserId || goal.assigned_to === currentUserId;
+  });
+
   // Chart 1 Data: Status Distribution
   const statusChartData = [
     { name: 'To Do', value: todoCount, color: '#3b82f6' },
@@ -177,13 +183,13 @@ const DashboardPage = () => {
                 </div>
               </div>
               <div className="flex items-baseline justify-between">
-                <span className="text-3xl font-extrabold text-gray-900">{goals.length}</span>
+                <span className="text-3xl font-extrabold text-gray-900">{filteredGoals.length}</span>
                 <span className="text-xs font-medium text-emerald-600 bg-emerald-50 px-2 py-0.5 rounded-full flex items-center">
                   Track Goals <ChevronRight size={12} className="ml-0.5" />
                 </span>
               </div>
               <p className="mt-3 text-xs text-gray-500 pt-3 border-t border-gray-100">
-                <span className="font-semibold text-gray-700">{goals.filter(g => g.status === 'achieved' || g.current_value >= g.target_value).length}</span> Achieved Objectives
+                <span className="font-semibold text-gray-700">{filteredGoals.filter(g => g.status === 'achieved' || g.current_value >= g.target_value).length}</span> Achieved Objectives
               </p>
             </div>
 

@@ -5,6 +5,7 @@ import { useGoalStore } from '../store/useGoalStore';
 import { useUiStore } from '../store/useUiStore';
 import type { Goal } from '../store/useGoalStore';
 import type { WorkspaceMember } from '../types';
+import { useAuthStore } from '../store/useAuthStore';
 
 const GoalCard = ({ goal, onDeleteClick, updateGoal, members }: { goal: Goal, onDeleteClick: any, updateGoal: any, members: WorkspaceMember[] }) => {
   const [localValue, setLocalValue] = useState(goal.current_value);
@@ -127,7 +128,14 @@ const GoalsPage = () => {
   const { goals, deleteGoal, updateGoal } = useGoalStore();
   const { openCreateGoalModal } = useUiStore();
   
+  const { user: currentUser } = useAuthStore();
   const [goalToDelete, setGoalToDelete] = useState<string | null>(null);
+
+  const filteredGoals = goals.filter(goal => {
+    const isAdmin = currentUser?.role === 'owner' || currentUser?.role === 'admin' || currentUser?.role === 'developer';
+    if (isAdmin) return true;
+    return goal.created_by === currentUser?.id || goal.assigned_to === currentUser?.id;
+  });
 
   const handleAddGoal = () => {
     openCreateGoalModal();
@@ -157,7 +165,7 @@ const GoalsPage = () => {
       </div>
 
       <div className="grid grid-cols-1 lg:grid-cols-2 gap-4">
-        {goals.map(goal => (
+        {filteredGoals.map(goal => (
           <GoalCard key={goal.id} goal={goal} onDeleteClick={() => setGoalToDelete(goal.id)} updateGoal={updateGoal} members={members} />
         ))}
       </div>
