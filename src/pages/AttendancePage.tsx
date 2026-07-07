@@ -459,7 +459,7 @@ ${employeeName}`;
 
     if (serviceId && publicKey) {
       try {
-        const hrEmailAddress = import.meta.env.VITE_HR_EMAIL || 'hr@bkmindustries.in';
+        const hrEmailAddress = import.meta.env.VITE_HR_EMAIL || 'rmayank103@gmail.com';
         await emailjs.send(
           serviceId,
           templateId,
