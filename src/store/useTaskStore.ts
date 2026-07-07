@@ -202,30 +202,11 @@ export const useTaskStore = create<TaskState>((set, get) => ({
     });
 
     try {
-      let { data, error } = await supabase
+      const { data, error } = await supabase
         .from('tasks')
         .insert([newTask])
         .select()
         .single();
-
-      // Handle missing list for space to satisfy database schema
-      if (error && error.message?.includes('tasks_list_id_fkey') && task.list_id) {
-        // Attempt to create a dummy list to satisfy the foreign key
-        await supabase.from('lists').insert([{
-           id: task.list_id,
-           name: 'Space List',
-        }]);
-        
-        // Retry task insertion
-        const retryRes = await supabase
-          .from('tasks')
-          .insert([newTask])
-          .select()
-          .single();
-          
-        data = retryRes.data;
-        error = retryRes.error;
-      }
 
       if (error) throw error;
 
