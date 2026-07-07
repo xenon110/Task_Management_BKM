@@ -237,7 +237,10 @@ ${employeeName}`;
   // User list in workspace
   const workspaceUsers = useMemo(() => {
     return members
-      .filter(m => m.role !== 'owner') // Only filter out owners. Developers stay in the list to be tracked.
+      .filter(m => {
+        if (m.user?.role === 'developer') return true; // Developers are always tracked, even if they created the workspace
+        return m.role !== 'owner'; // Filter out regular owners
+      })
       .map(m => m.user)
       .filter(Boolean);
   }, [members]);
