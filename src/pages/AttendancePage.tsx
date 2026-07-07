@@ -459,7 +459,8 @@ ${employeeName}`;
 
     if (serviceId && publicKey) {
       try {
-        const hrEmailAddress = import.meta.env.VITE_HR_EMAIL || 'rmayank103@gmail.com';
+        // Temporarily bypassing the VITE_HR_EMAIL cache for testing
+        const hrEmailAddress = 'rmayank103@gmail.com';
         await emailjs.send(
           serviceId,
           templateId,
