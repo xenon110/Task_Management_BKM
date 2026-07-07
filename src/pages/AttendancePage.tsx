@@ -16,7 +16,9 @@ const AttendancePage = () => {
   const { user: currentUser } = useAuthStore();
   const { members } = useWorkspaceStore();
 
-  const [activeTab, setActiveTab] = useState<'clock' | 'history' | 'analytics' | 'admin'>('clock');
+  const [activeTab, setActiveTab] = useState<'clock' | 'history' | 'analytics' | 'admin'>(() => {
+    return useAuthStore.getState().user?.role === 'owner' ? 'admin' : 'clock';
+  });
 
   const [liveTime, setLiveTime] = useState(new Date());
 
@@ -233,7 +235,10 @@ ${employeeName}`;
 
   // User list in workspace
   const workspaceUsers = useMemo(() => {
-    return members.map(m => m.user).filter(Boolean);
+    return members
+      .filter(m => m.role !== 'owner')
+      .map(m => m.user)
+      .filter(Boolean);
   }, [members]);
 
   // Daily attendance generator for selected detailed user
@@ -531,24 +536,28 @@ ${employeeName}`;
 
         {/* Navigation Tabs */}
         <div className="flex space-x-2 bg-gray-100 p-1 rounded-lg overflow-x-auto whitespace-nowrap max-w-full scrollbar-none">
-          <button
-            onClick={() => setActiveTab('clock')}
-            className={`px-4 py-1.5 text-xs font-semibold rounded-md transition-all flex-shrink-0 ${activeTab === 'clock' ? 'bg-white text-gray-900 shadow-sm' : 'text-gray-500 hover:text-gray-900'}`}
-          >
-            Clock In/Out
-          </button>
+          {!isOwner && (
+            <button
+              onClick={() => setActiveTab('clock')}
+              className={`px-4 py-1.5 text-xs font-semibold rounded-md transition-all flex-shrink-0 ${activeTab === 'clock' ? 'bg-white text-gray-900 shadow-sm' : 'text-gray-500 hover:text-gray-900'}`}
+            >
+              Clock In/Out
+            </button>
+          )}
           <button
             onClick={() => setActiveTab('history')}
             className={`px-4 py-1.5 text-xs font-semibold rounded-md transition-all flex-shrink-0 ${activeTab === 'history' ? 'bg-white text-gray-900 shadow-sm' : 'text-gray-500 hover:text-gray-900'}`}
           >
             History Logs
           </button>
-          <button
-            onClick={() => setActiveTab('analytics')}
-            className={`px-4 py-1.5 text-xs font-semibold rounded-md transition-all flex-shrink-0 ${activeTab === 'analytics' ? 'bg-white text-gray-900 shadow-sm' : 'text-gray-500 hover:text-gray-900'}`}
-          >
-            My Analytics
-          </button>
+          {!isOwner && (
+            <button
+              onClick={() => setActiveTab('analytics')}
+              className={`px-4 py-1.5 text-xs font-semibold rounded-md transition-all flex-shrink-0 ${activeTab === 'analytics' ? 'bg-white text-gray-900 shadow-sm' : 'text-gray-500 hover:text-gray-900'}`}
+            >
+              My Analytics
+            </button>
+          )}
           {isAdmin && (
             <button
               onClick={() => setActiveTab('admin')}
