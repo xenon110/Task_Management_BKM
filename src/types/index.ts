@@ -1,4 +1,4 @@
-export type Role = 'owner' | 'admin' | 'member' | 'guest';
+export type Role = 'owner' | 'admin' | 'member' | 'guest' | 'developer';
 export type TaskPriority = 'urgent' | 'high' | 'normal' | 'low';
 export type TaskStatus = string; // E.g., 'To Do', 'In Progress', 'Under Review', 'Completed'
 export type NotificationType = 'task_assigned' | 'task_completed' | 'deadline_reminder' | 'invitation_accepted';

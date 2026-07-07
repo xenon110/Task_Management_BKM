@@ -17,7 +17,8 @@ const AttendancePage = () => {
   const { members } = useWorkspaceStore();
 
   const [activeTab, setActiveTab] = useState<'clock' | 'history' | 'analytics' | 'admin'>(() => {
-    return useAuthStore.getState().user?.role === 'owner' ? 'admin' : 'clock';
+    const role = useAuthStore.getState().user?.role;
+    return (role === 'owner' || role === 'developer') ? 'admin' : 'clock';
   });
 
   const [liveTime, setLiveTime] = useState(new Date());
@@ -100,8 +101,8 @@ ${employeeName}`;
   const [adminMonth, setAdminMonth] = useState(new Date().getMonth() + 1); // 1-12
   const [adminYear, setAdminYear] = useState(new Date().getFullYear());
 
-  const isAdmin = currentUser?.role === 'owner'; // Changed so ONLY owner gets admin rights on Attendance Page for now, as requested
-  const isOwner = currentUser?.role === 'owner';
+  const isAdmin = currentUser?.role === 'owner' || currentUser?.role === 'developer'; // Owner and Developer get admin rights
+  const isOwner = currentUser?.role === 'owner' || currentUser?.role === 'developer'; // Treat Developer as owner for bypassing attendance check
 
   // Fetch current month's records by default
   useEffect(() => {
@@ -236,7 +237,7 @@ ${employeeName}`;
   // User list in workspace
   const workspaceUsers = useMemo(() => {
     return members
-      .filter(m => m.role !== 'owner')
+      .filter(m => m.role !== 'owner' && m.role !== 'developer')
       .map(m => m.user)
       .filter(Boolean);
   }, [members]);
