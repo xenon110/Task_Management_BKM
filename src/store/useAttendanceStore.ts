@@ -43,7 +43,7 @@ export const useAttendanceStore = create<AttendanceState>((set, get) => ({
       const user = useAuthStore.getState().user;
       if (!user) return;
 
-      const isAdmin = user.role === 'owner' || user.role === 'admin';
+      const isAdmin = user.role === 'owner' || user.role === 'admin' || user.role === 'developer';
       let query = supabase.from('attendance').select('*').order('date', { ascending: false });
 
       if (!isAdmin) {
