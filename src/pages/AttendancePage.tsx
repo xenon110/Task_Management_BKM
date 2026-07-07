@@ -454,8 +454,8 @@ ${employeeName}`;
 
     const serviceId = import.meta.env.VITE_EMAILJS_SERVICE_ID;
     const publicKey = import.meta.env.VITE_EMAILJS_PUBLIC_KEY;
-    // Look for VITE_EMAILJS_LEAVE_TEMPLATE_ID or default to template_8406qye
-    const templateId = import.meta.env.VITE_EMAILJS_LEAVE_TEMPLATE_ID || 'template_8406qye';
+    // Look for VITE_EMAILJS_LEAVE_TEMPLATE_ID or default to the correct leave template ID
+    const templateId = import.meta.env.VITE_EMAILJS_LEAVE_TEMPLATE_ID || 'template_zwtnf1s';
 
     if (serviceId && publicKey) {
       try {
