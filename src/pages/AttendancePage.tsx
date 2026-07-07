@@ -100,7 +100,7 @@ ${employeeName}`;
   const [adminMonth, setAdminMonth] = useState(new Date().getMonth() + 1); // 1-12
   const [adminYear, setAdminYear] = useState(new Date().getFullYear());
 
-  const isAdmin = currentUser?.role === 'owner' || currentUser?.role === 'admin';
+  const isAdmin = currentUser?.role === 'owner'; // Changed so ONLY owner gets admin rights on Attendance Page for now, as requested
   const isOwner = currentUser?.role === 'owner';
 
   // Fetch current month's records by default
