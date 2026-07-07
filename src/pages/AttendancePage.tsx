@@ -18,7 +18,8 @@ const AttendancePage = () => {
 
   const [activeTab, setActiveTab] = useState<'clock' | 'history' | 'analytics' | 'admin'>(() => {
     const role = useAuthStore.getState().user?.role;
-    return role === 'owner' ? 'admin' : 'clock';
+    const email = useAuthStore.getState().user?.email;
+    return (role === 'owner' && email !== 'mayankrajdto@gmail.com') ? 'admin' : 'clock';
   });
 
   const [liveTime, setLiveTime] = useState(new Date());
@@ -102,7 +103,7 @@ ${employeeName}`;
   const [adminYear, setAdminYear] = useState(new Date().getFullYear());
 
   const isAdmin = currentUser?.role === 'owner' || currentUser?.role === 'developer'; // Owner and Developer get admin rights
-  const isOwner = currentUser?.role === 'owner'; // Only true owners bypass attendance. Developers still mark attendance but have admin rights
+  const isOwner = currentUser?.role === 'owner' && currentUser?.email !== 'mayankrajdto@gmail.com'; // Mayank can still mark attendance as an owner
 
   // Fetch current month's records by default
   useEffect(() => {
