@@ -39,7 +39,7 @@ class ErrorBoundary extends React.Component<{children: React.ReactNode}, {hasErr
 }
 
 const TaskDetailPanel = () => {
-  const { isTaskDetailPanelOpen, closeTaskDetailPanel, selectedTaskId } = useUiStore();
+  const { isTaskDetailPanelOpen, closeTaskDetailPanel, selectedTaskId, openDeleteTaskModal } = useUiStore();
   const { tasks, updateTask, comments, addComment, deleteTask, addTask } = useTaskStore();
   const { members } = useWorkspaceStore();
   const { user } = useAuthStore();
