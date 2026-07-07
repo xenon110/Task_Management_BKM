@@ -273,10 +273,11 @@ const TasksPage = () => {
 
                 {/* Table Header */}
                 <div className="flex items-center px-6 py-2 border-b border-gray-100 text-[11px] text-gray-500 bg-white select-none pr-[18px]">
-                  <div className="w-[40%] flex items-center pl-8">Name</div>
+                  <div className="w-[30%] flex items-center pl-8">Name</div>
                   <div className="w-[12%] flex items-center">Assignee</div>
+                  <div className="w-[12%] flex items-center">Assigned By</div>
                   <div className="w-[12%] flex items-center">Due date</div>
-                  <div className="w-[12%] flex items-center">Priority</div>
+                  <div className="w-[10%] flex items-center">Priority</div>
                   <div className="w-[12%] flex items-center">Status</div>
                   <div className="w-[12%] flex items-center">Comments</div>
                   <div className="w-6 flex items-center justify-center">
@@ -289,6 +290,7 @@ const TasksPage = () => {
                   const renderRow = (t: Task, isSubtask: boolean = false) => {
                     const taskComments = (comments || []).filter(c => c.task_id === t.id);
                     const assignee = t.assignee_id ? members.find((m: any) => m.user?.id === t.assignee_id)?.user : null;
+                    const creator = t.created_by ? members.find((m: any) => m.user?.id === t.created_by)?.user : null;
                     return (
                       <div
                         key={t.id}
@@ -296,7 +298,7 @@ const TasksPage = () => {
                         className={`border-b border-gray-100 border-l-2 pl-2 hover:bg-gray-50/80 transition-colors group cursor-pointer ${isSubtask ? 'ml-12 border-l-brand/50 bg-gray-50/30' : 'ml-6 border-l-gray-300'}`}
                       >
                         <div className="flex items-center py-2 pr-4 text-[13px] text-gray-700">
-                          <div className="w-[40%] flex items-center">
+                          <div className="w-[30%] flex items-center">
                             {isSubtask ? (
                               <ChevronRight size={14} className="mr-3 ml-2 text-gray-300 flex-shrink-0" />
                             ) : (
@@ -316,6 +318,18 @@ const TasksPage = () => {
                               <UserPlus size={14} className="text-gray-400 hover:text-gray-600 border border-dashed border-gray-300 rounded-full w-6 h-6 p-1" />
                             )}
                           </div>
+                          <div className="w-[12%] flex items-center">
+                            {creator ? (
+                              <div className="flex items-center space-x-1.5" title={creator.name}>
+                                <div className="w-6 h-6 rounded-full bg-green-100 text-green-700 font-bold text-[9px] flex items-center justify-center shrink-0 border border-white shadow-sm">
+                                  {creator.name.split(' ').map((n: string) => n[0]).join('')}
+                                </div>
+                                <span className="text-[11px] truncate max-w-[80px]">{creator.name}</span>
+                              </div>
+                            ) : (
+                              <div className="text-[11px] text-gray-400">-</div>
+                            )}
+                          </div>
                           <div className="w-[12%]">
                             {t.due_date ? (
                               <div className={`flex items-center space-x-1.5 ${new Date(t.due_date) < new Date(new Date().setHours(0, 0, 0, 0)) && !['done', 'Completed', 'Work Done'].includes(t.status) ? 'text-red-500' : 'text-gray-500'}`}>
@@ -326,7 +340,7 @@ const TasksPage = () => {
                               <Calendar size={14} className="text-gray-300 hover:text-gray-500" />
                             )}
                           </div>
-                          <div className="w-[12%] capitalize">
+                          <div className="w-[10%] capitalize">
                             {t.priority !== 'normal' ? (
                               <div className={`flex items-center space-x-1.5 ${t.priority === 'urgent' ? 'text-red-500' : t.priority === 'high' ? 'text-orange-500' : 'text-blue-500'}`}>
                                 <Flag size={14} />
