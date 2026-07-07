@@ -21,6 +21,7 @@ import CreateTaskModal from './components/CreateTaskModal';
 import TaskDetailPanel from './components/TaskDetailPanel';
 import CreateGoalModal from './components/CreateGoalModal';
 import InviteMemberModal from './components/InviteMemberModal';
+import DeleteTaskModal from './components/DeleteTaskModal';
 import AttendancePage from './pages/AttendancePage';
 
 import { useEffect } from 'react';
@@ -78,6 +79,7 @@ function App() {
       <TaskDetailPanel />
       <CreateGoalModal />
       <InviteMemberModal />
+      <DeleteTaskModal />
     </Router>
   );
 }

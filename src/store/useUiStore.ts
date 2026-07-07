@@ -17,6 +17,11 @@ interface UiState {
   isInviteModalOpen: boolean;
   openInviteModal: () => void;
   closeInviteModal: () => void;
+
+  isDeleteTaskModalOpen: boolean;
+  taskToDelete: string | null;
+  openDeleteTaskModal: (taskId: string) => void;
+  closeDeleteTaskModal: () => void;
 }
 
 export const useUiStore = create<UiState>((set) => ({
@@ -36,4 +41,9 @@ export const useUiStore = create<UiState>((set) => ({
   isInviteModalOpen: false,
   openInviteModal: () => set({ isInviteModalOpen: true }),
   closeInviteModal: () => set({ isInviteModalOpen: false }),
+
+  isDeleteTaskModalOpen: false,
+  taskToDelete: null,
+  openDeleteTaskModal: (taskId: string) => set({ isDeleteTaskModalOpen: true, taskToDelete: taskId }),
+  closeDeleteTaskModal: () => set({ isDeleteTaskModalOpen: false, taskToDelete: null }),
 }));

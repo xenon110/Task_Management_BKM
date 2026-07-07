@@ -43,7 +43,7 @@ const getColumnColor = (groupName: string, grouping: string) => {
 const BoardView: React.FC<BoardViewProps> = ({ groups, grouping }) => {
   const { deleteTask, comments, updateTask } = useTaskStore();
   const { members } = useWorkspaceStore();
-  const { openTaskDetailPanel, openCreateTaskModal } = useUiStore();
+  const { openTaskDetailPanel, openCreateTaskModal, openDeleteTaskModal } = useUiStore();
 
   const handleDragEnd = (result: DropResult) => {
     if (!result.destination) return;
@@ -136,9 +136,7 @@ const BoardView: React.FC<BoardViewProps> = ({ groups, grouping }) => {
                                    className="text-gray-300 hover:text-gray-500 opacity-0 group-hover:opacity-100 transition-opacity"
                                    onClick={(e) => {
                                      e.stopPropagation();
-                                     if (window.confirm('Are you sure you want to delete this task?')) {
-                                       deleteTask(task.id);
-                                     }
+                                     openDeleteTaskModal(task.id);
                                    }}
                                    title="Delete Task"
                                  >

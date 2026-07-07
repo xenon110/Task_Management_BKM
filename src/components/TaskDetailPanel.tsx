@@ -215,19 +215,13 @@ const TaskDetailPanel = () => {
              )}
           </div>
           <div className="flex items-center space-x-2">
-            {canEdit && (
-              <button 
-                onClick={() => {
-                  if (window.confirm('Are you sure you want to delete this task?')) {
-                    deleteTask(task.id);
-                    closeTaskDetailPanel();
-                  }
-                }}
-                className="p-1.5 hover:bg-red-50 hover:text-red-500 rounded text-gray-500 transition-colors" title="Delete task"
-              >
-                <Trash2 size={18} />
-              </button>
-            )}
+            {canEdit &&                <button 
+                  onClick={() => openDeleteTaskModal(task.id)}
+                  className="p-1.5 text-gray-400 hover:text-red-500 hover:bg-red-50 rounded-lg transition-colors tooltip" title="Delete Task"
+                >
+                  <Trash2 size={16} />
+                </button>
+            }
             <button onClick={closeTaskDetailPanel} className="p-1.5 hover:bg-gray-100 rounded text-gray-500 transition-colors"><X size={20} /></button>
           </div>
         </div>
