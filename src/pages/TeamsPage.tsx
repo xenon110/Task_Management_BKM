@@ -52,8 +52,11 @@ const TeamsPage = () => {
   }, [members]);
 
   // Calculate workloads
-  const memberWorkloads = globalUsers
-    .map(user => {
+  // Calculate workloads using the reliable `members` array from the workspace store
+  const memberWorkloads = members
+    .filter(m => m.user) // Ensure the user object exists
+    .map(m => {
+    const user = m.user!;
     // Count active tasks for this member
     const activeTasksCount = tasks.filter(t =>
       !t.archived &&
