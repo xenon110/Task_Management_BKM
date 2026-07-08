@@ -18,8 +18,7 @@ const AttendancePage = () => {
 
   const [activeTab, setActiveTab] = useState<'clock' | 'history' | 'analytics' | 'admin'>(() => {
     const role = useAuthStore.getState().user?.role;
-    const email = useAuthStore.getState().user?.email;
-    return (role === 'owner' && email !== 'mayankrajdto@gmail.com') ? 'admin' : 'clock';
+    return role === 'owner' ? 'admin' : 'clock';
   });
 
   const [liveTime, setLiveTime] = useState(new Date());
@@ -103,7 +102,7 @@ ${employeeName}`;
   const [adminYear, setAdminYear] = useState(new Date().getFullYear());
 
   const isAdmin = currentUser?.role === 'owner' || currentUser?.role === 'developer'; // Owner and Developer get admin rights
-  const isOwner = currentUser?.role === 'owner' && currentUser?.email !== 'mayankrajdto@gmail.com'; // Mayank can still mark attendance as an owner
+  const isOwner = currentUser?.role === 'owner'; // Owners bypass attendance marking
 
   // Fetch current month's records by default
   useEffect(() => {
@@ -239,8 +238,8 @@ ${employeeName}`;
   const workspaceUsers = useMemo(() => {
     return members
       .filter(m => {
-        if (m.user?.role === 'developer') return true; // Developers are always tracked, even if they created the workspace
-        return m.role !== 'owner'; // Filter out regular owners
+        if (m.user?.role === 'developer' || m.role === 'developer') return true; // Developers are always tracked, even if they created the workspace
+        return m.role !== 'owner' && m.user?.role !== 'owner'; // Filter out regular owners
       })
       .map(m => m.user)
       .filter(Boolean);
