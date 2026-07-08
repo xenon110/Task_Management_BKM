@@ -884,7 +884,7 @@ ${employeeName}`;
                   <thead>
                     <tr className="bg-gray-50 border-b border-gray-100 text-gray-400 font-bold uppercase tracking-wider text-[10px]">
                       <th className="px-5 py-3">Date</th>
-                      {isOwner && <th className="px-5 py-3">Employee</th>}
+                      {isAdmin && <th className="px-5 py-3">Employee</th>}
                       <th className="px-5 py-3">Login</th>
                       <th className="px-5 py-3">Lunch Out</th>
                       <th className="px-5 py-3">Lunch In</th>
@@ -898,7 +898,7 @@ ${employeeName}`;
                   <tbody className="divide-y divide-gray-50">
                     {filteredHistory.length === 0 ? (
                       <tr>
-                        <td colSpan={isOwner ? 10 : 9} className="text-center py-12 text-gray-400">
+                        <td colSpan={isAdmin ? 10 : 9} className="text-center py-12 text-gray-400">
                           No logs found matching your filters.
                         </td>
                       </tr>
@@ -906,7 +906,7 @@ ${employeeName}`;
                       filteredHistory.map(rec => (
                         <tr key={rec.id} className="hover:bg-gray-50/50 transition-colors">
                           <td className="px-5 py-3.5 font-semibold text-gray-900">{rec.date}</td>
-                          {isOwner && <td className="px-5 py-3.5 font-bold text-gray-800">{rec.employee_name}</td>}
+                          {isAdmin && <td className="px-5 py-3.5 font-bold text-gray-800">{rec.employee_name}</td>}
                           <td className="px-5 py-3.5 text-gray-600">{rec.login_time ? formatTime(rec.login_time) : '--'}</td>
                           <td className="px-5 py-3.5 text-gray-600">{rec.lunch_out_time ? formatTime(rec.lunch_out_time) : '--'}</td>
                           <td className="px-5 py-3.5 text-gray-600">{rec.lunch_in_time ? formatTime(rec.lunch_in_time) : '--'}</td>
