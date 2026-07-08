@@ -12,6 +12,7 @@ interface AttendanceState {
   markLunchIn: () => Promise<void>;
   markLogout: () => Promise<void>;
   markLeave: (userId: string, employeeName: string, startDate: string, endDate: string, remark: string) => Promise<void>;
+  autoCheckoutExpired: () => Promise<void>;
 }
 
 const formatDuration = (ms: number): string => {
@@ -313,6 +314,72 @@ export const useAttendanceStore = create<AttendanceState>((set, get) => ({
     } catch (err) {
       console.error('Error marking leave:', err);
       alert('Failed to mark leave.');
+    }
+  },
+
+  autoCheckoutExpired: async () => {
+    try {
+      const user = useAuthStore.getState().user;
+      if (!user) return;
+
+      const isAdmin = user.role === 'owner' || user.role === 'admin' || user.role === 'developer';
+      if (!isAdmin) return; // Only admins can trigger auto-checkout for all users
+
+      const now = new Date();
+      const today = getLocalDateString(now);
+      const currentHour = now.getHours(); // 0-23
+
+      // Only auto-checkout if it's past 8:00 PM (20:00)
+      if (currentHour < 20) return;
+
+      // Find all open sessions (login exists, logout missing) for today
+      const { data: openRecords, error } = await supabase
+        .from('attendance')
+        .select('*')
+        .is('logout_time', null)
+        .eq('date', today)
+        .not('login_time', 'is', null);
+
+      if (error) throw error;
+      if (!openRecords || openRecords.length === 0) return;
+
+      for (const record of openRecords) {
+        // Set auto-checkout time to 7:00 PM (19:00) of that day
+        const logoutDate = new Date(`${record.date}T19:00:00`);
+        const logoutIso = logoutDate.toISOString();
+
+        const loginMs = new Date(record.login_time).getTime();
+        const logoutMs = logoutDate.getTime();
+
+        let totalMs = logoutMs - loginMs;
+        if (totalMs < 0) totalMs = 0;
+
+        // Adjust for lunch breaks
+        if (record.lunch_out_time && record.lunch_in_time) {
+          const lunchOutMs = new Date(record.lunch_out_time).getTime();
+          const lunchInMs = new Date(record.lunch_in_time).getTime();
+          totalMs = totalMs - (lunchInMs - lunchOutMs);
+        } else if (record.lunch_out_time && !record.lunch_in_time) {
+          // Estimate 1 hour lunch if they started lunch but forgot to return
+          totalMs = totalMs - 3600000;
+        }
+
+        const totalHoursText = formatDuration(totalMs);
+
+        await supabase
+          .from('attendance')
+          .update({
+            logout_time: logoutIso,
+            total_working_hours: totalHoursText,
+            leave_remark: 'Auto-checkout (8 PM cutoff)'
+          })
+          .eq('id', record.id);
+      }
+
+      // Refresh records after auto-checkout
+      await get().fetchRecords();
+    } catch (err) {
+      console.error('Error in auto-checkout:', err);
     }
   }
 }));

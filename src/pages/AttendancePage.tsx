@@ -12,7 +12,7 @@ import type { Attendance } from '../types';
 import emailjs from '@emailjs/browser';
 
 const AttendancePage = () => {
-  const { records, loading, fetchRecords, markLogin, markLunchOut, markLunchIn, markLogout, markLeave } = useAttendanceStore();
+  const { records, loading, fetchRecords, markLogin, markLunchOut, markLunchIn, markLogout, markLeave, autoCheckoutExpired } = useAttendanceStore();
   const { user: currentUser } = useAuthStore();
   const { members } = useWorkspaceStore();
 
@@ -107,6 +107,13 @@ ${employeeName}`;
   // Fetch current month's records by default
   useEffect(() => {
     fetchRecords();
+  }, []);
+
+  // Auto-checkout users who haven't punched out by 8:00 PM
+  useEffect(() => {
+    if (isAdmin) {
+      autoCheckoutExpired();
+    }
   }, []);
 
   // Fetch records dynamically for admin controls tab or selected detailed user breakdown
