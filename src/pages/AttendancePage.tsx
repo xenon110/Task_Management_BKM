@@ -209,8 +209,8 @@ ${employeeName}`;
   const filteredHistory = useMemo(() => {
     let list = records;
 
-    // Non-owner can only see their own
-    if (!isOwner) {
+    // Non-admin can only see their own
+    if (!isAdmin) {
       list = list.filter(r => r.user_id === currentUser?.id);
     } else if (searchName) {
       list = list.filter(r => r.employee_name.toLowerCase().includes(searchName.toLowerCase()));
@@ -232,7 +232,7 @@ ${employeeName}`;
     }
 
     return list;
-  }, [records, historyFilter, startDate, endDate, searchName, isOwner, currentUser?.id]);
+  }, [records, historyFilter, startDate, endDate, searchName, isAdmin, currentUser?.id]);
 
   // User list in workspace
   const workspaceUsers = useMemo(() => {
@@ -825,7 +825,7 @@ ${employeeName}`;
                 </div>
 
                 <div className="flex items-center gap-3">
-                  {isOwner && (
+                  {isAdmin && (
                     <div className="relative group">
                       <Search size={14} className="absolute left-3 top-1/2 transform -translate-y-1/2 text-gray-400 group-hover:text-gray-600" />
                       <input
