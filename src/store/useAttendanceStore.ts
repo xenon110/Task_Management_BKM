@@ -34,6 +34,18 @@ const getLocalDateString = (d: Date = new Date()) => {
   return `${year}-${month}-${date}`;
 };
 
+const handleEdgeFunctionError = async (error: any) => {
+  if (error?.context && typeof error.context.json === 'function') {
+    try {
+      const errData = await error.context.clone().json();
+      if (errData?.error) return new Error(errData.error);
+    } catch (e) {
+      // fallback if json parsing fails
+    }
+  }
+  return new Error(error?.message || 'Server error');
+};
+
 export const useAttendanceStore = create<AttendanceState>((set, get) => ({
   records: [],
   loading: false,
@@ -81,70 +93,44 @@ export const useAttendanceStore = create<AttendanceState>((set, get) => ({
       const user = useAuthStore.getState().user;
       if (!user) return;
 
-      const today = getLocalDateString();
-      const now = new Date().toISOString();
-
-      // Scan and auto-close any open sessions from previous days
-      const { data: openRecords, error: findErr } = await supabase
-        .from('attendance')
-        .select('*')
-        .eq('user_id', user.id)
-        .is('logout_time', null)
-        .neq('date', today);
-
-      if (findErr) throw findErr;
-
-      if (openRecords && openRecords.length > 0) {
-        for (const record of openRecords) {
-          // Set checkout time to 7:00 PM (19:00) of that day
-          const logoutDate = new Date(`${record.date}T19:00:00`);
-          const logoutIso = logoutDate.toISOString();
-          
-          const loginMs = new Date(record.login_time).getTime();
-          const logoutMs = logoutDate.getTime();
-          
-          let totalMs = logoutMs - loginMs;
-          if (totalMs < 0) totalMs = 0;
-
-          // Adjust for lunch breaks
-          if (record.lunch_out_time && record.lunch_in_time) {
-            const lunchOutMs = new Date(record.lunch_out_time).getTime();
-            const lunchInMs = new Date(record.lunch_in_time).getTime();
-            totalMs = totalMs - (lunchInMs - lunchOutMs);
-          } else if (record.lunch_out_time && !record.lunch_in_time) {
-            // Estimate 1 hour lunch if they started lunch but forgot to return
-            totalMs = totalMs - 3600000;
-          }
-
-          const totalHoursText = formatDuration(totalMs);
-
-          await supabase
-            .from('attendance')
-            .update({
-              logout_time: logoutIso,
-              total_working_hours: totalHoursText,
-              leave_remark: 'Auto-checkout (Forgot to logout)'
-            })
-            .eq('id', record.id);
-        }
+      if (!window.electronAPI) {
+        throw new Error('Attendance must be performed via the secure Desktop Application.');
       }
+      
+      const { session } = (await supabase.auth.getSession()).data;
+      if (!session) throw new Error('Not authenticated');
 
-      const newRecord = {
-        user_id: user.id,
-        employee_name: user.name || user.email.split('@')[0],
-        date: today,
-        login_time: now,
-        status: 'Present' as const
-      };
+      // 1. Get Device Public Key & Challenge
+      const pubKeyRes = await window.electronAPI.getPublicKey();
+      if (!pubKeyRes.success) throw new Error('Device identity not found. Is this device enrolled?');
+      
+      const { data: devices, error: devErr } = await supabase.from('devices').select('device_code').eq('public_key', pubKeyRes.publicKey!).single();
+      if (devErr || !devices) throw new Error('Device is not registered in the system.');
 
-      const { error } = await supabase.from('attendance').insert([newRecord]);
-      if (error) throw error;
+      const { data: challengeData, error: challengeErr } = await supabase.functions.invoke('attendance-challenge');
+      if (challengeErr) throw challengeErr;
+      
+      // 2. Sign Challenge
+      const signRes = await window.electronAPI.signChallenge(challengeData.challenge);
+      if (!signRes.success) throw new Error('Failed to sign challenge');
+
+      // 3. Punch In
+      const { data, error } = await supabase.functions.invoke('attendance-punch', {
+        body: {
+          device_code: devices.device_code,
+          challenge: challengeData.challenge,
+          signature: signRes.signature,
+          action: 'PUNCH_IN'
+        }
+      });
+
+      if (error) throw await handleEdgeFunctionError(error);
 
       await get().fetchRecords();
       alert('Logged in successfully!');
-    } catch (err) {
+    } catch (err: any) {
       console.error('Error marking login:', err);
-      alert('Failed to mark login.');
+      alert('Punch In Failed: ' + (err.message || 'Unknown error'));
     }
   },
 
@@ -153,22 +139,41 @@ export const useAttendanceStore = create<AttendanceState>((set, get) => ({
       const user = useAuthStore.getState().user;
       if (!user) return;
 
-      const today = getLocalDateString();
-      const now = new Date().toISOString();
+      if (!window.electronAPI) {
+        throw new Error('Attendance must be performed via the secure Desktop Application.');
+      }
+      
+      const { session } = (await supabase.auth.getSession()).data;
+      if (!session) throw new Error('Not authenticated');
 
-      const { error } = await supabase
-        .from('attendance')
-        .update({ lunch_out_time: now })
-        .eq('user_id', user.id)
-        .eq('date', today);
+      const pubKeyRes = await window.electronAPI.getPublicKey();
+      if (!pubKeyRes.success) throw new Error('Device identity not found. Is this device enrolled?');
+      
+      const { data: devices, error: devErr } = await supabase.from('devices').select('device_code').eq('public_key', pubKeyRes.publicKey!).single();
+      if (devErr || !devices) throw new Error('Device is not registered in the system.');
 
-      if (error) throw error;
+      const { data: challengeData, error: challengeErr } = await supabase.functions.invoke('attendance-challenge');
+      if (challengeErr) throw challengeErr;
+      
+      const signRes = await window.electronAPI.signChallenge(challengeData.challenge);
+      if (!signRes.success) throw new Error('Failed to sign challenge');
+
+      const { error } = await supabase.functions.invoke('attendance-punch', {
+        body: {
+          device_code: devices.device_code,
+          challenge: challengeData.challenge,
+          signature: signRes.signature,
+          action: 'LUNCH_OUT'
+        }
+      });
+
+      if (error) throw await handleEdgeFunctionError(error);
 
       await get().fetchRecords();
       alert('Lunch break started!');
-    } catch (err) {
+    } catch (err: any) {
       console.error('Error marking lunch out:', err);
-      alert('Failed to mark lunch out.');
+      alert('Lunch Out Failed: ' + (err.message || 'Unknown error'));
     }
   },
 
@@ -177,52 +182,41 @@ export const useAttendanceStore = create<AttendanceState>((set, get) => ({
       const user = useAuthStore.getState().user;
       if (!user) return;
 
-      const today = getLocalDateString();
-      const now = new Date().toISOString();
-
-      // Fetch today's record to get lunch_out_time
-      const { data: todayRec, error: fetchErr } = await supabase
-        .from('attendance')
-        .select('*')
-        .eq('user_id', user.id)
-        .eq('date', today)
-        .maybeSingle();
-
-      if (fetchErr) throw fetchErr;
-      if (!todayRec || !todayRec.lunch_out_time) {
-        alert('Could not find lunch out record.');
-        return;
+      if (!window.electronAPI) {
+        throw new Error('Attendance must be performed via the secure Desktop Application.');
       }
-
-      const outMs = new Date(todayRec.lunch_out_time).getTime();
-      const inMs = new Date(now).getTime();
-      const diffMs = inMs - outMs;
       
-      const durationText = formatDuration(diffMs);
+      const { session } = (await supabase.auth.getSession()).data;
+      if (!session) throw new Error('Not authenticated');
+
+      const pubKeyRes = await window.electronAPI.getPublicKey();
+      if (!pubKeyRes.success) throw new Error('Device identity not found. Is this device enrolled?');
       
-      // Calculate delay (Lunch limit is 1 hour = 3,600,000 ms)
-      let delayText = 'On Time';
-      if (diffMs > 3600000) {
-        delayText = formatDuration(diffMs - 3600000);
-      }
+      const { data: devices, error: devErr } = await supabase.from('devices').select('device_code').eq('public_key', pubKeyRes.publicKey!).single();
+      if (devErr || !devices) throw new Error('Device is not registered in the system.');
 
-      const { error: updateErr } = await supabase
-        .from('attendance')
-        .update({ 
-          lunch_in_time: now, 
-          lunch_duration: durationText, 
-          late_after_lunch: delayText 
-        })
-        .eq('user_id', user.id)
-        .eq('date', today);
+      const { data: challengeData, error: challengeErr } = await supabase.functions.invoke('attendance-challenge');
+      if (challengeErr) throw challengeErr;
+      
+      const signRes = await window.electronAPI.signChallenge(challengeData.challenge);
+      if (!signRes.success) throw new Error('Failed to sign challenge');
 
-      if (updateErr) throw updateErr;
+      const { error } = await supabase.functions.invoke('attendance-punch', {
+        body: {
+          device_code: devices.device_code,
+          challenge: challengeData.challenge,
+          signature: signRes.signature,
+          action: 'LUNCH_IN'
+        }
+      });
+
+      if (error) throw await handleEdgeFunctionError(error);
 
       await get().fetchRecords();
       alert('Returned from lunch break!');
-    } catch (err) {
+    } catch (err: any) {
       console.error('Error marking lunch in:', err);
-      alert('Failed to mark lunch in.');
+      alert('Lunch In Failed: ' + (err.message || 'Unknown error'));
     }
   },
 
@@ -231,52 +225,44 @@ export const useAttendanceStore = create<AttendanceState>((set, get) => ({
       const user = useAuthStore.getState().user;
       if (!user) return;
 
-      const today = getLocalDateString();
-      const now = new Date().toISOString();
-
-      // Fetch today's record to compute total hours
-      const { data: todayRec, error: fetchErr } = await supabase
-        .from('attendance')
-        .select('*')
-        .eq('user_id', user.id)
-        .eq('date', today)
-        .maybeSingle();
-
-      if (fetchErr) throw fetchErr;
-      if (!todayRec || !todayRec.login_time) {
-        alert('Could not find login record.');
-        return;
+      if (!window.electronAPI) {
+        throw new Error('Attendance must be performed via the secure Desktop Application.');
       }
+      
+      const { session } = (await supabase.auth.getSession()).data;
+      if (!session) throw new Error('Not authenticated');
 
-      const loginMs = new Date(todayRec.login_time).getTime();
-      const logoutMs = new Date(now).getTime();
-      let totalMs = logoutMs - loginMs;
+      // 1. Get Device Public Key & Challenge
+      const pubKeyRes = await window.electronAPI.getPublicKey();
+      if (!pubKeyRes.success) throw new Error('Device identity not found. Is this device enrolled?');
+      
+      const { data: devices, error: devErr } = await supabase.from('devices').select('device_code').eq('public_key', pubKeyRes.publicKey!).single();
+      if (devErr || !devices) throw new Error('Device is not registered in the system.');
 
-      // Subtract lunch duration if both lunch times exist
-      if (todayRec.lunch_out_time && todayRec.lunch_in_time) {
-        const lunchOutMs = new Date(todayRec.lunch_out_time).getTime();
-        const lunchInMs = new Date(todayRec.lunch_in_time).getTime();
-        totalMs = totalMs - (lunchInMs - lunchOutMs);
-      }
+      const { data: challengeData, error: challengeErr } = await supabase.functions.invoke('attendance-challenge');
+      if (challengeErr) throw challengeErr;
+      
+      // 2. Sign Challenge
+      const signRes = await window.electronAPI.signChallenge(challengeData.challenge);
+      if (!signRes.success) throw new Error('Failed to sign challenge');
 
-      const totalHoursText = formatDuration(totalMs);
+      // 3. Punch Out
+      const { data, error } = await supabase.functions.invoke('attendance-punch', {
+        body: {
+          device_code: devices.device_code,
+          challenge: challengeData.challenge,
+          signature: signRes.signature,
+          action: 'PUNCH_OUT'
+        }
+      });
 
-      const { error: updateErr } = await supabase
-        .from('attendance')
-        .update({ 
-          logout_time: now,
-          total_working_hours: totalHoursText
-        })
-        .eq('user_id', user.id)
-        .eq('date', today);
-
-      if (updateErr) throw updateErr;
+      if (error) throw await handleEdgeFunctionError(error);
 
       await get().fetchRecords();
       alert('Logged out successfully!');
-    } catch (err) {
+    } catch (err: any) {
       console.error('Error marking logout:', err);
-      alert('Failed to mark logout.');
+      alert('Punch Out Failed: ' + (err.message || 'Unknown error'));
     }
   },
 

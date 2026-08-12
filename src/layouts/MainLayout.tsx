@@ -12,7 +12,7 @@ import {
   Home, Calendar, Zap, Users, Grid, Settings,
   Inbox, Reply, MessageSquare, User, MoreHorizontal,
   Plus, ChevronRight, ChevronDown, Hash, Target, Search, Bell, HelpCircle,
-  Menu, X, Sparkles, CheckSquare, Check, Kanban, Mail, Clock
+  Menu, X, Sparkles, CheckSquare, Check, Kanban, Mail, Clock, Monitor
 } from 'lucide-react';
 import ProfileDropdown from '../components/ProfileDropdown';
 import { usePermissions } from '../hooks/usePermissions';
@@ -33,7 +33,7 @@ const MainLayout = () => {
     setMobileMenuOpen(false);
   }, [location.pathname]);
   const { openCreateTaskModal, openInviteModal } = useUiStore();
-  const { canCreateTasks, canInviteUsers } = usePermissions();
+  const { canCreateTasks, canInviteUsers, canManageDevices } = usePermissions();
   const { notifications } = useNotificationStore();
   const { channels } = useChatStore();
   const { projects, initProjects } = useProjectStore();
@@ -106,6 +106,9 @@ const MainLayout = () => {
           <Link to="/goals" className="w-full"><SidebarIcon icon={<Target size={22} strokeWidth={1.5} />} label="Goals" active={location.pathname === '/goals'} /></Link>
           <Link to="/spaces" className="w-full"><SidebarIcon icon={<Kanban size={22} strokeWidth={1.5} />} label="Spaces" active={location.pathname === '/spaces'} /></Link>
           <Link to="/attendance" className="w-full"><SidebarIcon icon={<Clock size={22} strokeWidth={1.5} />} label="Attendance" active={location.pathname === '/attendance'} /></Link>
+          {canManageDevices && (
+            <Link to="/devices" className="w-full"><SidebarIcon icon={<Monitor size={22} strokeWidth={1.5} />} label="Devices" active={location.pathname === '/devices'} /></Link>
+          )}
         </div>
 
         <div className="mt-auto flex flex-col space-y-4 w-full mb-2">

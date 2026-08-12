@@ -75,7 +75,10 @@ export const useWorkspaceStore = create<WorkspaceState>((set, get) => ({
         .select('*, workspace:workspaces(*)')
         .eq('email', email);
       if (error) throw error;
-      set({ pendingInvites: data || [] });
+      
+      // Deduplicate by workspace_id to prevent showing the same invite multiple times
+      const uniqueInvites = data ? Array.from(new Map(data.map(i => [i.workspace_id, i])).values()) : [];
+      set({ pendingInvites: uniqueInvites });
     } catch (error) {
       console.error('Error fetching pending invites:', error);
     }
@@ -139,7 +142,7 @@ export const useWorkspaceStore = create<WorkspaceState>((set, get) => ({
 
   inviteMember: async (email, role, designation) => {
     try {
-      const activeWs = get().workspaces[0] || useAuthStore.getState().activeWorkspace;
+      const activeWs = useAuthStore.getState().activeWorkspace || get().workspaces[0];
       const workspaceId = activeWs?.id || '00000000-0000-0000-0000-000000000010';
       const cleanEmail = email.trim().toLowerCase();
 
@@ -152,6 +155,9 @@ export const useWorkspaceStore = create<WorkspaceState>((set, get) => ({
           return;
         }
       }
+
+      // Prevent duplicate pending invites in the database
+      await supabase.from('pending_invites').delete().eq('workspace_id', workspaceId).eq('email', cleanEmail);
 
       // Insert into pending_invites
       const newInvite: any = {
@@ -172,15 +178,7 @@ export const useWorkspaceStore = create<WorkspaceState>((set, get) => ({
         error = retry.error;
       }
 
-      if (error && error.code !== '23505') {
-        throw error;
-      } else if (error?.code === '23505') {
-        console.log('Invite exists in DB, updating role and designation...');
-        await supabase
-          .from('pending_invites')
-          .update({ role, designation })
-          .eq('email', cleanEmail);
-      }
+      if (error) throw error;
 
       const activeWorkspace = activeWs;
 
@@ -192,48 +190,45 @@ export const useWorkspaceStore = create<WorkspaceState>((set, get) => ({
       const defaultCompany = import.meta.env.VITE_DEFAULT_COMPANY_NAME || 'BKM Industries';
       const queryParams = `?email=${encodeURIComponent(cleanEmail)}&role=${encodeURIComponent(role)}&designation=${encodeURIComponent(designation || '')}&company=${encodeURIComponent(activeWorkspace?.name || defaultCompany)}&mode=signup`;
 
+      const isDesktopApp = window.location.origin.includes('file://') || window.location.protocol === 'file:';
+      const baseUrl = isDesktopApp ? 'https://bkm-task-management.vercel.app' : window.location.origin;
+
       let emailSent = false;
       if (serviceId && templateId && publicKey) {
         try {
-          await emailjs.send(
-            serviceId,
-            templateId,
-            {
-              to_email: cleanEmail,
-              role: role,
-              designation: designation || 'Member',
-              workspace_name: activeWorkspace?.name || 'Your Team Workspace',
-              inviter_name: `${defaultCompany} Admin`,
-              invite_link: `${window.location.origin}/login${queryParams}`,
+          const response = await fetch('https://api.emailjs.com/api/v1.0/email/send', {
+            method: 'POST',
+            headers: {
+              'Content-Type': 'application/json',
             },
-            publicKey
-          );
+            body: JSON.stringify({
+              service_id: serviceId,
+              template_id: templateId,
+              user_id: publicKey,
+              template_params: {
+                to_email: cleanEmail,
+                role: role,
+                designation: designation || 'Member',
+                workspace_name: activeWorkspace?.name || 'Your Team Workspace',
+                inviter_name: `${defaultCompany} Admin`,
+                invite_link: `${baseUrl}/login${queryParams}`,
+              }
+            })
+          });
+
+          if (!response.ok) {
+            const errText = await response.text();
+            throw new Error(`EmailJS API Error: ${errText}`);
+          }
+          
           emailSent = true;
           alert('Email invitation sent successfully!');
-        } catch (eErr) {
-          console.warn('EmailJS attempt failed, trying Supabase Auth...', eErr);
+        } catch (eErr: any) {
+          console.error('EmailJS attempt failed', eErr);
+          alert('Email Error: ' + (eErr?.message || 'Unknown EmailJS Error'));
         }
-      }
-
-      if (!emailSent) {
-        try {
-          const { error: otpError } = await supabase.auth.signInWithOtp({
-            email: cleanEmail,
-            options: {
-              emailRedirectTo: `${window.location.origin}/login${queryParams}`,
-              data: {
-                workspace_name: activeWorkspace?.name || 'Your Team Workspace',
-                role,
-                designation: designation || 'Member'
-              }
-            }
-          });
-          if (otpError) throw otpError;
-          alert('Email invitation sent successfully!');
-        } catch (emailErr: any) {
-          console.error('Failed to send email:', emailErr);
-          alert('Email Error: ' + (emailErr?.message || 'Please check SMTP credentials in Supabase Dashboard'));
-        }
+      } else {
+        alert('Email Error: EmailJS environment variables are missing!');
       }
 
       // We removed the alert here so the modal closes professionally!

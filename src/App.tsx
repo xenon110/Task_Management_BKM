@@ -1,4 +1,4 @@
-import { BrowserRouter as Router, Routes, Route, Navigate } from 'react-router-dom';
+import { BrowserRouter, HashRouter, Routes, Route, Navigate } from 'react-router-dom';
 import { useAuthStore } from './store/useAuthStore';
 import MainLayout from './layouts/MainLayout';
 import LoginPage from './pages/LoginPage';
@@ -23,6 +23,7 @@ import CreateGoalModal from './components/CreateGoalModal';
 import InviteMemberModal from './components/InviteMemberModal';
 import DeleteTaskModal from './components/DeleteTaskModal';
 import AttendancePage from './pages/AttendancePage';
+import DevicesPage from './pages/DevicesPage';
 
 import { useEffect } from 'react';
 
@@ -36,6 +37,8 @@ function App() {
   if (isLoading) {
     return <div className="min-h-screen flex items-center justify-center bg-gray-50"><div className="w-8 h-8 border-4 border-brand border-t-transparent rounded-full animate-spin"></div></div>;
   }
+
+  const Router = window.electronAPI ? HashRouter : BrowserRouter;
 
   return (
     <Router>
@@ -66,6 +69,7 @@ function App() {
           <Route path="settings" element={<SettingsPage />} />
           <Route path="teams" element={<TeamsPage />} />
           <Route path="attendance" element={<AttendancePage />} />
+          <Route path="devices" element={<DevicesPage />} />
           <Route path="inbox" element={<InboxPage />} />
           <Route path="comments" element={<AssignedCommentsPage />} />
           <Route path="spaces" element={<ProjectListPage />} />

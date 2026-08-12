@@ -38,15 +38,17 @@ const TeamsPage = () => {
 
   React.useEffect(() => {
     const fetchGlobalUsers = async () => {
-      const { supabase } = await import('../lib/supabase');
-      const { data } = await supabase.from('users').select('*').order('created_at');
-      if (data && data.length > 0) {
-        setGlobalUsers(data);
-      } else {
-        // Fallback: If RLS blocks the global query (for non-admins), use the workspace members list
-        const fallbackUsers = members.map(m => m.user).filter(Boolean);
-        setGlobalUsers(fallbackUsers);
-      }
+      // Only display users who have created an account AND are actual members of this workspace
+      const workspaceUsers = members
+        .filter(m => m.user)
+        .map(m => ({
+          ...m.user,
+          role: m.role // Use their specific role in this workspace
+        }));
+      
+      // Remove any accidental duplicates
+      const uniqueUsers = Array.from(new Map(workspaceUsers.map(u => [u.id, u])).values());
+      setGlobalUsers(uniqueUsers);
     };
     fetchGlobalUsers();
   }, [members]);

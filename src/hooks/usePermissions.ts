@@ -58,6 +58,7 @@ export const usePermissions = () => {
     canManageTasks: ['owner', 'admin', 'member'].includes(role),
     canCreateTasks: ['owner', 'admin', 'member'].includes(role),
     canManageMembers: ['owner', 'admin'].includes(role),
+    canManageDevices: ['owner', 'developer'].includes(role),
     canDeleteSpaces: ['owner', 'admin'].includes(role),
     canComment: role !== 'guest',
     canAssignTo,

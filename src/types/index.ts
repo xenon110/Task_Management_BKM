@@ -178,3 +178,30 @@ export interface Attendance {
   created_at?: string;
   updated_at?: string;
 }
+
+export type DeviceStatus = 'PENDING' | 'ACTIVE' | 'SUSPENDED' | 'REVOKED';
+
+export interface Device {
+  id: string;
+  device_code: string;
+  device_name: string;
+  public_key: string;
+  status: DeviceStatus;
+  assigned_employee_id?: string;
+  mac_address?: string;
+  registered_at?: string;
+  last_seen_at?: string;
+  created_by?: string;
+}
+
+declare global {
+  interface Window {
+    electronAPI?: {
+      isEnrolled: () => Promise<boolean>;
+      enroll: () => Promise<{ success: boolean; publicKey?: string; error?: string }>;
+      getPublicKey: () => Promise<{ success: boolean; publicKey?: string; error?: string }>;
+      signChallenge: (challenge: string) => Promise<{ success: boolean; signature?: string; error?: string }>;
+    };
+  }
+}
+

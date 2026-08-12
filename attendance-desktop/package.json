@@ -1,0 +1,43 @@
+{
+  "name": "attendance-desktop",
+  "version": "1.0.0",
+  "description": "",
+  "main": "dist/main/main.js",
+  "scripts": {
+    "build": "tsc",
+    "start": "tsc && electron .",
+    "pack": "electron-builder --dir",
+    "dist": "tsc && electron-builder --win"
+  },
+  "build": {
+    "appId": "com.bkm.attendance",
+    "productName": "BKM Attendance",
+    "directories": {
+      "output": "release-v3"
+    },
+    "files": [
+      "dist/**/*",
+      "package.json",
+      {
+        "from": "../dist",
+        "to": "react-dist",
+        "filter": [
+          "**/*"
+        ]
+      }
+    ],
+    "win": {
+      "target": "nsis"
+    }
+  },
+  "keywords": [],
+  "author": "",
+  "license": "ISC",
+  "type": "commonjs",
+  "devDependencies": {
+    "@types/node": "^26.2.0",
+    "electron": "^43.4.0",
+    "electron-builder": "^26.15.3",
+    "typescript": "^7.0.2"
+  }
+}
