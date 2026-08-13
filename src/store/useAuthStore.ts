@@ -189,31 +189,49 @@ export const useAuthStore = create<AuthState>((set, get) => ({
       set({ error: null, isLoading: true });
       if (!password) throw new Error("Password is required");
 
-      const { data, error } = await supabase.auth.signUp({
-        email,
-        password,
-        options: {
-          data: {
-            name: additionalData?.name || email.split('@')[0],
+      let targetUserId;
+      let activeSession;
+
+      // Check if user is already authenticated (e.g., clicked an invite link)
+      const { data: { session: existingSession } } = await supabase.auth.getSession();
+
+      if (existingSession && existingSession.user.email?.toLowerCase() === email.trim().toLowerCase()) {
+        // User is invited and already logged in, just update their password
+        const { data, error } = await supabase.auth.updateUser({
+          password,
+          data: { name: additionalData?.name || email.split('@')[0] }
+        });
+        if (error) throw error;
+        targetUserId = existingSession.user.id;
+        activeSession = existingSession;
+      } else {
+        // Normal signup flow
+        const { data, error } = await supabase.auth.signUp({
+          email,
+          password,
+          options: {
+            data: {
+              name: additionalData?.name || email.split('@')[0],
+            }
+          }
+        });
+
+        if (error) throw error;
+        
+        activeSession = data.session;
+        if (!activeSession) {
+          const loginAttempt = await supabase.auth.signInWithPassword({ email, password });
+          if (loginAttempt.data?.session) {
+            activeSession = loginAttempt.data.session;
           }
         }
-      });
 
-      if (error) throw error;
-      
-      let activeSession = data.session;
-      if (!activeSession) {
-        const loginAttempt = await supabase.auth.signInWithPassword({ email, password });
-        if (loginAttempt.data?.session) {
-          activeSession = loginAttempt.data.session;
+        targetUserId = data.user?.id || activeSession?.user?.id;
+        if (!targetUserId) {
+          set({ isLoading: false });
+          alert("Account created successfully! Please sign in with your email and password.");
+          return;
         }
-      }
-
-      const targetUserId = data.user?.id || activeSession?.user?.id;
-      if (!targetUserId) {
-        set({ isLoading: false });
-        alert("Account created successfully! Please sign in with your email and password.");
-        return;
       }
 
       // Poll for up to 5 seconds waiting for the Postgres trigger to create the public user row

@@ -25,6 +25,15 @@ serve(async (req) => {
     const { data: { user }, error: authError } = await supabase.auth.getUser(authHeader.replace('Bearer ', ''))
     if (authError || !user) throw new Error('Employee Authentication Failed')
 
+    // Resolve Auth ID vs Database ID mismatch using email
+    const { data: dbUser } = await supabase
+      .from('users')
+      .select('id')
+      .eq('email', user.email)
+      .maybeSingle()
+
+    const employeeId = dbUser ? dbUser.id : user.id
+
     // 2. Load Device
     const { data: device, error: deviceErr } = await supabase
       .from('devices')
@@ -36,7 +45,7 @@ serve(async (req) => {
 
     // 3. Check Device Status & Binding
     if (device.status !== 'ACTIVE') throw new Error('DEVICE_SUSPENDED_OR_REVOKED')
-    if (device.assigned_employee_id !== user.id) throw new Error('EMPLOYEE_DEVICE_MISMATCH')
+    if (device.assigned_employee_id !== employeeId) throw new Error('EMPLOYEE_DEVICE_MISMATCH')
 
     // 4. Verify Cryptographic Signature
     // In a full production environment, we decode the PEM to DER, import via crypto.subtle,
@@ -56,7 +65,7 @@ serve(async (req) => {
     const { data: currentRecord } = await supabase
       .from('attendance')
       .select('*')
-      .eq('user_id', user.id)
+      .eq('user_id', employeeId)
       .eq('date', today)
       .maybeSingle()
 
@@ -64,7 +73,7 @@ serve(async (req) => {
       if (currentRecord && currentRecord.login_time) throw new Error('ALREADY_PUNCHED_IN')
       
       const { error: insertErr } = await supabase.from('attendance').insert([{
-        user_id: user.id,
+        user_id: employeeId,
         employee_name: user.email,
         date: today,
         login_time: now,
@@ -76,7 +85,7 @@ serve(async (req) => {
     } else if (action === 'PUNCH_OUT') {
       if (!currentRecord || !currentRecord.login_time) throw new Error('NO_ACTIVE_SESSION')
       if (currentRecord.logout_time) throw new Error('ALREADY_PUNCHED_OUT')
-      if (currentRecord.login_device_id !== device.id) throw new Error('LOGOUT_DEVICE_MISMATCH')
+      if (currentRecord.login_device_id && currentRecord.login_device_id !== device.id) throw new Error('LOGOUT_DEVICE_MISMATCH')
 
       const { error: updateErr } = await supabase.from('attendance').update({
         logout_time: now,
@@ -87,7 +96,7 @@ serve(async (req) => {
       if (!currentRecord || !currentRecord.login_time) throw new Error('NO_ACTIVE_SESSION')
       if (currentRecord.lunch_out_time) throw new Error('ALREADY_LUNCHED_OUT')
       if (currentRecord.logout_time) throw new Error('ALREADY_PUNCHED_OUT')
-      if (currentRecord.login_device_id !== device.id) throw new Error('DEVICE_MISMATCH')
+      if (currentRecord.login_device_id && currentRecord.login_device_id !== device.id) throw new Error('DEVICE_MISMATCH')
 
       const { error: updateErr } = await supabase.from('attendance').update({
         lunch_out_time: now
@@ -97,7 +106,7 @@ serve(async (req) => {
     } else if (action === 'LUNCH_IN') {
       if (!currentRecord || !currentRecord.lunch_out_time) throw new Error('NOT_OUT_FOR_LUNCH')
       if (currentRecord.lunch_in_time) throw new Error('ALREADY_LUNCHED_IN')
-      if (currentRecord.login_device_id !== device.id) throw new Error('DEVICE_MISMATCH')
+      if (currentRecord.login_device_id && currentRecord.login_device_id !== device.id) throw new Error('DEVICE_MISMATCH')
 
       const outMs = new Date(currentRecord.lunch_out_time).getTime()
       const inMs = new Date(now).getTime()
@@ -129,7 +138,7 @@ serve(async (req) => {
 
     // 7. Write Audit Log
     await supabase.from('audit_logs').insert([{
-      employee_id: user.id,
+      employee_id: employeeId,
       device_id: device.id,
       action: action,
       result: 'SUCCESS',
