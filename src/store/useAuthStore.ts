@@ -90,6 +90,12 @@ export const useAuthStore = create<AuthState>((set, get) => ({
           }
         }
         
+        if (publicUser && (publicUser.status === 'terminated' || publicUser.status === 'disabled')) {
+          await supabase.auth.signOut();
+          set({ user: null, isAuthenticated: false, token: null, activeWorkspace: null, isLoading: false, error: 'Your account has been deactivated by the administrator.' });
+          return;
+        }
+
         set({
           user: publicUser,
           isAuthenticated: true,
@@ -148,6 +154,12 @@ export const useAuthStore = create<AuthState>((set, get) => ({
           supabase.from('users').upsert([publicUser], { onConflict: 'id' }).then();
         }
       }
+
+      if (publicUser && (publicUser.status === 'terminated' || publicUser.status === 'disabled')) {
+        await supabase.auth.signOut();
+        throw new Error('Your account has been deactivated by the organization administrator. Access denied.');
+      }
+
       let workspace = null;
       if (publicUser) {
         const { data: ownedWs } = await supabase

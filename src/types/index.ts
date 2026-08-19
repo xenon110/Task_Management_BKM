@@ -2,7 +2,7 @@ export type Role = 'owner' | 'admin' | 'member' | 'guest' | 'developer';
 export type TaskPriority = 'urgent' | 'high' | 'normal' | 'low';
 export type TaskStatus = string; // E.g., 'To Do', 'In Progress', 'Under Review', 'Completed'
 export type NotificationType = 'task_assigned' | 'task_completed' | 'deadline_reminder' | 'invitation_accepted';
-export type UserStatus = 'active' | 'invited' | 'disabled';
+export type UserStatus = 'active' | 'invited' | 'disabled' | 'terminated';
 export type GoalType = 'numeric' | 'boolean' | 'task_based';
 
 export interface User {
@@ -16,6 +16,10 @@ export interface User {
   contact_no?: string;
   preferences?: Record<string, any>;
   role?: Role;
+  terminated_at?: string;
+  termination_reason?: string;
+  terminated_by?: string;
+  rejoined_at?: string;
 }
 
 export interface Workspace {
