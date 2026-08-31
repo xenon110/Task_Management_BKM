@@ -52,6 +52,60 @@ const AttendancePage = () => {
   const [emailBody, setEmailBody] = useState('');
   const [lastAutoTemplate, setLastAutoTemplate] = useState('');
 
+  // Public Holiday Management State
+  interface PublicHoliday {
+    date: string;
+    name: string;
+  }
+
+  const [publicHolidays, setPublicHolidays] = useState<PublicHoliday[]>(() => {
+    try {
+      const saved = localStorage.getItem('bkm_company_public_holidays');
+      return saved ? JSON.parse(saved) : [];
+    } catch (e) {
+      return [];
+    }
+  });
+
+  const [showHolidayModal, setShowHolidayModal] = useState(false);
+  const [newHolidayDate, setNewHolidayDate] = useState('');
+  const [newHolidayName, setNewHolidayName] = useState('');
+
+  useEffect(() => {
+    try {
+      localStorage.setItem('bkm_company_public_holidays', JSON.stringify(publicHolidays));
+    } catch (e) {
+      console.error('Error saving public holidays:', e);
+    }
+  }, [publicHolidays]);
+
+  const handleAddHoliday = (e: React.FormEvent) => {
+    e.preventDefault();
+    if (!newHolidayDate || !newHolidayName.trim()) {
+      showNotification('Fields Missing', 'Please select a date and enter a holiday name.', 'error');
+      return;
+    }
+    if (publicHolidays.some(h => h.date === newHolidayDate)) {
+      showNotification('Already Exists', 'A public holiday is already set for this date.', 'error');
+      return;
+    }
+    const updated = [...publicHolidays, { date: newHolidayDate, name: newHolidayName.trim() }];
+    setPublicHolidays(updated);
+    showNotification('Success', `Added public holiday: ${newHolidayName}`, 'success');
+    setNewHolidayDate('');
+    setNewHolidayName('');
+  };
+
+  const handleDeleteHoliday = (dateToDelete: string) => {
+    const updated = publicHolidays.filter(h => h.date !== dateToDelete);
+    setPublicHolidays(updated);
+    showNotification('Removed', 'Public holiday removed successfully.', 'info');
+  };
+
+  const getPublicHoliday = (dateStr: string) => {
+    return publicHolidays.find(h => h.date === dateStr);
+  };
+
   const [notification, setNotification] = useState<{
     show: boolean;
     title: string;
@@ -189,7 +243,32 @@ ${employeeName}`;
     return new Date(isoString).toLocaleTimeString([], { hour: '2-digit', minute: '2-digit', hour12: true });
   };
 
-  // Date utilities
+  // Date utilities & Working Days calculations (6-day work week: Monday to Saturday working, Sunday as ONLY holiday, minus Public Holidays)
+  const getWorkingDaysInMonth = (year: number, month: number, upToDay?: number) => {
+    const totalDays = new Date(year, month, 0).getDate();
+    const limitDay = upToDay ? Math.min(upToDay, totalDays) : totalDays;
+    let workingDays = 0;
+    for (let day = 1; day <= limitDay; day++) {
+      const dateStr = `${year}-${String(month).padStart(2, '0')}-${String(day).padStart(2, '0')}`;
+      const dayOfWeek = new Date(year, month - 1, day).getDay();
+      const isSunday = dayOfWeek === 0;
+      const isHoliday = publicHolidays.some(h => h.date === dateStr);
+
+      if (!isSunday && !isHoliday) {
+        workingDays++;
+      }
+    }
+    return workingDays;
+  };
+
+  const getWorkingDaysInYear = (year: number) => {
+    let totalWorkingDays = 0;
+    for (let m = 1; m <= 12; m++) {
+      totalWorkingDays += getWorkingDaysInMonth(year, m);
+    }
+    return totalWorkingDays;
+  };
+
   const getWeekRange = () => {
     const now = new Date();
     const first = now.getDate() - now.getDay(); // Sunday
@@ -271,12 +350,22 @@ ${employeeName}`;
     for (let day = 1; day <= maxDay; day++) {
       const dateStr = `${adminYear}-${String(adminMonth).padStart(2, '0')}-${String(day).padStart(2, '0')}`;
       const record = empRecords.find(r => r.date === dateStr);
+      const holiday = getPublicHoliday(dateStr);
 
       const dayDate = new Date(adminYear, adminMonth - 1, day);
       const isWeekend = dayDate.getDay() === 0; // 0 = Sunday is the only weekend day (Saturday is a working day)
       const dayName = dayDate.toLocaleDateString([], { weekday: 'short' });
 
-      if (record) {
+      if (holiday) {
+        daysList.push({
+          date: dateStr,
+          dayName,
+          status: 'Holiday',
+          loginTime: undefined,
+          logoutTime: undefined,
+          remark: `Public Holiday: ${holiday.name}`
+        });
+      } else if (record) {
         daysList.push({
           date: dateStr,
           dayName,
@@ -314,12 +403,19 @@ ${employeeName}`;
     const monthlyRecords = userRecords.filter(r => r.date.startsWith(curMonthStr));
     const yearlyRecords = userRecords.filter(r => r.date.startsWith(curYearStr));
 
-    // Attendance rate
-    const totalWorkingDaysMonthly = Math.max(monthlyRecords.length, 22); // Default estimate for standard month
+    // Attendance rate based on 6-day work week (Monday-Saturday working, Sunday holiday, minus Public Holidays)
+    const curYear = now.getFullYear();
+    const curMonth = now.getMonth() + 1;
+    const todayDayNum = now.getDate();
+
+    // Elapsed working days up to current date in the month
+    const totalWorkingDaysMonthly = Math.max(1, getWorkingDaysInMonth(curYear, curMonth, todayDayNum));
     const presentCountMonthly = monthlyRecords.filter(r => r.status === 'Present').length;
     const leaveCountMonthly = monthlyRecords.filter(r => r.status === 'Leave').length;
+
+    // Accurate Absent Count = Elapsed Working Days - Present Days - Leave Days
     const absentCountMonthly = Math.max(0, totalWorkingDaysMonthly - presentCountMonthly - leaveCountMonthly);
-    const monthlyRate = totalWorkingDaysMonthly > 0 ? ((presentCountMonthly + leaveCountMonthly) / totalWorkingDaysMonthly) * 100 : 0;
+    const monthlyRate = totalWorkingDaysMonthly > 0 ? Math.min(100, ((presentCountMonthly + leaveCountMonthly) / totalWorkingDaysMonthly) * 100) : 0;
 
     const TOTAL_LEAVES_ALLOWED = 15;
     const presentCountYearly = yearlyRecords.filter(r => r.status === 'Present').length;
@@ -330,8 +426,8 @@ ${employeeName}`;
     const unpaidLeavesYearly = Math.max(0, leaveCountYearly - TOTAL_LEAVES_ALLOWED);
 
     const absentCountYearly = rawAbsentCountYearly + unpaidLeavesYearly;
-    const rawTotalWorkingDaysYearly = Math.max(yearlyRecords.length, 260);
-    const totalWorkingDaysYearly = Math.max(0, rawTotalWorkingDaysYearly - TOTAL_LEAVES_ALLOWED); // 245 expected working days
+    const rawTotalWorkingDaysYearly = getWorkingDaysInYear(curYear);
+    const totalWorkingDaysYearly = Math.max(0, rawTotalWorkingDaysYearly - TOTAL_LEAVES_ALLOWED);
 
     const yearlyRate = totalWorkingDaysYearly > 0
       ? Math.min(100, (presentCountYearly / totalWorkingDaysYearly) * 100)
@@ -497,35 +593,246 @@ ${employeeName}`;
     setEmailReason('');
   };
 
-  // CSV Export utility
+  // HR Detailed CSV Export utility
   const handleCSVExport = () => {
-    const csvHeaders = [
-      'Date', 'Employee Name', 'Login Time', 'Lunch Out', 'Lunch In', 'Logout Time', 'Lunch Duration', 'Late After Lunch', 'Total Hours', 'Status', 'Leave Remark'
+    // 1. Metadata Header Block
+    const metaRows = [
+      ['=== BKM INDUSTRIES - OFFICIAL HR ATTENDANCE & LEAVE AUDIT REPORT ==='],
+      ['Report Generated Date:', new Date().toLocaleString()],
+      ['Working Schedule:', '6 Days / Week (Monday to Saturday Working, Sunday Weekly Off)'],
+      ['Standard Shift Window:', '10:00 AM to 07:00 PM (10:00 - 19:00)'],
+      ['Declared Public Holidays:', publicHolidays.length > 0 ? publicHolidays.map(h => `${h.date} (${h.name})`).join('; ') : 'None'],
+      ['Export Scope / Filter:', historyFilter.toUpperCase()],
+      ['Total Records in Export:', String(filteredHistory.length)],
+      [] // Blank separator line
     ];
 
-    const csvRows = filteredHistory.map(r => [
-      r.date,
-      r.employee_name,
-      r.login_time ? formatTime(r.login_time) : '-',
-      r.lunch_out_time ? formatTime(r.lunch_out_time) : '-',
-      r.lunch_in_time ? formatTime(r.lunch_in_time) : '-',
-      r.logout_time ? formatTime(r.logout_time) : '-',
-      r.lunch_duration || '-',
-      r.late_after_lunch || '-',
-      r.total_working_hours || '-',
-      r.status,
-      r.leave_remark || '-'
-    ]);
+    // Helper to extract email/role for a user
+    const getUserMeta = (userId?: string, empName?: string) => {
+      const found = workspaceUsers.find(u => (userId && u?.id === userId) || (empName && u?.name === empName));
+      return {
+        email: found?.email || '-',
+        role: (found?.role || 'member').toUpperCase()
+      };
+    };
 
-    let csvContent = '\uFEFF' + csvHeaders.join(',') + '\n' + csvRows.map(row =>
-      row.map(val => `"${val.replace(/"/g, '""')}"`).join(',')
-    ).join('\n');
+    // Helper to analyze 10:00 AM check-in punctuality
+    const evaluatePunctuality = (r: Attendance) => {
+      if (r.status === 'Leave') return 'On Leave';
+      if (r.status === 'Absent' || !r.login_time) return 'Absent (No Check-In in 10-7 Shift)';
+      
+      const loginDate = new Date(r.login_time);
+      const hours = loginDate.getHours();
+      const minutes = loginDate.getMinutes();
+      
+      // Shift start cutoff at 10:00 AM
+      if (hours > 10 || (hours === 10 && minutes > 0)) {
+        return `Late Check-In (${formatTime(r.login_time)} > 10:00 AM)`;
+      }
+      return `On-Time (${formatTime(r.login_time)} <= 10:00 AM)`;
+    };
+
+    // 2. Daily Attendance Logs Table
+    const dailyHeaders = [
+      'Date',
+      'Employee Name',
+      'Employee Email',
+      'Employee Role',
+      'Shift Window',
+      'Login Time',
+      'Lunch Out',
+      'Lunch In',
+      'Logout Time',
+      'Lunch Duration',
+      'Late After Lunch',
+      'Total Hours',
+      'Punctuality / 10-7 Shift Status',
+      'Final Status',
+      'Leave Remark / Reason'
+    ];
+
+    const dailyRows = filteredHistory.map(r => {
+      const userMeta = getUserMeta(r.user_id, r.employee_name);
+      const punctuality = evaluatePunctuality(r);
+      const finalStatus = (!r.login_time && r.status !== 'Leave') ? 'Absent' : r.status;
+
+      return [
+        r.date,
+        r.employee_name,
+        userMeta.email,
+        userMeta.role,
+        '10:00 AM - 07:00 PM',
+        r.login_time ? formatTime(r.login_time) : '-',
+        r.lunch_out_time ? formatTime(r.lunch_out_time) : '-',
+        r.lunch_in_time ? formatTime(r.lunch_in_time) : '-',
+        r.logout_time ? formatTime(r.logout_time) : '-',
+        r.lunch_duration || '-',
+        r.late_after_lunch || '-',
+        r.total_working_hours || '-',
+        punctuality,
+        finalStatus,
+        r.leave_remark || '-'
+      ];
+    });
+
+    // 3. HR Employee Summary Section (Aggregated per user)
+    // Gather all users present in workspace or records
+    const employeeSummaryMap: Record<string, {
+      name: string;
+      email: string;
+      role: string;
+      totalRecords: number;
+      presentCount: number;
+      absentCount: number;
+      leaveCount: number;
+      onTimeCount: number;
+      lateCount: number;
+    }> = {};
+
+    // Initialize with workspace users first for complete visibility
+    workspaceUsers.forEach(u => {
+      if (!u) return;
+      employeeSummaryMap[u.id] = {
+        name: u.name || u.email.split('@')[0],
+        email: u.email,
+        role: (u.role || 'member').toUpperCase(),
+        totalRecords: 0,
+        presentCount: 0,
+        absentCount: 0,
+        leaveCount: 0,
+        onTimeCount: 0,
+        lateCount: 0
+      };
+    });
+
+    // Aggregate from filtered history
+    filteredHistory.forEach(r => {
+      const key = r.user_id || r.employee_name;
+      if (!employeeSummaryMap[key]) {
+        const userMeta = getUserMeta(r.user_id, r.employee_name);
+        employeeSummaryMap[key] = {
+          name: r.employee_name,
+          email: userMeta.email,
+          role: userMeta.role,
+          totalRecords: 0,
+          presentCount: 0,
+          absentCount: 0,
+          leaveCount: 0,
+          onTimeCount: 0,
+          lateCount: 0
+        };
+      }
+
+      const emp = employeeSummaryMap[key];
+      emp.totalRecords += 1;
+
+      if (r.status === 'Leave') {
+        emp.leaveCount += 1;
+      } else if (r.status === 'Present' || r.login_time) {
+        emp.presentCount += 1;
+        const loginDate = r.login_time ? new Date(r.login_time) : null;
+        if (loginDate && (loginDate.getHours() > 10 || (loginDate.getHours() === 10 && loginDate.getMinutes() > 0))) {
+          emp.lateCount += 1;
+        } else {
+          emp.onTimeCount += 1;
+        }
+      } else {
+        emp.absentCount += 1;
+      }
+    });
+
+    // Target scope working days for HR summary
+    const now = new Date();
+    const targetYear = adminYear || now.getFullYear();
+    const targetMonth = adminMonth || (now.getMonth() + 1);
+    const isCurrentMonthScope = now.getFullYear() === targetYear && (now.getMonth() + 1) === targetMonth;
+    const maxDaysScope = isCurrentMonthScope ? now.getDate() : new Date(targetYear, targetMonth, 0).getDate();
+    const expectedWorkingDaysScope = getWorkingDaysInMonth(targetYear, targetMonth, maxDaysScope);
+
+    const summaryHeaders = [
+      'Employee Name',
+      'Employee Email',
+      'Role',
+      'Expected Working Days Elapsed',
+      'Present Days',
+      'Absent Days (Unexcused Non-Check-in)',
+      'Total Leaves Taken',
+      'On-Time Arrivals (<=10:00 AM)',
+      'Late Arrivals (>10:00 AM)',
+      'Attendance Rate (%)',
+      'HR Audit Remarks'
+    ];
+
+    const summaryRows = Object.values(employeeSummaryMap).map(emp => {
+      const presentCount = emp.presentCount;
+      const leaveCount = emp.leaveCount;
+      
+      // Calculate exact absent days = Expected working days elapsed - Present days - Leave days
+      const absentCount = Math.max(0, expectedWorkingDaysScope - presentCount - leaveCount);
+      const rate = expectedWorkingDaysScope > 0
+        ? Math.min(100, (((presentCount + leaveCount) / expectedWorkingDaysScope) * 100)).toFixed(1)
+        : '0.0';
+      
+      let remark = 'Good Standing';
+      if (leaveCount > 3) remark = 'High Leave Count';
+      else if (absentCount > 2) remark = 'Multiple Unexcused Absences';
+      else if (emp.lateCount > 3) remark = 'Frequent Late Check-Ins (>10:00 AM)';
+      else if (presentCount === 0 && leaveCount === 0) remark = 'No Check-in Records in Selected Period';
+
+      return [
+        emp.name,
+        emp.email,
+        emp.role,
+        String(expectedWorkingDaysScope),
+        String(presentCount),
+        String(absentCount),
+        String(leaveCount),
+        String(emp.onTimeCount),
+        String(emp.lateCount),
+        `${rate}%`,
+        remark
+      ];
+    });
+
+    // 4. Overall Company Totals
+    const totalStaff = Object.keys(employeeSummaryMap).length;
+    const totalLeavesTakenAll = Object.values(employeeSummaryMap).reduce((sum, e) => sum + e.leaveCount, 0);
+    const totalPresentsAll = Object.values(employeeSummaryMap).reduce((sum, e) => sum + e.presentCount, 0);
+    const totalAbsentsAll = Object.values(employeeSummaryMap).reduce((sum, e) => sum + e.absentCount, 0);
+
+    const companyTotalsRows = [
+      ['=== COMPANY OVERALL SUMMARY METRICS ==='],
+      ['Total Employees Evaluated:', String(totalStaff)],
+      ['Total Present Days Across Staff:', String(totalPresentsAll)],
+      ['Total Absent Days Across Staff:', String(totalAbsentsAll)],
+      ['Total Leaves Taken Across Staff:', String(totalLeavesTakenAll)],
+      []
+    ];
+
+    // Combine all sections into clean CSV output
+    const buildCSVSection = (rows: (string | number)[][]) => {
+      return rows.map(row => row.map(val => `"${String(val).replace(/"/g, '""')}"`).join(',')).join('\n');
+    };
+
+    const csvSections = [
+      buildCSVSection(metaRows),
+      '=== DAILY ATTENDANCE & SHIFT LOGS ===',
+      buildCSVSection([dailyHeaders]),
+      buildCSVSection(dailyRows),
+      '',
+      buildCSVSection(companyTotalsRows),
+      '=== EXECUTIVE HR EMPLOYEE ATTENDANCE & LEAVE SUMMARY ===',
+      buildCSVSection([summaryHeaders]),
+      buildCSVSection(summaryRows)
+    ];
+
+    const csvContent = '\uFEFF' + csvSections.join('\n');
 
     const blob = new Blob([csvContent], { type: 'text/csv;charset=utf-8;' });
     const url = URL.createObjectURL(blob);
     const link = document.createElement('a');
     link.setAttribute('href', url);
-    link.setAttribute('download', `Attendance_Report_${todayStr}.csv`);
+    link.setAttribute('download', `HR_Detailed_Attendance_Report_${todayStr}.csv`);
     document.body.appendChild(link);
     link.click();
     document.body.removeChild(link);
@@ -852,6 +1159,15 @@ ${employeeName}`;
                     <Calendar size={14} className="mr-1.5" /> View My Calendar Log
                   </button>
 
+                  {isAdmin && (
+                    <button
+                      onClick={() => setShowHolidayModal(true)}
+                      className="flex items-center px-3 py-1.5 bg-amber-600 hover:bg-amber-700 text-white text-xs font-semibold rounded-lg shadow-sm transition-colors"
+                    >
+                      <Calendar size={14} className="mr-1.5" /> Manage Holidays ({publicHolidays.length})
+                    </button>
+                  )}
+
                   <button
                     onClick={handleCSVExport}
                     className="flex items-center px-3 py-1.5 bg-[#10b981] hover:bg-[#059669] text-white text-xs font-semibold rounded-lg shadow-sm transition-colors"
@@ -1151,7 +1467,8 @@ ${employeeName}`;
                         const monthStr = `${adminYear}-${String(adminMonth).padStart(2, '0')}`;
                         const empRecords = records.filter(r => r.user_id === u.id && r.date.startsWith(monthStr));
 
-                        const totalDays = Math.max(empRecords.length, 22);
+                        const expectedWorkingDaysInMonth = getWorkingDaysInMonth(adminYear, adminMonth);
+                        const totalDays = Math.max(empRecords.length, expectedWorkingDaysInMonth);
                         const presentCount = empRecords.filter(r => r.status === 'Present').length;
                         const leaveCount = empRecords.filter(r => r.status === 'Leave').length;
                         const attendancePercentage = totalDays > 0 ? ((presentCount + leaveCount) / totalDays) * 100 : 0;
@@ -1523,7 +1840,13 @@ ${employeeName}`;
                           <td className="px-5 py-3.5 font-bold text-gray-900">{d.date}</td>
                           <td className="px-5 py-3.5 text-gray-500">{d.dayName}</td>
                           <td className="px-5 py-3.5">
-                            <span className={`px-2.5 py-0.5 rounded-full text-[9px] font-bold tracking-wide uppercase ${statusBadge}`}>
+                            <span className={`px-2.5 py-0.5 rounded-full text-[9px] font-bold tracking-wide uppercase ${
+                              d.status === 'Present' ? 'bg-green-50 text-green-700 border-green-150 border' :
+                              d.status === 'Leave' ? 'bg-orange-50 text-orange-700 border-orange-150 border' :
+                              d.status === 'Holiday' ? 'bg-amber-50 text-amber-700 border-amber-150 border' :
+                              d.status === 'Weekend' ? 'bg-gray-50 text-gray-500 border-gray-150 border' :
+                              'bg-red-50 text-red-700 border-red-150 border'
+                            }`}>
                               {d.status}
                             </span>
                           </td>
@@ -1548,6 +1871,88 @@ ${employeeName}`;
               >
                 Close
               </button>
+            </div>
+          </div>
+        </div>
+      )}
+
+      {/* Public Holiday Manager Modal */}
+      {showHolidayModal && (
+        <div className="fixed inset-0 bg-black/50 backdrop-blur-xs flex items-center justify-center p-4 z-50 animate-in fade-in duration-200">
+          <div className="bg-white rounded-2xl max-w-md w-full p-6 shadow-2xl border border-gray-100 animate-in zoom-in-95 duration-200">
+            <div className="flex items-center justify-between pb-4 border-b border-gray-100">
+              <div className="flex items-center space-x-3">
+                <div className="p-2 bg-amber-50 text-amber-600 rounded-xl">
+                  <Calendar size={20} />
+                </div>
+                <div>
+                  <h3 className="font-bold text-gray-900 text-base">Company Public Holidays</h3>
+                  <p className="text-xs text-gray-500 mt-0.5">Declare holidays for all employees</p>
+                </div>
+              </div>
+              <button
+                onClick={() => setShowHolidayModal(false)}
+                className="text-gray-400 hover:text-gray-600 p-1 rounded-lg transition-colors"
+              >
+                <X size={18} />
+              </button>
+            </div>
+
+            {/* Add Holiday Form */}
+            <form onSubmit={handleAddHoliday} className="mt-4 space-y-3">
+              <div>
+                <label className="block text-xs font-semibold text-gray-700 mb-1">Holiday Date</label>
+                <input
+                  type="date"
+                  value={newHolidayDate}
+                  onChange={(e) => setNewHolidayDate(e.target.value)}
+                  className="w-full px-3 py-2 border border-gray-200 rounded-xl text-xs outline-none focus:border-brand focus:ring-1 focus:ring-brand"
+                  required
+                />
+              </div>
+              <div>
+                <label className="block text-xs font-semibold text-gray-700 mb-1">Holiday Name / Occasion</label>
+                <input
+                  type="text"
+                  placeholder="e.g. Independence Day, Diwali, Republic Day..."
+                  value={newHolidayName}
+                  onChange={(e) => setNewHolidayName(e.target.value)}
+                  className="w-full px-3 py-2 border border-gray-200 rounded-xl text-xs outline-none focus:border-brand focus:ring-1 focus:ring-brand"
+                  required
+                />
+              </div>
+              <button
+                type="submit"
+                className="w-full py-2.5 bg-amber-600 hover:bg-amber-700 text-white font-bold text-xs rounded-xl shadow-sm transition-all flex items-center justify-center space-x-1.5"
+              >
+                <Plus size={15} />
+                <span>Add Public Holiday</span>
+              </button>
+            </form>
+
+            {/* Declared Holidays List */}
+            <div className="mt-5 border-t border-gray-100 pt-4 max-h-56 overflow-y-auto custom-scrollbar space-y-2">
+              <h4 className="text-[11px] font-bold uppercase tracking-wider text-gray-400 mb-2">Declared Holidays ({publicHolidays.length})</h4>
+              {publicHolidays.length === 0 ? (
+                <p className="text-xs text-gray-400 italic text-center py-3">No public holidays added yet.</p>
+              ) : (
+                publicHolidays.map((holiday) => (
+                  <div key={holiday.date} className="flex items-center justify-between bg-amber-50/60 border border-amber-100 px-3 py-2 rounded-xl text-xs">
+                    <div>
+                      <span className="font-bold text-amber-900">{holiday.name}</span>
+                      <span className="text-amber-700 ml-2 text-[11px]">({holiday.date})</span>
+                    </div>
+                    <button
+                      type="button"
+                      onClick={() => handleDeleteHoliday(holiday.date)}
+                      className="text-red-500 hover:text-red-700 p-1 rounded-lg transition-colors"
+                      title="Remove Holiday"
+                    >
+                      <X size={14} />
+                    </button>
+                  </div>
+                ))
+              )}
             </div>
           </div>
         </div>

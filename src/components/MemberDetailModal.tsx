@@ -87,10 +87,33 @@ export const MemberDetailModal: React.FC<MemberDetailModalProps> = ({
     fetchUserAttendance();
   }, [isOpen, user?.id, selectedMonth]);
 
+  // Helper to format ISO timestamps to clean 12-hour local times (e.g., "10:00 AM")
+  const formatTime = (isoString?: string) => {
+    if (!isoString || isoString === '-' || isoString === '--') return '-';
+    try {
+      const date = isoString.includes('T') || isoString.includes('-')
+        ? new Date(isoString)
+        : new Date(`1970-01-01T${isoString}`);
+      if (isNaN(date.getTime())) return isoString;
+      return date.toLocaleTimeString([], { hour: '2-digit', minute: '2-digit', hour12: true });
+    } catch (e) {
+      return isoString;
+    }
+  };
+
+  // Helper to load company public holidays from localStorage
+  const publicHolidays = useMemo(() => {
+    try {
+      const saved = localStorage.getItem('bkm_company_public_holidays');
+      return saved ? JSON.parse(saved) : [];
+    } catch (e) {
+      return [];
+    }
+  }, [isOpen]);
+
   // Aggregate Attendance Metrics
   const attendanceStats = useMemo(() => {
     let presentCount = 0;
-    let absentCount = 0;
     let leaveCount = 0;
     let delayCount = 0;
     let totalMinutesWorked = 0;
@@ -98,24 +121,42 @@ export const MemberDetailModal: React.FC<MemberDetailModalProps> = ({
     let totalLunchMinutes = 0;
     let lunchRecordedDays = 0;
 
-    attendanceRecords.forEach((rec) => {
-      if (rec.status === 'Present') {
-        presentCount++;
-      } else if (rec.status === 'Absent') {
-        absentCount++;
-      } else if (rec.status === 'Leave') {
-        leaveCount++;
-      }
+    // Calculate expected working days elapsed in the selected month (excluding Sundays & Public Holidays)
+    const [selYear, selMonth] = selectedMonth.split('-').map(Number);
+    const now = new Date();
+    const isCurrentMonthScope = now.getFullYear() === selYear && (now.getMonth() + 1) === selMonth;
+    const limitDay = isCurrentMonthScope ? now.getDate() : new Date(selYear, selMonth, 0).getDate();
 
-      // Check for late login (after 09:35 AM if login_time exists)
-      if (rec.login_time) {
-        const timeParts = rec.login_time.split(':');
-        if (timeParts.length >= 2) {
-          const hour = parseInt(timeParts[0], 10);
-          const min = parseInt(timeParts[1], 10);
-          if (hour > 9 || (hour === 9 && min > 35)) {
-            delayCount++;
-          }
+    let expectedWorkingDays = 0;
+    for (let d = 1; d <= limitDay; d++) {
+      const dateStr = `${selYear}-${String(selMonth).padStart(2, '0')}-${String(d).padStart(2, '0')}`;
+      const dayOfWeek = new Date(selYear, selMonth - 1, d).getDay();
+      const isSunday = dayOfWeek === 0;
+      const isHoliday = publicHolidays.some((h: any) => h.date === dateStr);
+
+      if (!isSunday && !isHoliday) {
+        expectedWorkingDays++;
+      }
+    }
+
+    attendanceRecords.forEach((rec) => {
+      if (rec.status === 'Leave') {
+        leaveCount++;
+      } else if (rec.status === 'Present' || rec.login_time) {
+        presentCount++;
+
+        // Check for late check-in (after 10:00 AM)
+        if (rec.login_time) {
+          try {
+            const loginDate = rec.login_time.includes('T') || rec.login_time.includes('-')
+              ? new Date(rec.login_time)
+              : new Date(`${rec.date}T${rec.login_time}`);
+            if (!isNaN(loginDate.getTime())) {
+              if (loginDate.getHours() > 10 || (loginDate.getHours() === 10 && loginDate.getMinutes() > 0)) {
+                delayCount++;
+              }
+            }
+          } catch (e) {}
         }
       }
 
@@ -206,6 +247,9 @@ export const MemberDetailModal: React.FC<MemberDetailModalProps> = ({
       }
     });
 
+    // Accurate Absent Days = Expected Working Days - Present Days - Leave Days
+    const absentCount = Math.max(0, expectedWorkingDays - presentCount - leaveCount);
+
     const avgMinutes = workedDaysCount > 0 ? Math.round(totalMinutesWorked / workedDaysCount) : 0;
     const avgHrs = Math.floor(avgMinutes / 60);
     const avgMins = avgMinutes % 60;
@@ -221,7 +265,7 @@ export const MemberDetailModal: React.FC<MemberDetailModalProps> = ({
       avgLunchDuration: `${avgLunchMin}m`,
       totalRecords: attendanceRecords.length
     };
-  }, [attendanceRecords]);
+  }, [attendanceRecords, selectedMonth, publicHolidays]);
 
   // Aggregate User Task Metrics
   const userTasks = useMemo(() => {
@@ -481,11 +525,11 @@ export const MemberDetailModal: React.FC<MemberDetailModalProps> = ({
                                 {rec.status}
                               </span>
                             </td>
-                            <td className="px-4 py-2.5 font-mono text-gray-600">{rec.login_time || '-'}</td>
+                            <td className="px-4 py-2.5 font-mono text-gray-600">{formatTime(rec.login_time)}</td>
                             <td className="px-4 py-2.5 text-gray-600">
                               {rec.lunch_duration ? `${rec.lunch_duration}` : '-'}
                             </td>
-                            <td className="px-4 py-2.5 font-mono text-gray-600">{rec.logout_time || '-'}</td>
+                            <td className="px-4 py-2.5 font-mono text-gray-600">{formatTime(rec.logout_time)}</td>
                             <td className="px-4 py-2.5 text-right font-semibold text-gray-900">
                               {rec.total_working_hours || '-'}
                             </td>
