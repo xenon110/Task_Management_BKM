@@ -3,7 +3,8 @@ import React, { useState, useEffect, useMemo } from 'react';
 import {
   Clock, Calendar, Play, CheckCircle2, AlertCircle, FileSpreadsheet,
   Search, Filter, Plus, LogOut, Coffee, ArrowRight, UserCheck, X, RefreshCw,
-  TrendingUp, Award, Activity, Mail, Palmtree, Sparkles, Tag, Gift, Trash2, Check, Star
+  TrendingUp, Award, Activity, Mail, Palmtree, Sparkles, Tag, Gift, Trash2, Check, Star,
+  ShieldAlert, Info, FileText
 } from 'lucide-react';
 import { useAttendanceStore } from '../store/useAttendanceStore';
 import { useAuthStore } from '../store/useAuthStore';
@@ -1450,6 +1451,88 @@ ${employeeName}`;
                   </span>
                 </div>
               )}
+            </div>
+
+            {/* GLOWING HOLIDAY ALLOCATION & AVAILMENT POLICY NOTE */}
+            <div className="relative overflow-hidden rounded-2xl bg-gradient-to-r from-amber-500/30 via-purple-600/30 to-indigo-600/30 p-[2px] shadow-[0_0_25px_rgba(168,85,247,0.2)] border border-purple-400/40">
+              <div className="bg-white/95 backdrop-blur-xl rounded-[14px] p-5 md:p-6 relative overflow-hidden">
+                {/* Decorative Glowing Background Orbs */}
+                <div className="absolute -right-12 -top-12 w-44 h-44 bg-purple-500/15 rounded-full blur-2xl pointer-events-none" />
+                <div className="absolute -left-12 -bottom-12 w-44 h-44 bg-amber-500/15 rounded-full blur-2xl pointer-events-none" />
+
+                {/* Policy Title Banner Header */}
+                <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-3 mb-4 border-b border-purple-100/80 pb-3.5 relative z-10">
+                  <div className="flex items-center gap-3">
+                    <div className="w-10 h-10 rounded-xl bg-gradient-to-br from-purple-700 via-indigo-700 to-purple-900 text-white flex items-center justify-center shadow-md shadow-purple-500/20 shrink-0">
+                      <ShieldAlert size={22} className="animate-pulse text-amber-300" />
+                    </div>
+                    <div>
+                      <div className="inline-flex items-center gap-1.5 px-2.5 py-0.5 rounded-full bg-amber-100/90 text-amber-900 border border-amber-300/80 text-[10px] font-extrabold uppercase tracking-wider mb-1 shadow-2xs">
+                        <Sparkles size={11} className="text-amber-600 animate-spin" /> Official HR Policy & Allocation Note
+                      </div>
+                      <h3 className="text-base md:text-lg font-black text-gray-900 tracking-tight">
+                        Holiday Allocation & Availment Policy*
+                      </h3>
+                    </div>
+                  </div>
+                  <span className="text-[11px] font-bold text-purple-800 bg-purple-50 px-3 py-1.5 rounded-lg border border-purple-200/90 shrink-0 w-fit shadow-2xs flex items-center gap-1.5">
+                    <FileText size={13} className="text-purple-600" /> Applicable to All Employees
+                  </span>
+                </div>
+
+                {/* Policy Details */}
+                <div className="space-y-3.5 text-xs md:text-sm text-gray-700 leading-relaxed relative z-10">
+                  {/* Point 1 */}
+                  <div className="p-3.5 rounded-xl bg-gradient-to-r from-amber-50/90 to-amber-100/50 border border-amber-200 text-amber-950 font-medium flex items-start gap-3 shadow-2xs">
+                    <AlertCircle size={17} className="text-amber-600 shrink-0 mt-0.5" />
+                    <p>
+                      Please note that the holidays mentioned in the company’s annual holiday calendar are{' '}
+                      <span className="font-extrabold text-amber-900 underline decoration-amber-500/80 decoration-2">
+                        not automatically available for mandatory leave by all employees
+                      </span>.
+                    </p>
+                  </div>
+
+                  {/* Point 2 & Point 3 Grid */}
+                  <div className="grid grid-cols-1 md:grid-cols-2 gap-3.5">
+                    <div className="p-3.5 rounded-xl bg-purple-50/70 border border-purple-100/90 flex items-start gap-3 shadow-2xs">
+                      <CheckCircle2 size={17} className="text-purple-600 shrink-0 mt-0.5" />
+                      <p>
+                        The final list of holidays applicable to employees will be{' '}
+                        <span className="font-bold text-purple-950">allocated and communicated by the HR Department</span>,
+                        in accordance with the company’s holiday policy, business requirements, operational needs, and applicable management guidelines.
+                      </p>
+                    </div>
+
+                    <div className="p-3.5 rounded-xl bg-indigo-50/70 border border-indigo-100/90 flex items-start gap-3 shadow-2xs">
+                      <CheckCircle2 size={17} className="text-indigo-600 shrink-0 mt-0.5" />
+                      <p>
+                        Employees are required to avail holidays{' '}
+                        <span className="font-bold text-indigo-950">only as approved and allocated by HR</span>. The allocation and applicability of holidays shall be{' '}
+                        <span className="font-extrabold text-indigo-950 underline decoration-indigo-300/80">subject to the discretion and approval of Management</span>, considering business continuity and operational requirements.
+                      </p>
+                    </div>
+                  </div>
+
+                  {/* Point 4 & Point 5 Grid */}
+                  <div className="grid grid-cols-1 md:grid-cols-2 gap-3.5">
+                    <div className="p-3.5 rounded-xl bg-rose-50/70 border border-rose-100/90 flex items-start gap-3 shadow-2xs">
+                      <AlertCircle size={17} className="text-rose-600 shrink-0 mt-0.5" />
+                      <p>
+                        Any holiday not specifically allocated or approved by HR shall{' '}
+                        <span className="font-extrabold text-rose-950 underline decoration-rose-300/80">not be considered an authorized holiday</span> for the employee.
+                      </p>
+                    </div>
+
+                    <div className="p-3.5 rounded-xl bg-emerald-50/70 border border-emerald-100/90 flex items-start gap-3 shadow-2xs">
+                      <CheckCircle2 size={17} className="text-emerald-600 shrink-0 mt-0.5" />
+                      <p className="font-medium text-emerald-950">
+                        All employees are requested to strictly adhere to the holiday schedule communicated by HR and cooperate with the Management in ensuring smooth business operations.
+                      </p>
+                    </div>
+                  </div>
+                </div>
+              </div>
             </div>
 
             {/* Filter and Search Bar */}
