@@ -3,12 +3,14 @@ import React, { useState, useEffect, useMemo } from 'react';
 import {
   Clock, Calendar, Play, CheckCircle2, AlertCircle, FileSpreadsheet,
   Search, Filter, Plus, LogOut, Coffee, ArrowRight, UserCheck, X, RefreshCw,
-  TrendingUp, Award, Activity, Mail
+  TrendingUp, Award, Activity, Mail, Palmtree, Sparkles, Tag, Gift, Trash2, Check, Star
 } from 'lucide-react';
 import { useAttendanceStore } from '../store/useAttendanceStore';
 import { useAuthStore } from '../store/useAuthStore';
 import { useWorkspaceStore } from '../store/useWorkspaceStore';
 import type { Attendance } from '../types';
+import { getEmployeeData } from '../utils/employeeDataMap';
+import { COMPANY_HOLIDAYS_2026, formatHolidayDate, type PublicHoliday } from '../utils/holidayData';
 import emailjs from '@emailjs/browser';
 
 const AttendancePage = () => {
@@ -16,7 +18,7 @@ const AttendancePage = () => {
   const { user: currentUser } = useAuthStore();
   const { members } = useWorkspaceStore();
 
-  const [activeTab, setActiveTab] = useState<'clock' | 'history' | 'analytics' | 'admin'>(() => {
+  const [activeTab, setActiveTab] = useState<'clock' | 'history' | 'analytics' | 'admin' | 'holidays'>(() => {
     const role = useAuthStore.getState().user?.role;
     return role === 'owner' ? 'admin' : 'clock';
   });
@@ -53,23 +55,30 @@ const AttendancePage = () => {
   const [lastAutoTemplate, setLastAutoTemplate] = useState('');
 
   // Public Holiday Management State
-  interface PublicHoliday {
-    date: string;
-    name: string;
-  }
-
   const [publicHolidays, setPublicHolidays] = useState<PublicHoliday[]>(() => {
     try {
       const saved = localStorage.getItem('bkm_company_public_holidays');
-      return saved ? JSON.parse(saved) : [];
+      const savedHolidays = saved ? JSON.parse(saved) : [];
+      const combined = [...COMPANY_HOLIDAYS_2026];
+      savedHolidays.forEach((h: PublicHoliday) => {
+        if (!combined.some(existing => existing.date === h.date)) {
+          combined.push(h);
+        }
+      });
+      return combined;
     } catch (e) {
-      return [];
+      return COMPANY_HOLIDAYS_2026;
     }
   });
+
+  const [holidaySearch, setHolidaySearch] = useState('');
+  const [holidayCategoryFilter, setHolidayCategoryFilter] = useState<string>('all');
+  const [holidayMonthFilter, setHolidayMonthFilter] = useState<string>('all');
 
   const [showHolidayModal, setShowHolidayModal] = useState(false);
   const [newHolidayDate, setNewHolidayDate] = useState('');
   const [newHolidayName, setNewHolidayName] = useState('');
+  const [newHolidayCategory, setNewHolidayCategory] = useState<'National' | 'Cultural' | 'Religious' | 'Financial'>('Cultural');
 
   useEffect(() => {
     try {
@@ -89,7 +98,7 @@ const AttendancePage = () => {
       showNotification('Already Exists', 'A public holiday is already set for this date.', 'error');
       return;
     }
-    const updated = [...publicHolidays, { date: newHolidayDate, name: newHolidayName.trim() }];
+    const updated = [...publicHolidays, { date: newHolidayDate, name: newHolidayName.trim(), category: newHolidayCategory }];
     setPublicHolidays(updated);
     showNotification('Success', `Added public holiday: ${newHolidayName}`, 'success');
     setNewHolidayDate('');
@@ -99,8 +108,24 @@ const AttendancePage = () => {
   const handleDeleteHoliday = (dateToDelete: string) => {
     const updated = publicHolidays.filter(h => h.date !== dateToDelete);
     setPublicHolidays(updated);
-    showNotification('Removed', 'Public holiday removed successfully.', 'info');
+    showNotification('Holiday Removed', 'Public holiday deleted successfully.', 'info');
   };
+
+  const filteredHolidaysList = useMemo(() => {
+    return publicHolidays.filter(h => {
+      const matchesSearch = !holidaySearch || h.name.toLowerCase().includes(holidaySearch.toLowerCase()) || h.date.includes(holidaySearch);
+      const matchesCategory = holidayCategoryFilter === 'all' || (h.category && h.category.toLowerCase() === holidayCategoryFilter.toLowerCase());
+      const matchesMonth = holidayMonthFilter === 'all' || h.date.substring(5, 7) === holidayMonthFilter;
+      return matchesSearch && matchesCategory && matchesMonth;
+    }).sort((a, b) => a.date.localeCompare(b.date));
+  }, [publicHolidays, holidaySearch, holidayCategoryFilter, holidayMonthFilter]);
+
+  const nextUpcomingHoliday = useMemo(() => {
+    const todayStr = new Date().toISOString().split('T')[0];
+    return publicHolidays
+      .filter(h => h.date >= todayStr)
+      .sort((a, b) => a.date.localeCompare(b.date))[0];
+  }, [publicHolidays]);
 
   const getPublicHoliday = (dateStr: string) => {
     return publicHolidays.find(h => h.date === dateStr);
@@ -417,9 +442,13 @@ ${employeeName}`;
     const absentCountMonthly = Math.max(0, totalWorkingDaysMonthly - presentCountMonthly - leaveCountMonthly);
     const monthlyRate = totalWorkingDaysMonthly > 0 ? Math.min(100, ((presentCountMonthly + leaveCountMonthly) / totalWorkingDaysMonthly) * 100) : 0;
 
-    const TOTAL_LEAVES_ALLOWED = 15;
+    const empExcel = getEmployeeData(currentUser);
+    const initialTaken = currentUser?.initial_taken_leaves ?? empExcel.initialTakenLeaves;
+    const TOTAL_LEAVES_ALLOWED = currentUser?.allowed_leaves ?? empExcel.allowedLeaves;
+
     const presentCountYearly = yearlyRecords.filter(r => r.status === 'Present').length;
-    const leaveCountYearly = yearlyRecords.filter(r => r.status === 'Leave').length;
+    const dbLeaveCountYearly = yearlyRecords.filter(r => r.status === 'Leave').length;
+    const leaveCountYearly = initialTaken + dbLeaveCountYearly;
     const rawAbsentCountYearly = yearlyRecords.filter(r => r.status === 'Absent').length;
 
     const paidLeavesYearly = Math.min(leaveCountYearly, TOTAL_LEAVES_ALLOWED);
@@ -692,6 +721,7 @@ ${employeeName}`;
     // Initialize with workspace users first for complete visibility
     workspaceUsers.forEach(u => {
       if (!u) return;
+      const uExcel = getEmployeeData(u);
       employeeSummaryMap[u.id] = {
         name: u.name || u.email.split('@')[0],
         email: u.email,
@@ -699,7 +729,7 @@ ${employeeName}`;
         totalRecords: 0,
         presentCount: 0,
         absentCount: 0,
-        leaveCount: 0,
+        leaveCount: u.initial_taken_leaves ?? uExcel.initialTakenLeaves,
         onTimeCount: 0,
         lateCount: 0
       };
@@ -710,6 +740,7 @@ ${employeeName}`;
       const key = r.user_id || r.employee_name;
       if (!employeeSummaryMap[key]) {
         const userMeta = getUserMeta(r.user_id, r.employee_name);
+        const uExcel = getEmployeeData({ name: r.employee_name, email: userMeta.email });
         employeeSummaryMap[key] = {
           name: r.employee_name,
           email: userMeta.email,
@@ -717,7 +748,7 @@ ${employeeName}`;
           totalRecords: 0,
           presentCount: 0,
           absentCount: 0,
-          leaveCount: 0,
+          leaveCount: uExcel.initialTakenLeaves,
           onTimeCount: 0,
           lateCount: 0
         };
@@ -876,6 +907,18 @@ ${employeeName}`;
               My Analytics
             </button>
           )}
+          <button
+            onClick={() => setActiveTab('holidays')}
+            className={`px-4 py-1.5 text-xs font-semibold rounded-md transition-all flex-shrink-0 flex items-center gap-1.5 ${
+              activeTab === 'holidays' ? 'bg-purple-900 text-white shadow-sm font-bold' : 'text-gray-600 hover:text-gray-900 hover:bg-gray-200/60'
+            }`}
+          >
+            <Palmtree size={14} className={activeTab === 'holidays' ? 'text-purple-300' : 'text-purple-600'} />
+            <span>2026 Holidays</span>
+            <span className={`text-[10px] px-1.5 py-0.2 rounded-full font-bold ${activeTab === 'holidays' ? 'bg-purple-800 text-purple-200' : 'bg-purple-100 text-purple-700'}`}>
+              {publicHolidays.length}
+            </span>
+          </button>
           {isAdmin && (
             <button
               onClick={() => setActiveTab('admin')}
@@ -1347,6 +1390,218 @@ ${employeeName}`;
               </div>
             </div>
 
+          </div>
+        )}
+
+        {/* TAB: 2026 HOLIDAYS LIST */}
+        {activeTab === 'holidays' && (
+          <div className="space-y-6 animate-in fade-in duration-300">
+            {/* Top Hero Banner */}
+            <div className="relative overflow-hidden rounded-2xl bg-gradient-to-br from-purple-950 via-indigo-950 to-purple-900 p-6 md:p-8 text-white shadow-xl border border-purple-800/40">
+              <div className="absolute right-0 top-0 opacity-10 translate-x-8 -translate-y-8 pointer-events-none">
+                <Sparkles size={280} />
+              </div>
+              <div className="relative z-10 flex flex-col lg:flex-row lg:items-center justify-between gap-6">
+                <div>
+                  <div className="inline-flex items-center gap-2 px-3 py-1 rounded-full bg-purple-500/20 border border-purple-400/30 text-purple-200 text-xs font-semibold uppercase tracking-wider mb-3 backdrop-blur-md">
+                    <Sparkles size={13} className="text-purple-300 animate-pulse" /> Official BKM Company Calendar
+                  </div>
+                  <h2 className="text-2xl md:text-3xl font-black text-white tracking-tight">
+                    HOLIDAY LIST OF 2026
+                  </h2>
+                  <p className="text-purple-200/90 text-xs md:text-sm mt-2 max-w-2xl leading-relaxed">
+                    Official declared public holidays for 2026. All employees automatically receive holiday status on these days. <strong>Zero days are deducted</strong> from annual paid leave quotas.
+                  </p>
+                </div>
+                <div className="flex flex-wrap sm:flex-nowrap gap-3 shrink-0">
+                  <div className="bg-white/10 backdrop-blur-md rounded-xl p-4 border border-white/15 flex items-center gap-3">
+                    <div className="w-10 h-10 rounded-lg bg-emerald-500/20 border border-emerald-400/30 flex items-center justify-center text-emerald-300 font-black text-xl">
+                      {publicHolidays.length}
+                    </div>
+                    <div>
+                      <div className="text-[10px] uppercase tracking-wider text-purple-200 font-bold">Total 2026 Holidays</div>
+                      <div className="text-xs font-semibold text-white">Full Company Calendar</div>
+                    </div>
+                  </div>
+                  <div className="bg-white/10 backdrop-blur-md rounded-xl p-4 border border-white/15 flex items-center gap-3">
+                    <div className="w-10 h-10 rounded-lg bg-purple-500/20 border border-purple-400/30 flex items-center justify-center text-purple-300 font-bold">
+                      <CheckCircle2 size={20} className="text-emerald-400" />
+                    </div>
+                    <div>
+                      <div className="text-[10px] uppercase tracking-wider text-purple-200 font-bold">Paid Leave Protection</div>
+                      <div className="text-xs font-semibold text-emerald-300">0 Quota Deducted</div>
+                    </div>
+                  </div>
+                </div>
+              </div>
+
+              {/* Next Upcoming Holiday Highlight Card inside Hero */}
+              {nextUpcomingHoliday && (
+                <div className="mt-6 pt-5 border-t border-purple-800/60 flex flex-col sm:flex-row sm:items-center justify-between gap-3 text-xs">
+                  <div className="flex items-center gap-2.5">
+                    <span className="px-2.5 py-1 rounded-md bg-amber-400/20 text-amber-300 border border-amber-400/30 font-bold uppercase text-[10px] tracking-wider flex items-center gap-1">
+                      <Star size={12} className="fill-amber-300 text-amber-300" /> Next Holiday
+                    </span>
+                    <span className="font-bold text-white text-sm">{nextUpcomingHoliday.name}</span>
+                    <span className="text-purple-300 font-medium">({formatHolidayDate(nextUpcomingHoliday.date)})</span>
+                  </div>
+                  <span className="text-purple-200 bg-purple-900/60 px-3 py-1 rounded-full border border-purple-700/50 text-[11px] font-semibold">
+                    {nextUpcomingHoliday.category || 'Public Holiday'}
+                  </span>
+                </div>
+              )}
+            </div>
+
+            {/* Filter and Search Bar */}
+            <div className="bg-white rounded-xl shadow-xs border border-gray-200 p-4 flex flex-col md:flex-row md:items-center justify-between gap-4">
+              <div className="flex flex-wrap items-center gap-3 flex-1">
+                {/* Search */}
+                <div className="relative flex-1 min-w-[200px]">
+                  <Search size={14} className="absolute left-3 top-1/2 transform -translate-y-1/2 text-gray-400" />
+                  <input
+                    type="text"
+                    placeholder="Search holiday name or date..."
+                    value={holidaySearch}
+                    onChange={(e) => setHolidaySearch(e.target.value)}
+                    className="w-full pl-9 pr-3 py-2 bg-gray-50 border border-gray-200 rounded-lg text-xs outline-none focus:border-purple-600 focus:bg-white transition-all"
+                  />
+                </div>
+
+                {/* Category Filter */}
+                <div className="flex items-center space-x-1.5">
+                  <Filter size={13} className="text-gray-400" />
+                  <select
+                    value={holidayCategoryFilter}
+                    onChange={(e) => setHolidayCategoryFilter(e.target.value)}
+                    className="bg-gray-50 border border-gray-200 rounded-lg px-2.5 py-2 text-xs outline-none focus:border-purple-600 transition-all font-medium text-gray-700"
+                  >
+                    <option value="all">All Categories</option>
+                    <option value="national">National Holidays</option>
+                    <option value="cultural">Cultural Holidays</option>
+                    <option value="religious">Religious Holidays</option>
+                    <option value="financial">Financial Holidays</option>
+                  </select>
+                </div>
+
+                {/* Month Filter */}
+                <select
+                  value={holidayMonthFilter}
+                  onChange={(e) => setHolidayMonthFilter(e.target.value)}
+                  className="bg-gray-50 border border-gray-200 rounded-lg px-2.5 py-2 text-xs outline-none focus:border-purple-600 transition-all font-medium text-gray-700"
+                >
+                  <option value="all">All 12 Months</option>
+                  <option value="01">January</option>
+                  <option value="02">February</option>
+                  <option value="03">March</option>
+                  <option value="04">April</option>
+                  <option value="05">May</option>
+                  <option value="06">June</option>
+                  <option value="07">July</option>
+                  <option value="08">August</option>
+                  <option value="09">September</option>
+                  <option value="10">October</option>
+                  <option value="11">November</option>
+                  <option value="12">December</option>
+                </select>
+              </div>
+
+              {/* Admin Add Holiday Trigger */}
+              {isAdmin && (
+                <button
+                  onClick={() => setShowHolidayModal(true)}
+                  className="px-3.5 py-2 bg-purple-900 text-white rounded-lg text-xs font-semibold hover:bg-purple-950 transition-colors flex items-center justify-center gap-1.5 shadow-xs shrink-0 cursor-pointer"
+                >
+                  <Plus size={14} /> Add Holiday
+                </button>
+              )}
+            </div>
+
+            {/* Holidays Grid */}
+            <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-4">
+              {filteredHolidaysList.length === 0 ? (
+                <div className="col-span-full bg-white rounded-xl border border-gray-200 p-12 text-center text-gray-400">
+                  No holidays found matching your filters.
+                </div>
+              ) : (
+                filteredHolidaysList.map((h) => {
+                  const todayStr = new Date().toISOString().split('T')[0];
+                  const isToday = h.date === todayStr;
+                  const isPast = h.date < todayStr;
+                  const formatted = formatHolidayDate(h.date);
+                  
+                  const categoryColor = 
+                    h.category === 'National' ? 'bg-blue-50 text-blue-700 border-blue-200' :
+                    h.category === 'Religious' ? 'bg-amber-50 text-amber-800 border-amber-200' :
+                    h.category === 'Financial' ? 'bg-emerald-50 text-emerald-700 border-emerald-200' :
+                    'bg-purple-50 text-purple-700 border-purple-200';
+
+                  return (
+                    <div 
+                      key={h.date} 
+                      className={`bg-white rounded-xl border p-5 transition-all shadow-2xs hover:shadow-md flex flex-col justify-between relative overflow-hidden group ${
+                        isToday ? 'border-purple-500 ring-2 ring-purple-400/30' : isPast ? 'border-gray-200 opacity-75' : 'border-gray-200 hover:border-purple-300'
+                      }`}
+                    >
+                      <div>
+                        {/* Top Date Header */}
+                        <div className="flex items-center justify-between gap-2 mb-3">
+                          <span className="text-[11px] font-bold uppercase tracking-wider text-purple-900 bg-purple-50 px-2.5 py-1 rounded-md border border-purple-100 flex items-center gap-1.5">
+                            <Calendar size={13} className="text-purple-600" />
+                            {formatted}
+                          </span>
+                          <span className={`text-[10px] font-bold px-2 py-0.5 rounded-full border ${categoryColor}`}>
+                            {h.category || 'Holiday'}
+                          </span>
+                        </div>
+
+                        {/* Holiday Name */}
+                        <h4 className="font-bold text-gray-900 text-base group-hover:text-purple-900 transition-colors">
+                          {h.name}
+                        </h4>
+                        
+                        {h.description && (
+                          <p className="text-gray-500 text-xs mt-1.5 line-clamp-2 leading-relaxed">
+                            {h.description}
+                          </p>
+                        )}
+                      </div>
+
+                      {/* Card Footer */}
+                      <div className="mt-4 pt-3 border-t border-gray-100 flex items-center justify-between">
+                        <div className="flex items-center gap-1.5">
+                          {isToday ? (
+                            <span className="inline-flex items-center gap-1 text-[10px] font-extrabold text-purple-700 bg-purple-100 px-2 py-0.5 rounded-full animate-pulse">
+                              <span className="w-1.5 h-1.5 rounded-full bg-purple-600"></span> TODAY!
+                            </span>
+                          ) : isPast ? (
+                            <span className="inline-flex items-center gap-1 text-[10px] font-semibold text-gray-400 bg-gray-100 px-2 py-0.5 rounded-full">
+                              Passed
+                            </span>
+                          ) : (
+                            <span className="inline-flex items-center gap-1 text-[10px] font-bold text-emerald-700 bg-emerald-50 px-2 py-0.5 rounded-full border border-emerald-100">
+                              <span className="w-1.5 h-1.5 rounded-full bg-emerald-500"></span> Upcoming
+                            </span>
+                          )}
+                          <span className="text-[10px] font-medium text-gray-400">
+                            • Auto Holiday
+                          </span>
+                        </div>
+
+                        {isAdmin && (
+                          <button
+                            onClick={() => handleDeleteHoliday(h.date)}
+                            className="text-gray-300 hover:text-red-600 p-1 transition-colors"
+                            title="Remove Holiday"
+                          >
+                            <Trash2 size={13} />
+                          </button>
+                        )}
+                      </div>
+                    </div>
+                  );
+                })
+              )}
+            </div>
           </div>
         )}
 

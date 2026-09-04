@@ -13,6 +13,7 @@ import type { User } from '../types';
 import { MemberDetailModal } from '../components/MemberDetailModal';
 import { TerminateMemberModal } from '../components/TerminateMemberModal';
 import { ReactivateMemberModal } from '../components/ReactivateMemberModal';
+import { getEmployeeData } from '../utils/employeeDataMap';
 
 const TeamsPage = () => {
   const { members, pendingInvites, removeMember } = useWorkspaceStore();
@@ -297,6 +298,8 @@ const TeamsPage = () => {
                       <th className="px-6 py-3">Status</th>
                       <th className="px-6 py-3">Role</th>
                       <th className="px-6 py-3">Designation</th>
+                      <th className="px-6 py-3">Date of Joining</th>
+                      <th className="px-6 py-3">Annual Leaves</th>
                       <th className="px-6 py-3 text-right">Actions</th>
                     </tr>
                   </thead>
@@ -304,6 +307,9 @@ const TeamsPage = () => {
                     {filteredActiveUsers.map(user => {
                       const initials = (user.name || user.email || 'U').split(' ').map((n: string) => n[0]).join('').toUpperCase().substring(0, 2);
                       const color = (user.role === 'owner' || user.role === 'developer') ? 'bg-gray-900' : user.role === 'admin' ? 'bg-blue-600' : 'bg-green-600';
+                      const empData = getEmployeeData(user);
+                      const initialTaken = user.initial_taken_leaves ?? empData.initialTakenLeaves;
+                      const allowed = user.allowed_leaves ?? empData.allowedLeaves;
                       return (
                         <tr 
                           key={user.id} 
@@ -348,6 +354,18 @@ const TeamsPage = () => {
                           </td>
                           <td className="px-6 py-3.5">
                             <span className="text-[12px] font-medium text-gray-600">{user.designation || (user.role === 'guest' ? 'External' : 'Internal')}</span>
+                          </td>
+                          <td className="px-6 py-3.5">
+                            <span className="text-[12px] font-semibold text-gray-700 flex items-center gap-1.5">
+                              <Calendar size={12} className="text-purple-600" />
+                              {empData.formattedJoiningDate}
+                            </span>
+                          </td>
+                          <td className="px-6 py-3.5">
+                            <span className="inline-flex items-center gap-1 px-2.5 py-0.5 text-[11px] font-bold text-purple-800 bg-purple-50 border border-purple-200/80 rounded-full">
+                              <span className="w-1.5 h-1.5 rounded-full bg-purple-500"></span>
+                              {initialTaken} / {allowed} Days
+                            </span>
                           </td>
                           <td 
                             className="px-6 py-3.5 text-right relative role-dropdown-container"

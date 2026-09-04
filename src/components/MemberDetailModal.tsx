@@ -8,6 +8,8 @@ import type { User, Attendance } from '../types';
 import { supabase } from '../lib/supabase';
 import { useAuthStore } from '../store/useAuthStore';
 import { useTaskStore } from '../store/useTaskStore';
+import { getEmployeeData } from '../utils/employeeDataMap';
+import { COMPANY_HOLIDAYS_2026, getPublicHoliday } from '../utils/holidayData';
 
 interface MemberDetailModalProps {
   user: User;
@@ -46,6 +48,65 @@ export const MemberDetailModal: React.FC<MemberDetailModalProps> = ({
   const [attendanceRecords, setAttendanceRecords] = useState<Attendance[]>([]);
   const [loadingAttendance, setLoadingAttendance] = useState(false);
   const [activeTab, setActiveTab] = useState<'attendance' | 'tasks'>('attendance');
+  const [yearlyDbLeavesCount, setYearlyDbLeavesCount] = useState(0);
+  const [loadingLeaveBalance, setLoadingLeaveBalance] = useState(false);
+
+  const employeeExcelData = useMemo(() => getEmployeeData(user), [user]);
+
+  // Fetch yearly leave count dynamically from attendance DB for the current year
+  useEffect(() => {
+    if (!isOpen || (!user?.id && !user?.name)) return;
+    setLoadingLeaveBalance(true);
+    const curYear = new Date().getFullYear().toString();
+    
+    let query = supabase
+      .from('attendance')
+      .select('id', { count: 'exact' })
+      .ilike('status', 'leave')
+      .gte('date', `${curYear}-01-01`)
+      .lte('date', `${curYear}-12-31`);
+
+    if (user.id && user.name) {
+      query = query.or(`user_id.eq.${user.id},employee_name.ilike.%${user.name}%`);
+    } else if (user.id) {
+      query = query.eq('user_id', user.id);
+    } else if (user.name) {
+      query = query.ilike('employee_name', `%${user.name}%`);
+    }
+
+    query.then(({ count, error }) => {
+      if (!error && count !== null) {
+        setYearlyDbLeavesCount(count);
+      }
+      setLoadingLeaveBalance(false);
+    });
+  }, [isOpen, user?.id, user?.name]);
+
+  // Leave balance calculation:
+  // initialTakenLeaves = baseline leaves taken in Excel before website
+  // yearlyDbLeavesCount = new leaves recorded in the website attendance DB
+  // totalTakenLeaves = initialTaken + yearlyDbLeavesCount
+  const allowedLeaves = user?.allowed_leaves ?? employeeExcelData.allowedLeaves;
+  const initialTaken = user?.initial_taken_leaves ?? employeeExcelData.initialTakenLeaves;
+  const totalTakenLeaves = initialTaken + yearlyDbLeavesCount;
+  const balanceLeaves = Math.max(0, allowedLeaves - totalTakenLeaves);
+
+  // Saved public holidays helper
+  const publicHolidays = useMemo(() => {
+    try {
+      const saved = localStorage.getItem('bkm_company_public_holidays');
+      const savedHolidays = saved ? JSON.parse(saved) : [];
+      const combined = [...COMPANY_HOLIDAYS_2026];
+      savedHolidays.forEach((h: any) => {
+        if (!combined.some(existing => existing.date === h.date)) {
+          combined.push(h);
+        }
+      });
+      return combined;
+    } catch (e) {
+      return COMPANY_HOLIDAYS_2026;
+    }
+  }, []);
 
   // Fetch Attendance for the selected user and month
   useEffect(() => {
@@ -100,16 +161,6 @@ export const MemberDetailModal: React.FC<MemberDetailModalProps> = ({
       return isoString;
     }
   };
-
-  // Helper to load company public holidays from localStorage
-  const publicHolidays = useMemo(() => {
-    try {
-      const saved = localStorage.getItem('bkm_company_public_holidays');
-      return saved ? JSON.parse(saved) : [];
-    } catch (e) {
-      return [];
-    }
-  }, [isOpen]);
 
   // Aggregate Attendance Metrics
   const attendanceStats = useMemo(() => {
@@ -340,6 +391,10 @@ export const MemberDetailModal: React.FC<MemberDetailModalProps> = ({
                   <Briefcase size={13} className="text-purple-300" />
                   {user.designation || 'Team Member'}
                 </span>
+                <span className="flex items-center gap-1.5 bg-white/10 px-2.5 py-0.5 rounded-md border border-white/15 text-purple-100 font-medium">
+                  <Calendar size={13} className="text-purple-300" />
+                  Joined: <strong className="text-white">{employeeExcelData.formattedJoiningDate}</strong>
+                </span>
               </div>
             </div>
           </div>
@@ -430,6 +485,59 @@ export const MemberDetailModal: React.FC<MemberDetailModalProps> = ({
         <div className="flex-1 overflow-y-auto p-6 space-y-6">
           {activeTab === 'attendance' ? (
             <div className="space-y-6">
+              {/* Annual Leave Tracker Card — Dynamic */}
+              <div className="p-4 rounded-xl bg-gradient-to-r from-purple-900/10 via-indigo-900/10 to-purple-900/10 border border-purple-200/80 shadow-xs flex flex-col justify-between">
+                <div className="flex items-center justify-between">
+                  <span className="text-xs font-bold uppercase tracking-wider text-purple-900 flex items-center gap-1.5">
+                    <Calendar size={15} className="text-purple-600" />
+                    Annual Leave Summary ({new Date().getFullYear()})
+                  </span>
+                  <div className="flex items-center gap-2">
+                    {loadingLeaveBalance && (
+                      <span className="text-[10px] text-purple-500 animate-pulse font-medium">Syncing...</span>
+                    )}
+                    <span className="text-[11px] font-semibold text-purple-700 bg-purple-100 px-2.5 py-0.5 rounded-full border border-purple-200">
+                      Allowed Quota: {allowedLeaves} Days
+                    </span>
+                  </div>
+                </div>
+                <div className="mt-3 flex items-baseline justify-between">
+                  <div>
+                    <span className="text-2xl font-black text-purple-950">{totalTakenLeaves} <span className="text-lg text-purple-700 font-semibold">/ {allowedLeaves}</span></span>
+                    <span className="text-xs font-medium text-purple-600 ml-2">Days Taken</span>
+                  </div>
+                  <div className="text-right">
+                    <span className="text-2xl font-black text-emerald-600">{balanceLeaves}</span>
+                    <span className="text-xs font-medium text-emerald-700 ml-1.5">Days Balance</span>
+                  </div>
+                </div>
+                <div className="w-full bg-purple-100 rounded-full h-2 mt-3 overflow-hidden">
+                  <div 
+                    className={`h-full rounded-full transition-all duration-500 ${
+                      (totalTakenLeaves / allowedLeaves) > 0.8 
+                        ? 'bg-red-500' 
+                        : (totalTakenLeaves / allowedLeaves) > 0.5 
+                        ? 'bg-amber-500' 
+                        : 'bg-emerald-500'
+                    }`}
+                    style={{ width: `${Math.min(100, Math.round((totalTakenLeaves / allowedLeaves) * 100))}%` }}
+                  />
+                </div>
+                {/* Breakdown: Excel Baseline vs Website-Tracked */}
+                <div className="mt-2.5 flex items-center gap-4 text-[10px] text-gray-500 font-medium">
+                  {initialTaken > 0 && (
+                    <span className="flex items-center gap-1">
+                      <span className="w-2 h-2 rounded-full bg-gray-400 inline-block" />
+                      Excel Baseline: <strong className="text-gray-700">{initialTaken}</strong>
+                    </span>
+                  )}
+                  <span className="flex items-center gap-1">
+                    <span className="w-2 h-2 rounded-full bg-purple-500 inline-block" />
+                    DB Tracked: <strong className="text-purple-700">{yearlyDbLeavesCount}</strong>
+                  </span>
+                </div>
+              </div>
+
               {/* Top Stats Cards Grid */}
               <div className="grid grid-cols-2 sm:grid-cols-4 gap-4">
                 {/* Present Card */}

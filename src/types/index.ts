@@ -20,6 +20,9 @@ export interface User {
   termination_reason?: string;
   terminated_by?: string;
   rejoined_at?: string;
+  date_of_joining?: string;
+  allowed_leaves?: number;
+  initial_taken_leaves?: number;
 }
 
 export interface Workspace {

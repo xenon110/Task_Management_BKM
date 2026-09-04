@@ -3,6 +3,8 @@ import { supabase } from '../lib/supabase';
 import { useAuthStore } from './useAuthStore';
 import type { Attendance } from '../types';
 
+import { COMPANY_HOLIDAYS_2026, getPublicHoliday } from '../utils/holidayData';
+
 interface AttendanceState {
   records: Attendance[];
   loading: boolean;
@@ -70,12 +72,10 @@ export const useAttendanceStore = create<AttendanceState>((set, get) => ({
         if (endDate) {
           query = query.lte('date', endDate);
         }
-        // Default: If no query boundaries are set, fetch from the 1st of the current month to keep it fast
+        // Default: If no query boundaries are set, fetch from 1st of current year to ensure complete yearly leave metrics
         if (!startDate && !endDate) {
-          const firstOfMonth = new Date();
-          firstOfMonth.setDate(1);
-          const limitStr = firstOfMonth.toISOString().split('T')[0];
-          query = query.gte('date', limitStr);
+          const curYear = new Date().getFullYear();
+          query = query.gte('date', `${curYear}-01-01`);
         }
       }
 
@@ -281,13 +281,25 @@ export const useAttendanceStore = create<AttendanceState>((set, get) => ({
         current.setUTCDate(current.getUTCDate() + 1);
       }
 
-      const rows = dates.map(d => ({
-        user_id: userId,
-        employee_name: employeeName,
-        date: d,
-        status: 'Leave' as const,
-        leave_remark: remark
-      }));
+      const rows = dates.map(d => {
+        const holiday = getPublicHoliday(d);
+        if (holiday) {
+          return {
+            user_id: userId,
+            employee_name: employeeName,
+            date: d,
+            status: 'Holiday' as const,
+            leave_remark: `Public Holiday: ${holiday.name}`
+          };
+        }
+        return {
+          user_id: userId,
+          employee_name: employeeName,
+          date: d,
+          status: 'Leave' as const,
+          leave_remark: remark
+        };
+      });
 
       const { error } = await supabase
         .from('attendance')
