@@ -3,12 +3,16 @@ import { supabase } from '../lib/supabase';
 import { useAuthStore } from './useAuthStore';
 import type { Attendance } from '../types';
 
-import { COMPANY_HOLIDAYS_2026, getPublicHoliday } from '../utils/holidayData';
+import { COMPANY_HOLIDAYS_2026, getPublicHoliday, type PublicHoliday } from '../utils/holidayData';
 
 interface AttendanceState {
   records: Attendance[];
+  holidays: PublicHoliday[];
   loading: boolean;
   fetchRecords: (startDate?: string, endDate?: string) => Promise<void>;
+  fetchHolidays: () => Promise<void>;
+  addHoliday: (holiday: PublicHoliday) => Promise<boolean>;
+  deleteHoliday: (dateStr: string) => Promise<boolean>;
   markLogin: () => Promise<void>;
   markLunchOut: () => Promise<void>;
   markLunchIn: () => Promise<void>;
@@ -50,7 +54,71 @@ const handleEdgeFunctionError = async (error: any) => {
 
 export const useAttendanceStore = create<AttendanceState>((set, get) => ({
   records: [],
+  holidays: COMPANY_HOLIDAYS_2026,
   loading: false,
+
+  fetchHolidays: async () => {
+    try {
+      const { data, error } = await supabase
+        .from('company_holidays')
+        .select('*')
+        .order('date', { ascending: true });
+
+      if (error) {
+        console.error('Error fetching company_holidays:', error);
+        return;
+      }
+
+      const combined = [...COMPANY_HOLIDAYS_2026];
+      if (data) {
+        data.forEach((h: any) => {
+          if (!combined.some(existing => existing.date === h.date)) {
+            combined.push({
+              date: h.date,
+              name: h.name,
+              category: h.category,
+              description: h.description
+            });
+          }
+        });
+      }
+      set({ holidays: combined });
+    } catch (err) {
+      console.error('Failed to fetch holidays:', err);
+    }
+  },
+
+  addHoliday: async (newHoliday: PublicHoliday) => {
+    try {
+      const user = useAuthStore.getState().user;
+      const { error } = await supabase.from('company_holidays').insert([{
+        date: newHoliday.date,
+        name: newHoliday.name,
+        category: newHoliday.category || 'Cultural',
+        description: newHoliday.description || '',
+        created_by: user?.id || null
+      }]);
+
+      if (error) throw error;
+      await get().fetchHolidays();
+      return true;
+    } catch (err: any) {
+      console.error('Error adding holiday:', err);
+      throw err;
+    }
+  },
+
+  deleteHoliday: async (dateToDelete: string) => {
+    try {
+      const { error } = await supabase.from('company_holidays').delete().eq('date', dateToDelete);
+      if (error) throw error;
+      await get().fetchHolidays();
+      return true;
+    } catch (err: any) {
+      console.error('Error deleting holiday:', err);
+      throw err;
+    }
+  },
 
   fetchRecords: async (startDate?: string, endDate?: string) => {
     try {
@@ -281,8 +349,9 @@ export const useAttendanceStore = create<AttendanceState>((set, get) => ({
         current.setUTCDate(current.getUTCDate() + 1);
       }
 
+      const currentHolidays = get().holidays.length > 0 ? get().holidays : COMPANY_HOLIDAYS_2026;
       const rows = dates.map(d => {
-        const holiday = getPublicHoliday(d);
+        const holiday = currentHolidays.find(h => h.date === d);
         if (holiday) {
           return {
             user_id: userId,

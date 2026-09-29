@@ -8,6 +8,7 @@ import type { User, Attendance } from '../types';
 import { supabase } from '../lib/supabase';
 import { useAuthStore } from '../store/useAuthStore';
 import { useTaskStore } from '../store/useTaskStore';
+import { useAttendanceStore } from '../store/useAttendanceStore';
 import { getEmployeeData } from '../utils/employeeDataMap';
 import { COMPANY_HOLIDAYS_2026, getPublicHoliday } from '../utils/holidayData';
 
@@ -30,6 +31,13 @@ export const MemberDetailModal: React.FC<MemberDetailModalProps> = ({
 }) => {
   const { user: currentUser } = useAuthStore();
   const { tasks } = useTaskStore();
+  const { holidays: publicHolidays, fetchHolidays } = useAttendanceStore();
+
+  useEffect(() => {
+    if (isOpen) {
+      fetchHolidays();
+    }
+  }, [isOpen]);
   
   // Available Months for Selector (past 6 months)
   const availableMonths = useMemo(() => {
@@ -90,23 +98,6 @@ export const MemberDetailModal: React.FC<MemberDetailModalProps> = ({
   const initialTaken = user?.initial_taken_leaves ?? employeeExcelData.initialTakenLeaves;
   const totalTakenLeaves = initialTaken + yearlyDbLeavesCount;
   const balanceLeaves = Math.max(0, allowedLeaves - totalTakenLeaves);
-
-  // Saved public holidays helper
-  const publicHolidays = useMemo(() => {
-    try {
-      const saved = localStorage.getItem('bkm_company_public_holidays');
-      const savedHolidays = saved ? JSON.parse(saved) : [];
-      const combined = [...COMPANY_HOLIDAYS_2026];
-      savedHolidays.forEach((h: any) => {
-        if (!combined.some(existing => existing.date === h.date)) {
-          combined.push(h);
-        }
-      });
-      return combined;
-    } catch (e) {
-      return COMPANY_HOLIDAYS_2026;
-    }
-  }, []);
 
   // Fetch Attendance for the selected user and month
   useEffect(() => {

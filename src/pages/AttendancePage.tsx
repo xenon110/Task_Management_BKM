@@ -15,7 +15,7 @@ import { COMPANY_HOLIDAYS_2026, formatHolidayDate, type PublicHoliday } from '..
 import emailjs from '@emailjs/browser';
 
 const AttendancePage = () => {
-  const { records, loading, fetchRecords, markLogin, markLunchOut, markLunchIn, markLogout, markLeave, autoCheckoutExpired } = useAttendanceStore();
+  const { records, holidays: publicHolidays, loading, fetchRecords, fetchHolidays, addHoliday, deleteHoliday, markLogin, markLunchOut, markLunchIn, markLogout, markLeave, autoCheckoutExpired } = useAttendanceStore();
   const { user: currentUser } = useAuthStore();
   const { members } = useWorkspaceStore();
 
@@ -56,22 +56,6 @@ const AttendancePage = () => {
   const [lastAutoTemplate, setLastAutoTemplate] = useState('');
 
   // Public Holiday Management State
-  const [publicHolidays, setPublicHolidays] = useState<PublicHoliday[]>(() => {
-    try {
-      const saved = localStorage.getItem('bkm_company_public_holidays');
-      const savedHolidays = saved ? JSON.parse(saved) : [];
-      const combined = [...COMPANY_HOLIDAYS_2026];
-      savedHolidays.forEach((h: PublicHoliday) => {
-        if (!combined.some(existing => existing.date === h.date)) {
-          combined.push(h);
-        }
-      });
-      return combined;
-    } catch (e) {
-      return COMPANY_HOLIDAYS_2026;
-    }
-  });
-
   const [holidaySearch, setHolidaySearch] = useState('');
   const [holidayCategoryFilter, setHolidayCategoryFilter] = useState<string>('all');
   const [holidayMonthFilter, setHolidayMonthFilter] = useState<string>('all');
@@ -82,14 +66,10 @@ const AttendancePage = () => {
   const [newHolidayCategory, setNewHolidayCategory] = useState<'National' | 'Cultural' | 'Religious' | 'Financial'>('Cultural');
 
   useEffect(() => {
-    try {
-      localStorage.setItem('bkm_company_public_holidays', JSON.stringify(publicHolidays));
-    } catch (e) {
-      console.error('Error saving public holidays:', e);
-    }
-  }, [publicHolidays]);
+    fetchHolidays();
+  }, []);
 
-  const handleAddHoliday = (e: React.FormEvent) => {
+  const handleAddHoliday = async (e: React.FormEvent) => {
     e.preventDefault();
     if (!newHolidayDate || !newHolidayName.trim()) {
       showNotification('Fields Missing', 'Please select a date and enter a holiday name.', 'error');
@@ -99,17 +79,23 @@ const AttendancePage = () => {
       showNotification('Already Exists', 'A public holiday is already set for this date.', 'error');
       return;
     }
-    const updated = [...publicHolidays, { date: newHolidayDate, name: newHolidayName.trim(), category: newHolidayCategory }];
-    setPublicHolidays(updated);
-    showNotification('Success', `Added public holiday: ${newHolidayName}`, 'success');
-    setNewHolidayDate('');
-    setNewHolidayName('');
+    try {
+      await addHoliday({ date: newHolidayDate, name: newHolidayName.trim(), category: newHolidayCategory });
+      showNotification('Success', `Added public holiday: ${newHolidayName}`, 'success');
+      setNewHolidayDate('');
+      setNewHolidayName('');
+    } catch (err: any) {
+      showNotification('Error', err.message || 'Failed to add holiday.', 'error');
+    }
   };
 
-  const handleDeleteHoliday = (dateToDelete: string) => {
-    const updated = publicHolidays.filter(h => h.date !== dateToDelete);
-    setPublicHolidays(updated);
-    showNotification('Holiday Removed', 'Public holiday deleted successfully.', 'info');
+  const handleDeleteHoliday = async (dateToDelete: string) => {
+    try {
+      await deleteHoliday(dateToDelete);
+      showNotification('Holiday Removed', 'Public holiday deleted successfully.', 'info');
+    } catch (err: any) {
+      showNotification('Error', err.message || 'Failed to delete holiday.', 'error');
+    }
   };
 
   const filteredHolidaysList = useMemo(() => {
