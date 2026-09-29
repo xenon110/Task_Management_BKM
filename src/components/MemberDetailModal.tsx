@@ -1,7 +1,7 @@
 import React, { useState, useEffect, useMemo } from 'react';
-import { 
-  X, Mail, Phone, Briefcase, Calendar, CheckCircle2, 
-  Clock, AlertTriangle, AlertCircle, TrendingUp, 
+import {
+  X, Mail, Phone, Briefcase, Calendar, CheckCircle2,
+  Clock, AlertTriangle, AlertCircle, TrendingUp,
   RotateCcw, UserX, CheckSquare
 } from 'lucide-react';
 import type { User, Attendance } from '../types';
@@ -38,7 +38,7 @@ export const MemberDetailModal: React.FC<MemberDetailModalProps> = ({
       fetchHolidays();
     }
   }, [isOpen]);
-  
+
   // Available Months for Selector (past 6 months)
   const availableMonths = useMemo(() => {
     const months = [];
@@ -66,7 +66,7 @@ export const MemberDetailModal: React.FC<MemberDetailModalProps> = ({
     if (!isOpen || (!user?.id && !user?.name)) return;
     setLoadingLeaveBalance(true);
     const curYear = new Date().getFullYear().toString();
-    
+
     let query = supabase
       .from('attendance')
       .select('id', { count: 'exact' })
@@ -109,7 +109,7 @@ export const MemberDetailModal: React.FC<MemberDetailModalProps> = ({
         const [yearStr, monthStr] = selectedMonth.split('-');
         const year = parseInt(yearStr, 10);
         const month = parseInt(monthStr, 10);
-        
+
         // Calculate start and end date for the selected month
         const startDate = `${selectedMonth}-01`;
         const lastDay = new Date(year, month, 0).getDate();
@@ -198,7 +198,7 @@ export const MemberDetailModal: React.FC<MemberDetailModalProps> = ({
                 delayCount++;
               }
             }
-          } catch (e) {}
+          } catch (e) { }
         }
       }
 
@@ -319,12 +319,12 @@ export const MemberDetailModal: React.FC<MemberDetailModalProps> = ({
     const total = userTasks.length;
     const completed = userTasks.filter((t) => ['done', 'Completed', 'Work Done'].includes(t.status) && !t.archived).length;
     const inProgress = userTasks.filter((t) => !['done', 'Completed', 'Work Done'].includes(t.status) && !t.archived).length;
-    
+
     const today = new Date().toISOString().split('T')[0];
-    const overdue = userTasks.filter((t) => 
-      !t.archived && 
-      !['done', 'Completed', 'Work Done'].includes(t.status) && 
-      t.due_date && 
+    const overdue = userTasks.filter((t) =>
+      !t.archived &&
+      !['done', 'Completed', 'Work Done'].includes(t.status) &&
+      t.due_date &&
       t.due_date < today
     ).length;
 
@@ -341,7 +341,7 @@ export const MemberDetailModal: React.FC<MemberDetailModalProps> = ({
   return (
     <div className="fixed inset-0 z-50 flex items-center justify-center p-4 bg-black/60 backdrop-blur-xs animate-in fade-in duration-200">
       <div className="bg-white w-full max-w-4xl rounded-2xl shadow-2xl border border-gray-200 overflow-hidden flex flex-col max-h-[90vh] text-gray-800 animate-in zoom-in-95 duration-200">
-        
+
         {/* Header */}
         <div className="relative px-6 py-5 bg-gradient-to-r from-gray-900 via-[#1e1b4b] to-purple-900 text-white flex items-start justify-between shrink-0">
           <div className="flex items-center space-x-4">
@@ -355,18 +355,17 @@ export const MemberDetailModal: React.FC<MemberDetailModalProps> = ({
             <div>
               <div className="flex items-center space-x-2.5">
                 <h2 className="text-xl font-bold tracking-tight text-white">{user.name || 'Unknown User'}</h2>
-                <span className={`px-2.5 py-0.5 rounded-full text-[11px] font-semibold uppercase tracking-wider ${
-                  isTerminated 
-                    ? 'bg-red-500/20 text-red-300 border border-red-500/40' 
+                <span className={`px-2.5 py-0.5 rounded-full text-[11px] font-semibold uppercase tracking-wider ${isTerminated
+                    ? 'bg-red-500/20 text-red-300 border border-red-500/40'
                     : 'bg-emerald-500/20 text-emerald-300 border border-emerald-500/40'
-                }`}>
+                  }`}>
                   {user.status || 'Active'}
                 </span>
                 <span className="px-2.5 py-0.5 rounded-full text-[11px] font-semibold uppercase bg-purple-500/30 text-purple-200 border border-purple-400/40">
                   {user.role || 'Member'}
                 </span>
               </div>
-              
+
               <div className="flex flex-wrap items-center gap-4 mt-1.5 text-xs text-gray-300">
                 <span className="flex items-center gap-1">
                   <Mail size={13} className="text-purple-300" />
@@ -390,7 +389,7 @@ export const MemberDetailModal: React.FC<MemberDetailModalProps> = ({
             </div>
           </div>
 
-          <button 
+          <button
             onClick={onClose}
             className="p-2 rounded-xl bg-white/10 hover:bg-white/20 text-gray-300 hover:text-white transition-all cursor-pointer"
           >
@@ -432,22 +431,20 @@ export const MemberDetailModal: React.FC<MemberDetailModalProps> = ({
           <div className="flex space-x-6">
             <button
               onClick={() => setActiveTab('attendance')}
-              className={`pb-3 font-semibold text-xs flex items-center gap-2 border-b-2 transition-all cursor-pointer ${
-                activeTab === 'attendance'
+              className={`pb-3 font-semibold text-xs flex items-center gap-2 border-b-2 transition-all cursor-pointer ${activeTab === 'attendance'
                   ? 'border-brand text-brand font-bold'
                   : 'border-transparent text-gray-500 hover:text-gray-900'
-              }`}
+                }`}
             >
               <Calendar size={15} />
               Month-Wise Attendance & Punctuality
             </button>
             <button
               onClick={() => setActiveTab('tasks')}
-              className={`pb-3 font-semibold text-xs flex items-center gap-2 border-b-2 transition-all cursor-pointer ${
-                activeTab === 'tasks'
+              className={`pb-3 font-semibold text-xs flex items-center gap-2 border-b-2 transition-all cursor-pointer ${activeTab === 'tasks'
                   ? 'border-brand text-brand font-bold'
                   : 'border-transparent text-gray-500 hover:text-gray-900'
-              }`}
+                }`}
             >
               <CheckSquare size={15} />
               Task Performance & Workload ({userTasks.length})
@@ -503,14 +500,13 @@ export const MemberDetailModal: React.FC<MemberDetailModalProps> = ({
                   </div>
                 </div>
                 <div className="w-full bg-purple-100 rounded-full h-2 mt-3 overflow-hidden">
-                  <div 
-                    className={`h-full rounded-full transition-all duration-500 ${
-                      (totalTakenLeaves / allowedLeaves) > 0.8 
-                        ? 'bg-red-500' 
-                        : (totalTakenLeaves / allowedLeaves) > 0.5 
-                        ? 'bg-amber-500' 
-                        : 'bg-emerald-500'
-                    }`}
+                  <div
+                    className={`h-full rounded-full transition-all duration-500 ${(totalTakenLeaves / allowedLeaves) > 0.8
+                        ? 'bg-red-500'
+                        : (totalTakenLeaves / allowedLeaves) > 0.5
+                          ? 'bg-amber-500'
+                          : 'bg-emerald-500'
+                      }`}
                     style={{ width: `${Math.min(100, Math.round((totalTakenLeaves / allowedLeaves) * 100))}%` }}
                   />
                 </div>
@@ -614,13 +610,12 @@ export const MemberDetailModal: React.FC<MemberDetailModalProps> = ({
                           <tr key={rec.id} className="hover:bg-gray-50/70 transition-colors">
                             <td className="px-4 py-2.5 font-semibold text-gray-800">{rec.date}</td>
                             <td className="px-4 py-2.5">
-                              <span className={`inline-flex items-center px-2 py-0.5 rounded-full text-[10px] font-bold ${
-                                rec.status === 'Present' 
-                                  ? 'bg-emerald-100 text-emerald-800' 
-                                  : rec.status === 'Absent' 
-                                    ? 'bg-red-100 text-red-800' 
+                              <span className={`inline-flex items-center px-2 py-0.5 rounded-full text-[10px] font-bold ${rec.status === 'Present'
+                                  ? 'bg-emerald-100 text-emerald-800'
+                                  : rec.status === 'Absent'
+                                    ? 'bg-red-100 text-red-800'
                                     : 'bg-amber-100 text-amber-800'
-                              }`}>
+                                }`}>
                                 {rec.status}
                               </span>
                             </td>
@@ -686,11 +681,10 @@ export const MemberDetailModal: React.FC<MemberDetailModalProps> = ({
                         <div className="space-y-1">
                           <div className="font-semibold text-xs text-gray-900 flex items-center gap-2">
                             {t.title}
-                            <span className={`px-2 py-0.5 rounded text-[10px] font-bold uppercase ${
-                              t.priority === 'urgent' ? 'bg-red-100 text-red-700' :
-                              t.priority === 'high' ? 'bg-orange-100 text-orange-700' :
-                              'bg-gray-100 text-gray-600'
-                            }`}>
+                            <span className={`px-2 py-0.5 rounded text-[10px] font-bold uppercase ${t.priority === 'urgent' ? 'bg-red-100 text-red-700' :
+                                t.priority === 'high' ? 'bg-orange-100 text-orange-700' :
+                                  'bg-gray-100 text-gray-600'
+                              }`}>
                               {t.priority}
                             </span>
                           </div>
@@ -700,11 +694,10 @@ export const MemberDetailModal: React.FC<MemberDetailModalProps> = ({
                             </div>
                           )}
                         </div>
-                        <span className={`px-2.5 py-1 rounded-full text-xs font-bold ${
-                          ['done', 'Completed', 'Work Done'].includes(t.status)
+                        <span className={`px-2.5 py-1 rounded-full text-xs font-bold ${['done', 'Completed', 'Work Done'].includes(t.status)
                             ? 'bg-emerald-100 text-emerald-800'
                             : 'bg-blue-100 text-blue-800'
-                        }`}>
+                          }`}>
                           {t.status}
                         </span>
                       </div>
