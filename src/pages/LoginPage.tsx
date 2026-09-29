@@ -410,6 +410,10 @@ const LoginPage = () => {
               {isLogin ? 'Sign up' : 'Sign in'}
             </button>
           </div>
+
+          <div className="mt-6 text-center text-xs font-mono text-gray-400 tracking-wider">
+            Version XE 10.0
+          </div>
         </div>
       </div>
     </div>
