@@ -13,6 +13,7 @@ import type { Attendance } from '../types';
 import { getEmployeeData } from '../utils/employeeDataMap';
 import { COMPANY_HOLIDAYS_2026, formatHolidayDate, type PublicHoliday } from '../utils/holidayData';
 import emailjs from '@emailjs/browser';
+import { Link } from 'react-router-dom';
 
 const AttendancePage = () => {
   const { records, holidays: publicHolidays, loading, fetchRecords, fetchHolidays, addHoliday, deleteHoliday, markLogin, markLunchOut, markLunchIn, markLogout, markLeave, autoCheckoutExpired } = useAttendanceStore();
@@ -43,6 +44,7 @@ const AttendancePage = () => {
   const [leaveStartDate, setLeaveStartDate] = useState('');
   const [leaveEndDate, setLeaveEndDate] = useState('');
   const [leaveRemark, setLeaveRemark] = useState('');
+  const [leaveType, setLeaveType] = useState<string>('Not Specified');
 
   // Detailed user log modal state
   const [selectedDetailedUser, setSelectedDetailedUser] = useState<any>(null);
@@ -378,10 +380,15 @@ ${employeeName}`;
           remark: `Public Holiday: ${holiday.name}`
         });
       } else if (record) {
+        const isUnpaid = record.leave_type === 'Unpaid' || 
+                         record.leave_remark?.toLowerCase().includes('[unpaid') ||
+                         record.leave_remark?.toLowerCase().includes('non paid') ||
+                         record.leave_remark?.toLowerCase().includes('non-paid');
         daysList.push({
           date: dateStr,
           dayName,
           status: record.status,
+          leaveType: isUnpaid ? 'Unpaid' : 'Paid',
           loginTime: record.login_time,
           logoutTime: record.logout_time,
           remark: record.leave_remark
@@ -554,12 +561,13 @@ ${employeeName}`;
     const emp = workspaceUsers.find(u => u?.id === leaveEmployeeId);
     if (!emp) return;
 
-    await markLeave(leaveEmployeeId, emp.name || emp.email.split('@')[0], leaveStartDate, leaveEndDate, leaveRemark);
+    await markLeave(leaveEmployeeId, emp.name || emp.email.split('@')[0], leaveStartDate, leaveEndDate, leaveRemark, leaveType);
     setShowLeaveModal(false);
     setLeaveEmployeeId('');
     setLeaveStartDate('');
     setLeaveEndDate('');
     setLeaveRemark('');
+    setLeaveType('Not Specified');
   };
 
   const handleSendEmail = async (e: React.FormEvent) => {
@@ -1170,11 +1178,18 @@ ${employeeName}`;
                     </div>
                   )}
 
+                  <Link
+                    to="/calendar"
+                    className="flex items-center px-3 py-1.5 bg-[#aa3bff] hover:opacity-95 text-white text-xs font-bold rounded-lg shadow-sm transition-all"
+                  >
+                    <Calendar size={14} className="mr-1.5" /> View Workday Calendar
+                  </Link>
+
                   <button
                     onClick={() => setSelectedDetailedUser(currentUser)}
-                    className="flex items-center px-3 py-1.5 bg-brand hover:opacity-95 text-white text-xs font-bold rounded-lg shadow-sm transition-all"
+                    className="flex items-center px-3 py-1.5 bg-gray-100 hover:bg-gray-200 text-gray-700 text-xs font-bold rounded-lg shadow-sm transition-all"
                   >
-                    <Calendar size={14} className="mr-1.5" /> View My Calendar Log
+                    <FileText size={14} className="mr-1.5" /> Table Logs
                   </button>
 
                   {isAdmin && (
@@ -1597,6 +1612,65 @@ ${employeeName}`;
                   </select>
                 </div>
 
+                <div>
+                  <label className="block text-xs font-semibold text-gray-600 mb-1.5">Leave Classification</label>
+                  <div className="grid grid-cols-3 gap-2.5">
+                    <label className={`flex flex-col items-center justify-center p-2 rounded-xl border cursor-pointer text-xs font-semibold text-center transition-all ${
+                      leaveType === 'Not Specified'
+                        ? 'border-gray-500 bg-gray-100 text-gray-900 shadow-xs ring-1 ring-gray-400 font-bold'
+                        : 'border-gray-200 hover:bg-gray-50 text-gray-600'
+                    }`}>
+                      <input
+                        type="radio"
+                        name="leaveType"
+                        value="Not Specified"
+                        checked={leaveType === 'Not Specified'}
+                        onChange={() => setLeaveType('Not Specified')}
+                        className="sr-only"
+                      />
+                      <span className="w-2 h-2 rounded-full bg-gray-400 mb-1"></span>
+                      <span className="text-[11px]">Not Specified</span>
+                      <span className="text-[9px] text-gray-400 mt-0.5">Casual / General</span>
+                    </label>
+
+                    <label className={`flex flex-col items-center justify-center p-2 rounded-xl border cursor-pointer text-xs font-semibold text-center transition-all ${
+                      leaveType === 'Paid'
+                        ? 'border-emerald-500 bg-emerald-50 text-emerald-800 shadow-xs ring-1 ring-emerald-500 font-bold'
+                        : 'border-gray-200 hover:bg-gray-50 text-gray-600'
+                    }`}>
+                      <input
+                        type="radio"
+                        name="leaveType"
+                        value="Paid"
+                        checked={leaveType === 'Paid'}
+                        onChange={() => setLeaveType('Paid')}
+                        className="sr-only"
+                      />
+                      <span className="w-2 h-2 rounded-full bg-emerald-500 mb-1"></span>
+                      <span className="text-[11px]">Paid Leave</span>
+                      <span className="text-[9px] text-emerald-600 mt-0.5">Deduct Quota</span>
+                    </label>
+
+                    <label className={`flex flex-col items-center justify-center p-2 rounded-xl border cursor-pointer text-xs font-semibold text-center transition-all ${
+                      leaveType === 'Unpaid'
+                        ? 'border-amber-500 bg-amber-50 text-amber-800 shadow-xs ring-1 ring-amber-500 font-bold'
+                        : 'border-gray-200 hover:bg-gray-50 text-gray-600'
+                    }`}>
+                      <input
+                        type="radio"
+                        name="leaveType"
+                        value="Unpaid"
+                        checked={leaveType === 'Unpaid'}
+                        onChange={() => setLeaveType('Unpaid')}
+                        className="sr-only"
+                      />
+                      <span className="w-2 h-2 rounded-full bg-amber-500 mb-1"></span>
+                      <span className="text-[11px]">Non-Paid</span>
+                      <span className="text-[9px] text-amber-600 mt-0.5">Loss of Pay</span>
+                    </label>
+                  </div>
+                </div>
+
                 <div className="grid grid-cols-2 gap-4">
                   <div>
                     <label className="block text-xs font-semibold text-gray-600 mb-1.5">From Date</label>
@@ -1860,12 +1934,16 @@ ${employeeName}`;
                           <td className="px-5 py-3.5">
                             <span className={`px-2.5 py-0.5 rounded-full text-[9px] font-bold tracking-wide uppercase ${
                               d.status === 'Present' ? 'bg-green-50 text-green-700 border-green-150 border' :
-                              d.status === 'Leave' ? 'bg-orange-50 text-orange-700 border-orange-150 border' :
+                              d.status === 'Leave' && d.leaveType === 'Unpaid' ? 'bg-amber-100 text-amber-800 border-amber-300 border' :
+                              d.status === 'Leave' && d.leaveType === 'Paid' ? 'bg-purple-100 text-purple-800 border-purple-200 border' :
+                              d.status === 'Leave' ? 'bg-gray-100 text-gray-700 border-gray-300 border' :
                               d.status === 'Holiday' ? 'bg-amber-50 text-amber-700 border-amber-150 border' :
                               d.status === 'Weekend' ? 'bg-gray-50 text-gray-500 border-gray-150 border' :
                               'bg-red-50 text-red-700 border-red-150 border'
                             }`}>
-                              {d.status}
+                              {d.status === 'Leave' 
+                                ? (d.leaveType === 'Unpaid' ? 'Non-Paid Leave' : d.leaveType === 'Paid' ? 'Paid Leave' : 'Not Specified') 
+                                : d.status}
                             </span>
                           </td>
                           <td className="px-5 py-3.5 text-gray-700 font-medium">{d.loginTime ? formatTime(d.loginTime) : '-'}</td>

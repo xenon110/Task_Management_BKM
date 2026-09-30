@@ -2,7 +2,7 @@ import React, { useState, useEffect, useMemo } from 'react';
 import {
   X, Mail, Phone, Briefcase, Calendar, CheckCircle2,
   Clock, AlertTriangle, AlertCircle, TrendingUp,
-  RotateCcw, UserX, CheckSquare
+  RotateCcw, UserX, CheckSquare, Edit3
 } from 'lucide-react';
 import type { User, Attendance } from '../types';
 import { supabase } from '../lib/supabase';
@@ -19,15 +19,17 @@ interface MemberDetailModalProps {
   onTerminateClick?: (user: User) => void;
   onReactivateClick?: (user: User) => void;
   canManage?: boolean;
+  onUserUpdated?: (user: User) => void;
 }
 
 export const MemberDetailModal: React.FC<MemberDetailModalProps> = ({
-  user,
+  user: initialUser,
   isOpen,
   onClose,
   onTerminateClick,
   onReactivateClick,
   canManage = false,
+  onUserUpdated,
 }) => {
   const { user: currentUser } = useAuthStore();
   const { tasks } = useTaskStore();
@@ -57,7 +59,71 @@ export const MemberDetailModal: React.FC<MemberDetailModalProps> = ({
   const [loadingAttendance, setLoadingAttendance] = useState(false);
   const [activeTab, setActiveTab] = useState<'attendance' | 'tasks'>('attendance');
   const [yearlyDbLeavesCount, setYearlyDbLeavesCount] = useState(0);
+  const [yearlyPaidLeavesCount, setYearlyPaidLeavesCount] = useState(0);
+  const [yearlyUnpaidLeavesCount, setYearlyUnpaidLeavesCount] = useState(0);
+  const [yearlyNotSpecifiedLeavesCount, setYearlyNotSpecifiedLeavesCount] = useState(0);
   const [loadingLeaveBalance, setLoadingLeaveBalance] = useState(false);
+
+  const [user, setUser] = useState<User>(initialUser);
+
+  useEffect(() => {
+    setUser(initialUser);
+  }, [initialUser]);
+
+  // Edit leave / joining date modal state
+  const [isEditingLeaves, setIsEditingLeaves] = useState(false);
+  const [editAllowedLeaves, setEditAllowedLeaves] = useState<number>(initialUser?.allowed_leaves ?? 15);
+  const [editInitialTakenLeaves, setEditInitialTakenLeaves] = useState<number>(initialUser?.initial_taken_leaves ?? 0);
+  const [editJoiningDate, setEditJoiningDate] = useState<string>(initialUser?.date_of_joining || '');
+  const [savingLeaves, setSavingLeaves] = useState(false);
+
+  useEffect(() => {
+    if (user) {
+      setEditAllowedLeaves(user.allowed_leaves ?? 15);
+      setEditInitialTakenLeaves(user.initial_taken_leaves ?? 0);
+      setEditJoiningDate(user.date_of_joining || '');
+    }
+  }, [user]);
+
+  const handleSaveLeaveSettings = async () => {
+    if (!user?.id) return;
+    setSavingLeaves(true);
+    try {
+      const allowedVal = Number(editAllowedLeaves);
+      const initialTakenVal = Number(editInitialTakenLeaves);
+      const joiningVal = editJoiningDate ? editJoiningDate.trim() : null;
+
+      const payload = {
+        allowed_leaves: isNaN(allowedVal) ? 15 : allowedVal,
+        initial_taken_leaves: isNaN(initialTakenVal) ? 0 : initialTakenVal,
+        date_of_joining: joiningVal,
+      };
+
+      const { data, error } = await supabase
+        .from('users')
+        .update(payload)
+        .eq('id', user.id)
+        .select();
+
+      if (error) throw error;
+
+      const updated: User = {
+        ...user,
+        ...payload,
+        date_of_joining: joiningVal || undefined,
+      };
+
+      setUser(updated);
+      onUserUpdated?.(updated);
+      setIsEditingLeaves(false);
+      alert('Leave quota and baseline successfully updated in Supabase database!');
+    } catch (err: any) {
+      console.error('Failed to update leave settings:', err);
+      alert('Failed to save leave configuration: ' + (err.message || 'Unknown error'));
+    } finally {
+      setSavingLeaves(false);
+    }
+  };
 
   const employeeExcelData = useMemo(() => getEmployeeData(user), [user]);
 
@@ -69,7 +135,7 @@ export const MemberDetailModal: React.FC<MemberDetailModalProps> = ({
 
     let query = supabase
       .from('attendance')
-      .select('id', { count: 'exact' })
+      .select('id, leave_type, leave_remark')
       .ilike('status', 'leave')
       .gte('date', `${curYear}-01-01`)
       .lte('date', `${curYear}-12-31`);
@@ -82,22 +148,49 @@ export const MemberDetailModal: React.FC<MemberDetailModalProps> = ({
       query = query.ilike('employee_name', `%${user.name}%`);
     }
 
-    query.then(({ count, error }) => {
-      if (!error && count !== null) {
-        setYearlyDbLeavesCount(count);
+    query.then(({ data, error }) => {
+      if (!error && data) {
+        let paid = 0;
+        let unpaid = 0;
+        let notSpecified = 0;
+        data.forEach((r: any) => {
+          const lType = (r.leave_type || '').toLowerCase();
+          const remark = (r.leave_remark || '').toLowerCase();
+          const isUnpaid = lType === 'unpaid' ||
+            remark.includes('[unpaid') ||
+            remark.includes('non paid') ||
+            remark.includes('non-paid');
+          const isPaid = lType === 'paid' || remark.includes('[paid');
+
+          if (isUnpaid) {
+            unpaid++;
+          } else if (isPaid) {
+            paid++;
+          } else {
+            notSpecified++;
+          }
+        });
+        setYearlyPaidLeavesCount(paid);
+        setYearlyUnpaidLeavesCount(unpaid);
+        setYearlyNotSpecifiedLeavesCount(notSpecified);
+        setYearlyDbLeavesCount(data.length);
       }
       setLoadingLeaveBalance(false);
     });
   }, [isOpen, user?.id, user?.name]);
 
   // Leave balance calculation:
-  // initialTakenLeaves = baseline leaves taken in Excel before website
-  // yearlyDbLeavesCount = new leaves recorded in the website attendance DB
-  // totalTakenLeaves = initialTaken + yearlyDbLeavesCount
+  // initialTaken = baseline leaves taken in Excel before website (counts against paid quota)
+  // yearlyPaidLeavesCount = new PAID leaves recorded in website DB
+  // totalPaidLeavesTaken = initialTaken + yearlyPaidLeavesCount
+  // balanceLeaves = allowedLeaves - totalPaidLeavesTaken (remaining paid leave days)
+  // yearlyUnpaidLeavesCount = non-paid leaves taken (Loss of Pay / LOP)
+  // yearlyNotSpecifiedLeavesCount = casual / not specified leaves
   const allowedLeaves = user?.allowed_leaves ?? employeeExcelData.allowedLeaves;
   const initialTaken = user?.initial_taken_leaves ?? employeeExcelData.initialTakenLeaves;
-  const totalTakenLeaves = initialTaken + yearlyDbLeavesCount;
-  const balanceLeaves = Math.max(0, allowedLeaves - totalTakenLeaves);
+  const totalPaidLeavesTaken = initialTaken + yearlyPaidLeavesCount;
+  const balanceLeaves = Math.max(0, allowedLeaves - totalPaidLeavesTaken);
+  const totalTakenLeaves = totalPaidLeavesTaken + yearlyUnpaidLeavesCount + yearlyNotSpecifiedLeavesCount;
 
   // Fetch Attendance for the selected user and month
   useEffect(() => {
@@ -487,41 +580,71 @@ export const MemberDetailModal: React.FC<MemberDetailModalProps> = ({
                     <span className="text-[11px] font-semibold text-purple-700 bg-purple-100 px-2.5 py-0.5 rounded-full border border-purple-200">
                       Allowed Quota: {allowedLeaves} Days
                     </span>
+                    {canManage && (
+                      <button
+                        onClick={() => setIsEditingLeaves(true)}
+                        className="inline-flex items-center gap-1 text-[11px] font-semibold text-purple-700 bg-white hover:bg-purple-100 px-2.5 py-0.5 rounded-full border border-purple-300 transition-colors shadow-xs cursor-pointer"
+                        title="Configure Allowed Leaves, Initial Taken Leaves & Joining Date"
+                      >
+                        <Edit3 size={11} />
+                        Edit Quota & Baseline
+                      </button>
+                    )}
                   </div>
                 </div>
                 <div className="mt-3 flex items-baseline justify-between">
                   <div>
-                    <span className="text-2xl font-black text-purple-950">{totalTakenLeaves} <span className="text-lg text-purple-700 font-semibold">/ {allowedLeaves}</span></span>
-                    <span className="text-xs font-medium text-purple-600 ml-2">Days Taken</span>
+                    <span className="text-2xl font-black text-purple-950">{totalPaidLeavesTaken} <span className="text-lg text-purple-700 font-semibold">/ {allowedLeaves}</span></span>
+                    <span className="text-xs font-medium text-purple-600 ml-2">Paid Days Taken</span>
                   </div>
-                  <div className="text-right">
-                    <span className="text-2xl font-black text-emerald-600">{balanceLeaves}</span>
-                    <span className="text-xs font-medium text-emerald-700 ml-1.5">Days Balance</span>
+                  <div className="flex items-baseline gap-4">
+                    {yearlyUnpaidLeavesCount > 0 && (
+                      <div className="text-right">
+                        <span className="text-xl font-black text-amber-600">{yearlyUnpaidLeavesCount}</span>
+                        <span className="text-xs font-medium text-amber-700 ml-1.5">Unpaid (LOP)</span>
+                      </div>
+                    )}
+                    <div className="text-right">
+                      <span className="text-2xl font-black text-emerald-600">{balanceLeaves}</span>
+                      <span className="text-xs font-medium text-emerald-700 ml-1.5">Days Balance</span>
+                    </div>
                   </div>
                 </div>
                 <div className="w-full bg-purple-100 rounded-full h-2 mt-3 overflow-hidden">
                   <div
-                    className={`h-full rounded-full transition-all duration-500 ${(totalTakenLeaves / allowedLeaves) > 0.8
+                    className={`h-full rounded-full transition-all duration-500 ${(totalPaidLeavesTaken / allowedLeaves) > 0.8
                         ? 'bg-red-500'
-                        : (totalTakenLeaves / allowedLeaves) > 0.5
+                        : (totalPaidLeavesTaken / allowedLeaves) > 0.5
                           ? 'bg-amber-500'
                           : 'bg-emerald-500'
                       }`}
-                    style={{ width: `${Math.min(100, Math.round((totalTakenLeaves / allowedLeaves) * 100))}%` }}
+                    style={{ width: `${Math.min(100, Math.round((totalPaidLeavesTaken / allowedLeaves) * 100))}%` }}
                   />
                 </div>
-                {/* Breakdown: Excel Baseline vs Website-Tracked */}
+                {/* Breakdown: Baseline vs Paid DB vs Non-Paid DB */}
                 <div className="mt-2.5 flex items-center gap-4 text-[10px] text-gray-500 font-medium">
                   {initialTaken > 0 && (
                     <span className="flex items-center gap-1">
                       <span className="w-2 h-2 rounded-full bg-gray-400 inline-block" />
-                      Excel Baseline: <strong className="text-gray-700">{initialTaken}</strong>
+                      Baseline Paid: <strong className="text-gray-700">{initialTaken}</strong>
                     </span>
                   )}
                   <span className="flex items-center gap-1">
                     <span className="w-2 h-2 rounded-full bg-purple-500 inline-block" />
-                    DB Tracked: <strong className="text-purple-700">{yearlyDbLeavesCount}</strong>
+                    DB Paid: <strong className="text-purple-700">{yearlyPaidLeavesCount}</strong>
                   </span>
+                  {yearlyUnpaidLeavesCount > 0 && (
+                    <span className="flex items-center gap-1">
+                      <span className="w-2 h-2 rounded-full bg-amber-500 inline-block" />
+                      Non-Paid (LOP): <strong className="text-amber-700">{yearlyUnpaidLeavesCount}</strong>
+                    </span>
+                  )}
+                  {yearlyNotSpecifiedLeavesCount > 0 && (
+                    <span className="flex items-center gap-1">
+                      <span className="w-2 h-2 rounded-full bg-slate-400 inline-block" />
+                      Not Specified: <strong className="text-slate-700">{yearlyNotSpecifiedLeavesCount}</strong>
+                    </span>
+                  )}
                 </div>
               </div>
 
@@ -606,29 +729,47 @@ export const MemberDetailModal: React.FC<MemberDetailModalProps> = ({
                         </tr>
                       </thead>
                       <tbody className="divide-y divide-gray-50">
-                        {attendanceRecords.map((rec) => (
-                          <tr key={rec.id} className="hover:bg-gray-50/70 transition-colors">
-                            <td className="px-4 py-2.5 font-semibold text-gray-800">{rec.date}</td>
-                            <td className="px-4 py-2.5">
-                              <span className={`inline-flex items-center px-2 py-0.5 rounded-full text-[10px] font-bold ${rec.status === 'Present'
-                                  ? 'bg-emerald-100 text-emerald-800'
-                                  : rec.status === 'Absent'
-                                    ? 'bg-red-100 text-red-800'
-                                    : 'bg-amber-100 text-amber-800'
-                                }`}>
-                                {rec.status}
-                              </span>
-                            </td>
-                            <td className="px-4 py-2.5 font-mono text-gray-600">{formatTime(rec.login_time)}</td>
-                            <td className="px-4 py-2.5 text-gray-600">
-                              {rec.lunch_duration ? `${rec.lunch_duration}` : '-'}
-                            </td>
-                            <td className="px-4 py-2.5 font-mono text-gray-600">{formatTime(rec.logout_time)}</td>
-                            <td className="px-4 py-2.5 text-right font-semibold text-gray-900">
-                              {rec.total_working_hours || '-'}
-                            </td>
-                          </tr>
-                        ))}
+                        {attendanceRecords.map((rec) => {
+                          const lType = (rec.leave_type || '').toLowerCase();
+                          const remark = (rec.leave_remark || '').toLowerCase();
+                          const isUnpaid = lType === 'unpaid' ||
+                            remark.includes('[unpaid') ||
+                            remark.includes('non paid') ||
+                            remark.includes('non-paid');
+                          const isPaid = lType === 'paid' || remark.includes('[paid');
+                          return (
+                            <tr key={rec.id} className="hover:bg-gray-50/70 transition-colors">
+                              <td className="px-4 py-2.5 font-semibold text-gray-800">{rec.date}</td>
+                              <td className="px-4 py-2.5">
+                                <span className={`inline-flex items-center px-2 py-0.5 rounded-full text-[10px] font-bold ${
+                                  rec.status === 'Present'
+                                    ? 'bg-emerald-100 text-emerald-800'
+                                    : rec.status === 'Absent'
+                                      ? 'bg-red-100 text-red-800'
+                                      : rec.status === 'Leave' && isUnpaid
+                                        ? 'bg-amber-100 text-amber-800 border border-amber-300'
+                                        : rec.status === 'Leave' && isPaid
+                                          ? 'bg-purple-100 text-purple-800 border border-purple-200'
+                                          : rec.status === 'Leave'
+                                            ? 'bg-gray-100 text-gray-700 border border-gray-300'
+                                            : 'bg-blue-100 text-blue-800'
+                                  }`}>
+                                  {rec.status === 'Leave' 
+                                    ? (isUnpaid ? 'Non-Paid Leave' : isPaid ? 'Paid Leave' : 'Leave (Not Specified)') 
+                                    : rec.status}
+                                </span>
+                              </td>
+                              <td className="px-4 py-2.5 font-mono text-gray-600">{formatTime(rec.login_time)}</td>
+                              <td className="px-4 py-2.5 text-gray-600">
+                                {rec.lunch_duration ? `${rec.lunch_duration}` : '-'}
+                              </td>
+                              <td className="px-4 py-2.5 font-mono text-gray-600">{formatTime(rec.logout_time)}</td>
+                              <td className="px-4 py-2.5 text-right font-semibold text-gray-900">
+                                {rec.total_working_hours || (rec.leave_remark ? <span className="text-[10px] text-gray-500 font-normal italic">{rec.leave_remark}</span> : '-')}
+                              </td>
+                            </tr>
+                          );
+                        })}
                       </tbody>
                     </table>
                   </div>
@@ -760,6 +901,90 @@ export const MemberDetailModal: React.FC<MemberDetailModalProps> = ({
         </div>
 
       </div>
+
+      {/* Edit Leaves & Joining Date Modal */}
+      {isEditingLeaves && (
+        <div className="fixed inset-0 z-60 flex items-center justify-center p-4 bg-black/60 backdrop-blur-xs animate-in fade-in duration-150">
+          <div className="bg-white w-full max-w-md rounded-2xl shadow-2xl border border-gray-200 p-6 space-y-5 animate-in zoom-in-95 duration-150">
+            <div className="flex items-center justify-between pb-3 border-b border-gray-100">
+              <div>
+                <h3 className="text-base font-bold text-gray-900">Configure Leaves & Joining</h3>
+                <p className="text-xs text-gray-500 mt-0.5">{user.name || user.email}</p>
+              </div>
+              <button
+                onClick={() => setIsEditingLeaves(false)}
+                className="p-1 rounded-lg text-gray-400 hover:text-gray-600 hover:bg-gray-100 cursor-pointer"
+              >
+                <X size={16} />
+              </button>
+            </div>
+
+            <div className="space-y-4 text-xs">
+              <div>
+                <label className="block font-semibold text-gray-700 mb-1">
+                  Annual Allowed Leaves Quota (Days)
+                </label>
+                <input
+                  type="number"
+                  min="0"
+                  max="365"
+                  value={editAllowedLeaves}
+                  onChange={(e) => setEditAllowedLeaves(parseInt(e.target.value, 10) || 0)}
+                  className="w-full px-3 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-purple-500 focus:border-transparent outline-none font-semibold text-gray-800"
+                />
+                <p className="text-[10px] text-gray-500 mt-1">Total allowed leave allowance for the entire year (defaults to 15).</p>
+              </div>
+
+              <div>
+                <label className="block font-semibold text-gray-700 mb-1">
+                  Initial Taken Leaves (Baseline)
+                </label>
+                <input
+                  type="number"
+                  min="0"
+                  max="365"
+                  value={editInitialTakenLeaves}
+                  onChange={(e) => setEditInitialTakenLeaves(parseInt(e.target.value, 10) || 0)}
+                  className="w-full px-3 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-purple-500 focus:border-transparent outline-none font-semibold text-gray-800"
+                />
+                <p className="text-[10px] text-gray-500 mt-1">Baseline leaves taken before website tracking (e.g., change 6 to 4).</p>
+              </div>
+
+              <div>
+                <label className="block font-semibold text-gray-700 mb-1">
+                  Date of Joining
+                </label>
+                <input
+                  type="date"
+                  value={editJoiningDate}
+                  onChange={(e) => setEditJoiningDate(e.target.value)}
+                  className="w-full px-3 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-purple-500 focus:border-transparent outline-none font-semibold text-gray-800"
+                />
+                <p className="text-[10px] text-gray-500 mt-1">Official employee joining date.</p>
+              </div>
+            </div>
+
+            <div className="flex items-center justify-end space-x-2 pt-3 border-t border-gray-100">
+              <button
+                type="button"
+                onClick={() => setIsEditingLeaves(false)}
+                disabled={savingLeaves}
+                className="px-4 py-2 text-xs font-semibold text-gray-600 hover:bg-gray-100 rounded-lg transition-colors cursor-pointer"
+              >
+                Cancel
+              </button>
+              <button
+                type="button"
+                onClick={handleSaveLeaveSettings}
+                disabled={savingLeaves}
+                className="px-4 py-2 text-xs font-semibold text-white bg-brand hover:bg-purple-700 rounded-lg transition-colors shadow-xs flex items-center gap-1.5 cursor-pointer"
+              >
+                {savingLeaves ? 'Saving...' : 'Save to Supabase'}
+              </button>
+            </div>
+          </div>
+        </div>
+      )}
     </div>
   );
 };

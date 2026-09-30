@@ -17,7 +17,7 @@ interface AttendanceState {
   markLunchOut: () => Promise<void>;
   markLunchIn: () => Promise<void>;
   markLogout: () => Promise<void>;
-  markLeave: (userId: string, employeeName: string, startDate: string, endDate: string, remark: string) => Promise<void>;
+  markLeave: (userId: string, employeeName: string, startDate: string, endDate: string, remark: string, leaveType?: string) => Promise<void>;
   autoCheckoutExpired: () => Promise<void>;
 }
 
@@ -334,7 +334,7 @@ export const useAttendanceStore = create<AttendanceState>((set, get) => ({
     }
   },
 
-  markLeave: async (userId, employeeName, startDate, endDate, remark) => {
+  markLeave: async (userId, employeeName, startDate, endDate, remark, leaveType = 'Not Specified') => {
     try {
       const [startYear, startMonth, startDay] = startDate.split('-').map(Number);
       const [endYear, endMonth, endDay] = endDate.split('-').map(Number);
@@ -350,6 +350,10 @@ export const useAttendanceStore = create<AttendanceState>((set, get) => ({
       }
 
       const currentHolidays = get().holidays.length > 0 ? get().holidays : COMPANY_HOLIDAYS_2026;
+      const formattedRemark = leaveType !== 'Not Specified' 
+        ? `[${leaveType} Leave] ${remark}`.trim() 
+        : `[Not Specified] ${remark}`.trim();
+
       const rows = dates.map(d => {
         const holiday = currentHolidays.find(h => h.date === d);
         if (holiday) {
@@ -366,18 +370,28 @@ export const useAttendanceStore = create<AttendanceState>((set, get) => ({
           employee_name: employeeName,
           date: d,
           status: 'Leave' as const,
-          leave_remark: remark
+          leave_type: leaveType,
+          leave_remark: formattedRemark
         };
       });
 
-      const { error } = await supabase
+      let { error } = await supabase
         .from('attendance')
         .upsert(rows, { onConflict: 'user_id,date' });
 
-      if (error) throw error;
+      // Fallback if leave_type column does not exist yet on table
+      if (error && error.message?.toLowerCase().includes('leave_type')) {
+        const safeRows = rows.map(({ leave_type, ...rest }) => rest);
+        const retry = await supabase
+          .from('attendance')
+          .upsert(safeRows, { onConflict: 'user_id,date' });
+        if (retry.error) throw retry.error;
+      } else if (error) {
+        throw error;
+      }
 
       await get().fetchRecords();
-      alert('Leave marked successfully!');
+      alert(`Leave marked successfully (${leaveType})!`);
     } catch (err) {
       console.error('Error marking leave:', err);
       alert('Failed to mark leave.');

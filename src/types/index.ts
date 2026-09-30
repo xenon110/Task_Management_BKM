@@ -180,7 +180,8 @@ export interface Attendance {
   lunch_duration?: string;
   late_after_lunch?: string;
   total_working_hours?: string;
-  status: 'Present' | 'Absent' | 'Leave';
+  status: 'Present' | 'Absent' | 'Leave' | 'Holiday';
+  leave_type?: 'Paid' | 'Unpaid' | string;
   leave_remark?: string;
   created_at?: string;
   updated_at?: string;

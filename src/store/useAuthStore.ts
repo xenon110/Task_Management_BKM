@@ -63,6 +63,8 @@ export const useAuthStore = create<AuthState>((set, get) => ({
               name: session.user.user_metadata?.name || session.user.email?.split('@')[0] || 'Unknown',
               role: 'member',
               status: 'active',
+              allowed_leaves: 15,
+              initial_taken_leaves: 0,
               avatar_url: `https://ui-avatars.com/api/?name=${encodeURIComponent(session.user.user_metadata?.name || session.user.email?.split('@')[0] || 'U')}&background=random`
             };
             supabase.from('users').upsert([publicUser], { onConflict: 'id' }).then();
@@ -268,6 +270,8 @@ export const useAuthStore = create<AuthState>((set, get) => ({
           email: email.trim().toLowerCase(),
           name: additionalData?.name || email.split('@')[0],
           status: 'active',
+          allowed_leaves: 15,
+          initial_taken_leaves: 0,
           avatar_url: `https://ui-avatars.com/api/?name=${encodeURIComponent(additionalData?.name || email.split('@')[0])}&background=random`,
         }]);
       }

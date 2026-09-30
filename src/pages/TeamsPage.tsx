@@ -399,6 +399,17 @@ const TeamsPage = () => {
                                       >
                                         <Eye size={13} className="text-brand" /> View 360&deg; Profile
                                       </button>
+                                      {canManage && (
+                                        <button
+                                          onClick={() => {
+                                            setSelectedUserForDetail(user);
+                                            setOpenDropdownId(null);
+                                          }}
+                                          className="w-full text-left px-3 py-1.5 hover:bg-gray-50 text-xs text-purple-700 flex items-center gap-1.5 border-b border-gray-100 font-medium cursor-pointer"
+                                        >
+                                          <Calendar size={13} className="text-purple-600" /> Configure Leaves & Joining
+                                        </button>
+                                      )}
                                       {getAvailableRolesForTarget(user.id).map(r => (
                                         <button
                                           key={r}
@@ -657,6 +668,10 @@ const TeamsPage = () => {
           isOpen={!!selectedUserForDetail}
           onClose={() => setSelectedUserForDetail(null)}
           canManage={canManage}
+          onUserUpdated={(updatedUser) => {
+            setGlobalUsers(prev => prev.map(u => u.id === updatedUser.id ? updatedUser : u));
+            setSelectedUserForDetail(updatedUser);
+          }}
           onTerminateClick={(u) => setSelectedUserForTerminate(u)}
           onReactivateClick={(u) => setSelectedUserForReactivate(u)}
         />
