@@ -2,6 +2,7 @@ import { BrowserRouter, HashRouter, Routes, Route, Navigate } from 'react-router
 import { useAuthStore } from './store/useAuthStore';
 import MainLayout from './layouts/MainLayout';
 import LoginPage from './pages/LoginPage';
+import ResetPasswordPage from './pages/ResetPasswordPage';
 import DashboardPage from './pages/DashboardPage';
 import SettingsPage from './pages/SettingsPage';
 import ProfilePage from './pages/ProfilePage';
@@ -26,9 +27,34 @@ import AttendancePage from './pages/AttendancePage';
 import DevicesPage from './pages/DevicesPage';
 
 import { useEffect } from 'react';
+import { supabase } from './lib/supabase';
 
 function App() {
   const { isAuthenticated, isLoading, checkSession } = useAuthStore();
+
+  useEffect(() => {
+    // Intercept Supabase password recovery token anywhere in URL
+    const hash = window.location.hash || '';
+    const search = window.location.search || '';
+    if (hash.includes('type=recovery') || search.includes('type=recovery')) {
+      if (!window.location.pathname.includes('/reset-password')) {
+        window.location.replace(`/reset-password${hash || search}`);
+        return;
+      }
+    }
+
+    const { data: { subscription } } = supabase.auth.onAuthStateChange((event) => {
+      if (event === 'PASSWORD_RECOVERY') {
+        if (!window.location.pathname.includes('/reset-password')) {
+          window.location.replace('/reset-password');
+        }
+      }
+    });
+
+    return () => {
+      subscription.unsubscribe();
+    };
+  }, []);
 
   useEffect(() => {
     checkSession();
@@ -54,6 +80,7 @@ function App() {
             return '/';
           })()} />} 
         />
+        <Route path="/reset-password" element={<ResetPasswordPage />} />
         
         <Route 
           path="/" 

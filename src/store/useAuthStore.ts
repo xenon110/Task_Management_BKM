@@ -18,6 +18,8 @@ interface AuthState {
   logout: () => Promise<void>;
   setActiveWorkspace: (workspace: Workspace) => void;
   updateUser: (data: Partial<User>) => Promise<void>;
+  sendPasswordResetEmail: (email: string) => Promise<void>;
+  updatePassword: (password: string) => Promise<void>;
 }
 
 export const useAuthStore = create<AuthState>((set, get) => ({
@@ -392,6 +394,41 @@ export const useAuthStore = create<AuthState>((set, get) => ({
       if (error) throw error;
     } catch (err) {
       console.error('Error updating user', err);
+    }
+  },
+
+  sendPasswordResetEmail: async (email: string) => {
+    try {
+      const redirectUrl = `${window.location.origin}/reset-password`;
+      const { error } = await supabase.auth.resetPasswordForEmail(email.trim(), {
+        redirectTo: redirectUrl,
+      });
+      if (error) {
+        if (error.message === '{}' || error.status === 500) {
+          throw new Error('Supabase failed to send the recovery email. Please check your Supabase SMTP/Email provider configuration in the Dashboard.');
+        }
+        throw error;
+      }
+    } catch (err: any) {
+      console.error('Password reset email error:', err);
+      let errMsg = err?.message || err?.error_description || (typeof err === 'string' ? err : '');
+      if (!errMsg || errMsg === '{}') {
+        errMsg = 'Supabase failed to send the recovery email. Please check your Supabase SMTP/Email provider configuration in the Dashboard.';
+      }
+      throw new Error(errMsg);
+    }
+  },
+
+  updatePassword: async (password: string) => {
+    try {
+      const { error } = await supabase.auth.updateUser({
+        password,
+      });
+      if (error) throw error;
+    } catch (err: any) {
+      console.error('Update password error:', err);
+      const errMsg = err?.message || err?.error_description || (typeof err === 'string' ? err : 'Failed to update password');
+      throw new Error(errMsg);
     }
   },
 }));

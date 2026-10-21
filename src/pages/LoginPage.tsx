@@ -1,6 +1,6 @@
 import React, { useState, useEffect } from 'react';
 import { useAuthStore } from '../store/useAuthStore';
-import { ArrowRight, Sparkles, CheckCircle2, AlertCircle, Shield, Briefcase } from 'lucide-react';
+import { ArrowRight, Sparkles, CheckCircle2, AlertCircle, Shield, Briefcase, MailCheck, ArrowLeft, KeyRound } from 'lucide-react';
 import { supabase } from '../lib/supabase';
 
 const LoginPage = () => {
@@ -22,7 +22,44 @@ const LoginPage = () => {
   const [isInvited, setIsInvited] = useState(false);
   const [notInvitedError, setNotInvitedError] = useState<string | null>(null);
 
-  const { login, signup, isLoading, error } = useAuthStore();
+  // Forgot Password States
+  const [isForgotPassword, setIsForgotPassword] = useState(false);
+  const [resetSent, setResetSent] = useState(false);
+  const [resetCooldown, setResetCooldown] = useState(0);
+  const [resetError, setResetError] = useState<string | null>(null);
+  const [isSendingReset, setIsSendingReset] = useState(false);
+
+  const { login, signup, isLoading, error, sendPasswordResetEmail } = useAuthStore();
+
+  useEffect(() => {
+    if (resetCooldown > 0) {
+      const timer = setTimeout(() => setResetCooldown(resetCooldown - 1), 1000);
+      return () => clearTimeout(timer);
+    }
+  }, [resetCooldown]);
+
+  const handleForgotPassword = async (e: React.FormEvent) => {
+    e.preventDefault();
+    if (!email.trim()) {
+      setResetError('Please enter your email address.');
+      return;
+    }
+    try {
+      setIsSendingReset(true);
+      setResetError(null);
+      await sendPasswordResetEmail(email.trim());
+      setResetSent(true);
+      setResetCooldown(60);
+    } catch (err: any) {
+      let msg = err?.message || 'Failed to send reset link. Please check the email address.';
+      if (msg === '{}') {
+        msg = 'Supabase failed to send the recovery email. Please check your Supabase SMTP/Email provider configuration in the Dashboard.';
+      }
+      setResetError(msg);
+    } finally {
+      setIsSendingReset(false);
+    }
+  };
 
   useEffect(() => {
     const params = new URLSearchParams(window.location.search);
@@ -204,10 +241,18 @@ const LoginPage = () => {
         <div className="w-full max-w-md mx-auto">
           <div className="mb-10 text-left">
             <h2 className="text-3xl font-bold text-gray-900 tracking-tight">
-              {isLogin ? 'Welcome back' : 'Create an account'}
+              {isForgotPassword 
+                ? 'Reset Password' 
+                : isLogin 
+                  ? 'Welcome back' 
+                  : 'Create an account'}
             </h2>
             <p className="mt-3 text-[15px] text-gray-500">
-              {isLogin ? 'Enter your details to sign in to your workspace.' : 'Sign up to create your first workspace.'}
+              {isForgotPassword
+                ? "Enter your registered email and we'll send you a link to reset your password."
+                : isLogin 
+                  ? 'Enter your details to sign in to your workspace.' 
+                  : 'Sign up to create your first workspace.'}
             </p>
           </div>
 
@@ -233,14 +278,120 @@ const LoginPage = () => {
             </div>
           )}
 
-          {error && (
+          {error && !isForgotPassword && (
             <div className="mb-6 p-4 bg-red-50 border border-red-100 rounded-xl flex items-start space-x-3 text-red-600">
               <AlertCircle size={20} className="shrink-0 mt-0.5" />
-              <p className="text-sm">{error}</p>
+              <p className="text-sm">{typeof error === 'string' ? error : (error as any)?.message || 'Authentication error'}</p>
             </div>
           )}
 
-          <form className="space-y-5" onSubmit={handleSubmit}>
+          {isForgotPassword ? (
+            resetSent ? (
+              /* State: Email Sent Confirmation */
+              <div className="text-center py-4 animate-in fade-in zoom-in-95 duration-200">
+                <div className="w-14 h-14 bg-emerald-50 border border-emerald-200 rounded-2xl flex items-center justify-center mx-auto mb-5 text-emerald-600 shadow-sm">
+                  <MailCheck size={28} />
+                </div>
+                <h3 className="text-xl font-bold text-gray-900 mb-2">Check your inbox</h3>
+                <p className="text-sm text-gray-600 mb-6 leading-relaxed">
+                  We've sent a password reset link to <strong className="text-gray-900 font-semibold">{email}</strong>. Click the link in the email to set a new password.
+                </p>
+
+                <div className="space-y-3">
+                  <button
+                    type="button"
+                    disabled={resetCooldown > 0 || isSendingReset}
+                    onClick={handleForgotPassword}
+                    className="w-full py-2.5 px-4 rounded-xl border border-gray-200 text-sm font-semibold text-gray-700 hover:bg-gray-50 transition-all disabled:opacity-50 disabled:cursor-not-allowed cursor-pointer"
+                  >
+                    {isSendingReset ? (
+                      <span className="flex items-center justify-center gap-2">
+                        <div className="w-4 h-4 border-2 border-gray-500 border-t-transparent rounded-full animate-spin"></div>
+                        Sending...
+                      </span>
+                    ) : resetCooldown > 0 ? (
+                      `Resend link in ${resetCooldown}s`
+                    ) : (
+                      'Resend email link'
+                    )}
+                  </button>
+
+                  <button
+                    type="button"
+                    onClick={() => {
+                      setIsForgotPassword(false);
+                      setResetSent(false);
+                      setResetError(null);
+                      useAuthStore.setState({ error: null });
+                    }}
+                    className="w-full flex items-center justify-center gap-2 py-2.5 px-4 rounded-xl text-sm font-semibold text-gray-600 hover:text-gray-900 transition-colors cursor-pointer"
+                  >
+                    <ArrowLeft size={16} />
+                    Back to sign in
+                  </button>
+                </div>
+              </div>
+            ) : (
+              /* State: Enter Email for Password Reset */
+              <form className="space-y-5 animate-in fade-in duration-200" onSubmit={handleForgotPassword}>
+                {resetError && (
+                  <div className="p-4 bg-red-50 border border-red-100 rounded-xl flex items-start space-x-3 text-red-600">
+                    <AlertCircle size={20} className="shrink-0 mt-0.5" />
+                    <p className="text-sm">{resetError}</p>
+                  </div>
+                )}
+
+                <div>
+                  <label htmlFor="reset-email" className="block text-sm font-medium text-gray-700 mb-1.5">
+                    Email address
+                  </label>
+                  <input
+                    id="reset-email"
+                    name="email"
+                    type="email"
+                    required
+                    className="appearance-none block w-full px-4 py-3 border border-gray-200 rounded-xl text-gray-900 placeholder-gray-400 focus:outline-none focus:ring-2 focus:ring-brand focus:border-transparent transition-all sm:text-sm bg-gray-50/50 focus:bg-white"
+                    placeholder="name@company.com"
+                    value={email}
+                    onChange={(e) => setEmail(e.target.value)}
+                  />
+                </div>
+
+                <div>
+                  <button
+                    type="submit"
+                    disabled={isSendingReset}
+                    className="group relative w-full flex justify-center items-center py-3 px-4 border border-transparent text-[15px] font-semibold rounded-xl text-white bg-gray-900 hover:bg-black focus:outline-none focus:ring-2 focus:ring-offset-2 focus:ring-gray-900 transition-all shadow-md hover:shadow-lg disabled:opacity-70 disabled:cursor-not-allowed cursor-pointer"
+                  >
+                    {isSendingReset ? (
+                      <div className="w-5 h-5 border-2 border-white border-t-transparent rounded-full animate-spin"></div>
+                    ) : (
+                      <>
+                        Send Reset Link
+                        <ArrowRight size={18} className="ml-2 group-hover:translate-x-1 transition-transform" />
+                      </>
+                    )}
+                  </button>
+                </div>
+
+                <div className="pt-2 text-center">
+                  <button
+                    type="button"
+                    onClick={() => {
+                      setIsForgotPassword(false);
+                      setResetError(null);
+                      useAuthStore.setState({ error: null });
+                    }}
+                    className="text-sm font-semibold text-gray-500 hover:text-gray-900 inline-flex items-center gap-1.5 transition-colors cursor-pointer"
+                  >
+                    <ArrowLeft size={16} />
+                    Back to sign in
+                  </button>
+                </div>
+              </form>
+            )
+          ) : (
+            <form className="space-y-5" onSubmit={handleSubmit}>
             {isLogin && (
               <div className="space-y-2">
                 <label className="block text-xs font-semibold text-gray-500 uppercase tracking-wider">
@@ -293,9 +444,25 @@ const LoginPage = () => {
             </div>
 
             <div>
-              <label htmlFor="password" className="block text-sm font-medium text-gray-700 mb-1.5">
-                Password
-              </label>
+              <div className="flex items-center justify-between mb-1.5">
+                <label htmlFor="password" className="block text-sm font-medium text-gray-700">
+                  Password
+                </label>
+                {isLogin && (
+                  <button
+                    type="button"
+                    onClick={() => {
+                      setIsForgotPassword(true);
+                      setResetSent(false);
+                      setResetError(null);
+                      useAuthStore.setState({ error: null });
+                    }}
+                    className="text-xs font-semibold text-brand hover:text-brand/80 transition-colors cursor-pointer"
+                  >
+                    Forgot password?
+                  </button>
+                )}
+              </div>
               <input
                 id="password"
                 name="password"
@@ -390,26 +557,29 @@ const LoginPage = () => {
               </button>
             </div>
           </form>
+        )}
 
-          <div className="mt-8 text-center text-sm">
-            <span className="text-gray-500">
-              {isLogin ? "Don't have an account? " : "Already have an account? "}
-            </span>
-            <button
-              onClick={() => {
-                setIsLogin(!isLogin);
-                useAuthStore.setState({ error: null });
-                setConfirmPassword('');
-                setName('');
-                if (!isInvited) setCompanyName('');
-                setContactNo('');
-              }}
-              className="font-semibold text-brand hover:text-brand/80 transition-colors"
-              type="button"
-            >
-              {isLogin ? 'Sign up' : 'Sign in'}
-            </button>
-          </div>
+          {!isForgotPassword && (
+            <div className="mt-8 text-center text-sm">
+              <span className="text-gray-500">
+                {isLogin ? "Don't have an account? " : "Already have an account? "}
+              </span>
+              <button
+                onClick={() => {
+                  setIsLogin(!isLogin);
+                  useAuthStore.setState({ error: null });
+                  setConfirmPassword('');
+                  setName('');
+                  if (!isInvited) setCompanyName('');
+                  setContactNo('');
+                }}
+                className="font-semibold text-brand hover:text-brand/80 transition-colors cursor-pointer"
+                type="button"
+              >
+                {isLogin ? 'Sign up' : 'Sign in'}
+              </button>
+            </div>
+          )}
 
           <div className="mt-6 text-center text-xs font-mono text-gray-400 tracking-wider">
             Version XE 10.0
