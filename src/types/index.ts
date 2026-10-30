@@ -23,6 +23,7 @@ export interface User {
   date_of_joining?: string;
   allowed_leaves?: number;
   initial_taken_leaves?: number;
+  branch?: string;
 }
 
 export interface Workspace {

@@ -54,7 +54,7 @@ const handleEdgeFunctionError = async (error: any) => {
 
 export const useAttendanceStore = create<AttendanceState>((set, get) => ({
   records: [],
-  holidays: COMPANY_HOLIDAYS_2026,
+  holidays: [],
   loading: false,
 
   fetchHolidays: async () => {
@@ -69,20 +69,18 @@ export const useAttendanceStore = create<AttendanceState>((set, get) => ({
         return;
       }
 
-      const combined = [...COMPANY_HOLIDAYS_2026];
+      const list: PublicHoliday[] = [];
       if (data) {
         data.forEach((h: any) => {
-          if (!combined.some(existing => existing.date === h.date)) {
-            combined.push({
-              date: h.date,
-              name: h.name,
-              category: h.category,
-              description: h.description
-            });
-          }
+          list.push({
+            date: h.date,
+            name: h.name,
+            category: h.category,
+            description: h.description
+          });
         });
       }
-      set({ holidays: combined });
+      set({ holidays: list });
     } catch (err) {
       console.error('Failed to fetch holidays:', err);
     }
@@ -349,7 +347,7 @@ export const useAttendanceStore = create<AttendanceState>((set, get) => ({
         current.setUTCDate(current.getUTCDate() + 1);
       }
 
-      const currentHolidays = get().holidays.length > 0 ? get().holidays : COMPANY_HOLIDAYS_2026;
+      const currentHolidays = get().holidays;
       const formattedRemark = leaveType !== 'Not Specified' 
         ? `[${leaveType} Leave] ${remark}`.trim() 
         : `[Not Specified] ${remark}`.trim();

@@ -13,7 +13,7 @@ import type { User } from '../types';
 import { MemberDetailModal } from '../components/MemberDetailModal';
 import { TerminateMemberModal } from '../components/TerminateMemberModal';
 import { ReactivateMemberModal } from '../components/ReactivateMemberModal';
-import { getEmployeeData } from '../utils/employeeDataMap';
+import { getEmployeeData, getEmployeeBranch } from '../utils/employeeDataMap';
 
 const TeamsPage = () => {
   const { members, pendingInvites, removeMember } = useWorkspaceStore();
@@ -295,6 +295,7 @@ const TeamsPage = () => {
                   <thead>
                     <tr className="bg-white border-b border-gray-100 text-[10px] uppercase tracking-wider text-gray-400 font-bold">
                       <th className="px-6 py-3">Member</th>
+                      <th className="px-6 py-3">Branch</th>
                       <th className="px-6 py-3">Status</th>
                       <th className="px-6 py-3">Role</th>
                       <th className="px-6 py-3">Designation</th>
@@ -308,6 +309,7 @@ const TeamsPage = () => {
                       const initials = (user.name || user.email || 'U').split(' ').map((n: string) => n[0]).join('').toUpperCase().substring(0, 2);
                       const color = (user.role === 'owner' || user.role === 'developer') ? 'bg-gray-900' : user.role === 'admin' ? 'bg-blue-600' : 'bg-green-600';
                       const empData = getEmployeeData(user);
+                      const branch = getEmployeeBranch(user);
                       const initialTaken = user.initial_taken_leaves ?? empData.initialTakenLeaves;
                       const allowed = user.allowed_leaves ?? empData.allowedLeaves;
                       return (
@@ -334,6 +336,15 @@ const TeamsPage = () => {
                                 </div>
                               </div>
                             </div>
+                          </td>
+                          <td className="px-6 py-3.5">
+                            {branch !== '......' ? (
+                              <span className="inline-flex items-center px-2 py-0.5 rounded text-[11px] font-bold bg-blue-50 text-blue-700 border border-blue-200">
+                                {branch}
+                              </span>
+                            ) : (
+                              <span className="text-gray-400 font-mono text-xs">......</span>
+                            )}
                           </td>
                           <td className="px-6 py-3.5">
                             <div className="flex items-center space-x-1.5">
@@ -482,6 +493,7 @@ const TeamsPage = () => {
                     <thead>
                       <tr className="bg-white border-b border-gray-100 text-[10px] uppercase tracking-wider text-gray-400 font-bold">
                         <th className="px-6 py-3">Ex-Member</th>
+                        <th className="px-6 py-3">Branch</th>
                         <th className="px-6 py-3">Exit Date</th>
                         <th className="px-6 py-3">Reason</th>
                         <th className="px-6 py-3">Designation</th>
@@ -491,6 +503,7 @@ const TeamsPage = () => {
                     <tbody className="divide-y divide-gray-50">
                       {filteredTerminatedUsers.map(user => {
                         const initials = (user.name || user.email || 'U').split(' ').map((n: string) => n[0]).join('').toUpperCase().substring(0, 2);
+                        const branch = getEmployeeBranch(user);
                         return (
                           <tr 
                             key={user.id} 
@@ -514,6 +527,15 @@ const TeamsPage = () => {
                                   </div>
                                 </div>
                               </div>
+                            </td>
+                            <td className="px-6 py-3.5">
+                              {branch !== '......' ? (
+                                <span className="inline-flex items-center px-2 py-0.5 rounded text-[11px] font-bold bg-gray-100 text-gray-600 border border-gray-200">
+                                  {branch}
+                                </span>
+                              ) : (
+                                <span className="text-gray-400 font-mono text-xs">......</span>
+                              )}
                             </td>
                             <td className="px-6 py-3.5">
                               <span className="text-[12px] font-medium text-gray-600 font-mono">

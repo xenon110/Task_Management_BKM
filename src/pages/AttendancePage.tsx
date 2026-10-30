@@ -10,7 +10,7 @@ import { useAttendanceStore } from '../store/useAttendanceStore';
 import { useAuthStore } from '../store/useAuthStore';
 import { useWorkspaceStore } from '../store/useWorkspaceStore';
 import type { Attendance } from '../types';
-import { getEmployeeData } from '../utils/employeeDataMap';
+import { getEmployeeData, getEmployeeBranch, isEmployeeWeeklyOff } from '../utils/employeeDataMap';
 import { COMPANY_HOLIDAYS_2026, formatHolidayDate, type PublicHoliday } from '../utils/holidayData';
 import emailjs from '@emailjs/browser';
 import { Link } from 'react-router-dom';
@@ -257,28 +257,28 @@ ${employeeName}`;
     return new Date(isoString).toLocaleTimeString([], { hour: '2-digit', minute: '2-digit', hour12: true });
   };
 
-  // Date utilities & Working Days calculations (6-day work week: Monday to Saturday working, Sunday as ONLY holiday, minus Public Holidays)
-  const getWorkingDaysInMonth = (year: number, month: number, upToDay?: number) => {
+  // Date utilities & Working Days calculations (Branch-aware: Mumbai=Mon-Sat working & Sun off; Silvasa=Tue-Sun working & Mon off)
+  const getWorkingDaysInMonth = (year: number, month: number, upToDay?: number, branchOrUser?: any) => {
     const totalDays = new Date(year, month, 0).getDate();
     const limitDay = upToDay ? Math.min(upToDay, totalDays) : totalDays;
     let workingDays = 0;
     for (let day = 1; day <= limitDay; day++) {
       const dateStr = `${year}-${String(month).padStart(2, '0')}-${String(day).padStart(2, '0')}`;
       const dayOfWeek = new Date(year, month - 1, day).getDay();
-      const isSunday = dayOfWeek === 0;
+      const isOff = isEmployeeWeeklyOff(dayOfWeek, branchOrUser);
       const isHoliday = publicHolidays.some(h => h.date === dateStr);
 
-      if (!isSunday && !isHoliday) {
+      if (!isOff && !isHoliday) {
         workingDays++;
       }
     }
     return workingDays;
   };
 
-  const getWorkingDaysInYear = (year: number) => {
+  const getWorkingDaysInYear = (year: number, branchOrUser?: any) => {
     let totalWorkingDays = 0;
     for (let m = 1; m <= 12; m++) {
-      totalWorkingDays += getWorkingDaysInMonth(year, m);
+      totalWorkingDays += getWorkingDaysInMonth(year, m, undefined, branchOrUser);
     }
     return totalWorkingDays;
   };
@@ -334,15 +334,16 @@ ${employeeName}`;
     return list;
   }, [records, historyFilter, startDate, endDate, searchName, isAdmin, currentUser?.id]);
 
-  // User list in workspace
+  // User list in workspace (excluding terminated/offboarded users)
   const workspaceUsers = useMemo(() => {
     return members
       .filter(m => {
+        if (m.user?.status === 'terminated') return false; // Exclude terminated members
         if (m.user?.role === 'developer' || m.role === 'developer') return true; // Developers are always tracked, even if they created the workspace
         return m.role !== 'owner' && m.user?.role !== 'owner'; // Filter out regular owners
       })
       .map(m => m.user)
-      .filter(Boolean);
+      .filter(u => Boolean(u && u.status !== 'terminated'));
   }, [members]);
 
   // Daily attendance generator for selected detailed user
@@ -367,7 +368,8 @@ ${employeeName}`;
       const holiday = getPublicHoliday(dateStr);
 
       const dayDate = new Date(adminYear, adminMonth - 1, day);
-      const isWeekend = dayDate.getDay() === 0; // 0 = Sunday is the only weekend day (Saturday is a working day)
+      const dayOfWeek = dayDate.getDay();
+      const isWeekend = isEmployeeWeeklyOff(dayOfWeek, selectedDetailedUser);
       const dayName = dayDate.toLocaleDateString([], { weekday: 'short' });
 
       if (holiday) {
@@ -428,7 +430,7 @@ ${employeeName}`;
     const todayDayNum = now.getDate();
 
     // Elapsed working days up to current date in the month
-    const totalWorkingDaysMonthly = Math.max(1, getWorkingDaysInMonth(curYear, curMonth, todayDayNum));
+    const totalWorkingDaysMonthly = Math.max(1, getWorkingDaysInMonth(curYear, curMonth, todayDayNum, currentUser));
     const presentCountMonthly = monthlyRecords.filter(r => r.status === 'Present').length;
     const leaveCountMonthly = monthlyRecords.filter(r => r.status === 'Leave').length;
 
@@ -449,7 +451,7 @@ ${employeeName}`;
     const unpaidLeavesYearly = Math.max(0, leaveCountYearly - TOTAL_LEAVES_ALLOWED);
 
     const absentCountYearly = rawAbsentCountYearly + unpaidLeavesYearly;
-    const rawTotalWorkingDaysYearly = getWorkingDaysInYear(curYear);
+    const rawTotalWorkingDaysYearly = getWorkingDaysInYear(curYear, currentUser);
     const totalWorkingDaysYearly = Math.max(0, rawTotalWorkingDaysYearly - TOTAL_LEAVES_ALLOWED);
 
     const yearlyRate = totalWorkingDaysYearly > 0
@@ -619,13 +621,12 @@ ${employeeName}`;
 
   // HR Detailed CSV Export utility
   const handleCSVExport = () => {
-    // 1. Metadata Header Block
+    // 1. Metadata Header Block (without declared public holidays section/pipeline)
     const metaRows = [
       ['=== BKM INDUSTRIES - OFFICIAL HR ATTENDANCE & LEAVE AUDIT REPORT ==='],
       ['Report Generated Date:', new Date().toLocaleString()],
       ['Working Schedule:', '6 Days / Week (Monday to Saturday Working, Sunday Weekly Off)'],
       ['Standard Shift Window:', '10:00 AM to 07:00 PM (10:00 - 19:00)'],
-      ['Declared Public Holidays:', publicHolidays.length > 0 ? publicHolidays.map(h => `${h.date} (${h.name})`).join('; ') : 'None'],
       ['Export Scope / Filter:', historyFilter.toUpperCase()],
       ['Total Records in Export:', String(filteredHistory.length)],
       [] // Blank separator line
@@ -656,11 +657,12 @@ ${employeeName}`;
       return `On-Time (${formatTime(r.login_time)} <= 10:00 AM)`;
     };
 
-    // 2. Daily Attendance Logs Table
+    // 2. Daily Attendance Logs Table (Excludes terminated members)
     const dailyHeaders = [
       'Date',
       'Employee Name',
       'Employee Email',
+      'Branch',
       'Employee Role',
       'Shift Window',
       'Login Time',
@@ -675,8 +677,15 @@ ${employeeName}`;
       'Leave Remark / Reason'
     ];
 
-    const dailyRows = filteredHistory.map(r => {
+    // Filter out records belonging to terminated members
+    const validFilteredHistory = filteredHistory.filter(r => {
+      const member = members.find(m => (r.user_id && m.user?.id === r.user_id) || (r.employee_name && m.user?.name === r.employee_name));
+      return member?.user?.status !== 'terminated';
+    });
+
+    const dailyRows = validFilteredHistory.map(r => {
       const userMeta = getUserMeta(r.user_id, r.employee_name);
+      const branch = getEmployeeBranch(r.employee_name || userMeta.email);
       const punctuality = evaluatePunctuality(r);
       const finalStatus = (!r.login_time && r.status !== 'Leave') ? 'Absent' : r.status;
 
@@ -684,6 +693,7 @@ ${employeeName}`;
         r.date,
         r.employee_name,
         userMeta.email,
+        branch,
         userMeta.role,
         '10:00 AM - 07:00 PM',
         r.login_time ? formatTime(r.login_time) : '-',
@@ -699,11 +709,11 @@ ${employeeName}`;
       ];
     });
 
-    // 3. HR Employee Summary Section (Aggregated per user)
-    // Gather all users present in workspace or records
+    // 3. HR Employee Summary Section (Aggregated per non-terminated user)
     const employeeSummaryMap: Record<string, {
       name: string;
       email: string;
+      branch: string;
       role: string;
       totalRecords: number;
       presentCount: number;
@@ -713,37 +723,37 @@ ${employeeName}`;
       lateCount: number;
     }> = {};
 
-    // Initialize with workspace users first for complete visibility
+    // Initialize with active workspace users only
     workspaceUsers.forEach(u => {
-      if (!u) return;
-      const uExcel = getEmployeeData(u);
+      if (!u || u.status === 'terminated') return;
       employeeSummaryMap[u.id] = {
         name: u.name || u.email.split('@')[0],
         email: u.email,
+        branch: getEmployeeBranch(u),
         role: (u.role || 'member').toUpperCase(),
         totalRecords: 0,
         presentCount: 0,
         absentCount: 0,
-        leaveCount: u.initial_taken_leaves ?? uExcel.initialTakenLeaves,
+        leaveCount: 0,
         onTimeCount: 0,
         lateCount: 0
       };
     });
 
-    // Aggregate from filtered history
-    filteredHistory.forEach(r => {
+    // Aggregate from filtered history (for active members only)
+    validFilteredHistory.forEach(r => {
       const key = r.user_id || r.employee_name;
       if (!employeeSummaryMap[key]) {
         const userMeta = getUserMeta(r.user_id, r.employee_name);
-        const uExcel = getEmployeeData({ name: r.employee_name, email: userMeta.email });
         employeeSummaryMap[key] = {
           name: r.employee_name,
           email: userMeta.email,
+          branch: getEmployeeBranch(r.employee_name || userMeta.email),
           role: userMeta.role,
           totalRecords: 0,
           presentCount: 0,
           absentCount: 0,
-          leaveCount: uExcel.initialTakenLeaves,
+          leaveCount: 0,
           onTimeCount: 0,
           lateCount: 0
         };
@@ -767,36 +777,35 @@ ${employeeName}`;
       }
     });
 
-    // Target scope working days for HR summary
-    const now = new Date();
-    const targetYear = adminYear || now.getFullYear();
-    const targetMonth = adminMonth || (now.getMonth() + 1);
-    const isCurrentMonthScope = now.getFullYear() === targetYear && (now.getMonth() + 1) === targetMonth;
-    const maxDaysScope = isCurrentMonthScope ? now.getDate() : new Date(targetYear, targetMonth, 0).getDate();
-    const expectedWorkingDaysScope = getWorkingDaysInMonth(targetYear, targetMonth, maxDaysScope);
+    // Dynamic calculation of total days for the selected year & month
+    const targetYear = adminYear || new Date().getFullYear();
+    const targetMonth = adminMonth || (new Date().getMonth() + 1);
 
     const summaryHeaders = [
       'Employee Name',
       'Employee Email',
+      'Branch',
       'Role',
-      'Expected Working Days Elapsed',
-      'Present Days',
-      'Absent Days (Unexcused Non-Check-in)',
-      'Total Leaves Taken',
+      'Total Days',
+      'Total Present',
+      'Total Absent',
+      'Total Leave',
+      'Attendance %',
       'On-Time Arrivals (<=10:00 AM)',
       'Late Arrivals (>10:00 AM)',
-      'Attendance Rate (%)',
-      'HR Audit Remarks'
+      'HR Remarks'
     ];
 
     const summaryRows = Object.values(employeeSummaryMap).map(emp => {
+      // Calculate working days specific to employee branch (Mumbai=Sun off, Silvasa=Mon off)
+      const empWorkingDays = getWorkingDaysInMonth(targetYear, targetMonth, undefined, emp.branch);
       const presentCount = emp.presentCount;
       const leaveCount = emp.leaveCount;
-      
-      // Calculate exact absent days = Expected working days elapsed - Present days - Leave days
-      const absentCount = Math.max(0, expectedWorkingDaysScope - presentCount - leaveCount);
-      const rate = expectedWorkingDaysScope > 0
-        ? Math.min(100, (((presentCount + leaveCount) / expectedWorkingDaysScope) * 100)).toFixed(1)
+      // Absent days = Branch Working Days - Present days - Approved Leaves
+      const absentCount = Math.max(0, empWorkingDays - presentCount - leaveCount);
+      // Attendance % based on present days out of total days
+      const rate = empWorkingDays > 0
+        ? Math.min(100, ((presentCount / empWorkingDays) * 100)).toFixed(1)
         : '0.0';
       
       let remark = 'Good Standing';
@@ -808,14 +817,15 @@ ${employeeName}`;
       return [
         emp.name,
         emp.email,
+        emp.branch,
         emp.role,
-        String(expectedWorkingDaysScope),
+        String(empWorkingDays),
         String(presentCount),
         String(absentCount),
         String(leaveCount),
+        `${rate}%`,
         String(emp.onTimeCount),
         String(emp.lateCount),
-        `${rate}%`,
         remark
       ];
     });
@@ -824,11 +834,18 @@ ${employeeName}`;
     const totalStaff = Object.keys(employeeSummaryMap).length;
     const totalLeavesTakenAll = Object.values(employeeSummaryMap).reduce((sum, e) => sum + e.leaveCount, 0);
     const totalPresentsAll = Object.values(employeeSummaryMap).reduce((sum, e) => sum + e.presentCount, 0);
-    const totalAbsentsAll = Object.values(employeeSummaryMap).reduce((sum, e) => sum + e.absentCount, 0);
+    const totalAbsentsAll = Object.values(employeeSummaryMap).reduce((sum, e) => {
+      const empDays = getWorkingDaysInMonth(targetYear, targetMonth, undefined, e.branch);
+      const abs = Math.max(0, empDays - e.presentCount - e.leaveCount);
+      return sum + abs;
+    }, 0);
+
+    const totalWorkingDays = getWorkingDaysInMonth(targetYear, targetMonth);
 
     const companyTotalsRows = [
       ['=== COMPANY OVERALL SUMMARY METRICS ==='],
       ['Total Employees Evaluated:', String(totalStaff)],
+      ['Total Working Days In Period (Standard Mon-Sat):', String(totalWorkingDays)],
       ['Total Present Days Across Staff:', String(totalPresentsAll)],
       ['Total Absent Days Across Staff:', String(totalAbsentsAll)],
       ['Total Leaves Taken Across Staff:', String(totalLeavesTakenAll)],
@@ -837,31 +854,39 @@ ${employeeName}`;
 
     // Combine all sections into clean CSV output
     const buildCSVSection = (rows: (string | number)[][]) => {
-      return rows.map(row => row.map(val => `"${String(val).replace(/"/g, '""')}"`).join(',')).join('\n');
+      return rows.map(row => row.map(val => `"${String(val ?? '').replace(/"/g, '""')}"`).join(',')).join('\n');
     };
 
-    const csvSections = [
-      buildCSVSection(metaRows),
-      '=== DAILY ATTENDANCE & SHIFT LOGS ===',
-      buildCSVSection([dailyHeaders]),
-      buildCSVSection(dailyRows),
-      '',
-      buildCSVSection(companyTotalsRows),
-      '=== EXECUTIVE HR EMPLOYEE ATTENDANCE & LEAVE SUMMARY ===',
-      buildCSVSection([summaryHeaders]),
-      buildCSVSection(summaryRows)
-    ];
+    try {
+      const csvSections = [
+        buildCSVSection(metaRows),
+        '=== DAILY ATTENDANCE & SHIFT LOGS ===',
+        buildCSVSection([dailyHeaders]),
+        buildCSVSection(dailyRows),
+        '',
+        buildCSVSection(companyTotalsRows),
+        '=== EXECUTIVE HR EMPLOYEE ATTENDANCE & LEAVE SUMMARY ===',
+        buildCSVSection([summaryHeaders]),
+        buildCSVSection(summaryRows)
+      ];
 
-    const csvContent = '\uFEFF' + csvSections.join('\n');
+      const csvContent = '\uFEFF' + csvSections.join('\n');
 
-    const blob = new Blob([csvContent], { type: 'text/csv;charset=utf-8;' });
-    const url = URL.createObjectURL(blob);
-    const link = document.createElement('a');
-    link.setAttribute('href', url);
-    link.setAttribute('download', `HR_Detailed_Attendance_Report_${todayStr}.csv`);
-    document.body.appendChild(link);
-    link.click();
-    document.body.removeChild(link);
+      const blob = new Blob([csvContent], { type: 'text/csv;charset=utf-8;' });
+      const url = URL.createObjectURL(blob);
+      const link = document.createElement('a');
+      link.setAttribute('href', url);
+      link.setAttribute('download', `HR_Detailed_Attendance_Report_${todayStr}.csv`);
+      document.body.appendChild(link);
+      link.click();
+      setTimeout(() => {
+        document.body.removeChild(link);
+        URL.revokeObjectURL(url);
+      }, 200);
+    } catch (err) {
+      console.error('Error generating or downloading CSV report:', err);
+      alert('Failed to export CSV report: ' + ((err as any)?.message || 'Unknown error'));
+    }
   };
 
   return (
@@ -1481,7 +1506,8 @@ ${employeeName}`;
                   <thead>
                     <tr className="bg-gray-50 border-b border-gray-100 text-gray-400 font-bold uppercase tracking-wider text-[10px]">
                       <th className="px-5 py-3">Employee Name</th>
-                      <th className="px-5 py-3">Logged Days</th>
+                      <th className="px-5 py-3">Branch</th>
+                      <th className="px-5 py-3">Total Days</th>
                       <th className="px-5 py-3">Monthly Present</th>
                       <th className="px-5 py-3">Monthly Leaves</th>
                       <th className="px-5 py-3">Avg Login</th>
@@ -1497,14 +1523,15 @@ ${employeeName}`;
                       .map(u => {
                         if (!u) return null;
 
+                        const branch = getEmployeeBranch(u);
                         const monthStr = `${adminYear}-${String(adminMonth).padStart(2, '0')}`;
                         const empRecords = records.filter(r => r.user_id === u.id && r.date.startsWith(monthStr));
 
-                        const expectedWorkingDaysInMonth = getWorkingDaysInMonth(adminYear, adminMonth);
-                        const totalDays = Math.max(empRecords.length, expectedWorkingDaysInMonth);
+                        // Total days in the month specific to employee's branch
+                        const totalDays = getWorkingDaysInMonth(adminYear, adminMonth, undefined, branch);
                         const presentCount = empRecords.filter(r => r.status === 'Present').length;
                         const leaveCount = empRecords.filter(r => r.status === 'Leave').length;
-                        const attendancePercentage = totalDays > 0 ? ((presentCount + leaveCount) / totalDays) * 100 : 0;
+                        const attendancePercentage = totalDays > 0 ? (presentCount / totalDays) * 100 : 0;
 
                         let loginMinsSum = 0;
                         let loginNum = 0;
@@ -1544,7 +1571,16 @@ ${employeeName}`;
                         return (
                           <tr key={u.id} className="hover:bg-gray-50/50 transition-colors">
                             <td className="px-5 py-3 font-bold text-gray-900">{u.name || u.email.split('@')[0]}</td>
-                            <td className="px-5 py-3 text-gray-600">{empRecords.length}</td>
+                            <td className="px-5 py-3">
+                              {branch !== '......' ? (
+                                <span className="inline-flex items-center px-2 py-0.5 rounded text-[10px] font-bold bg-blue-50 text-blue-700 border border-blue-200">
+                                  {branch}
+                                </span>
+                              ) : (
+                                <span className="text-gray-400 font-mono text-xs">......</span>
+                              )}
+                            </td>
+                            <td className="px-5 py-3 text-gray-600 font-medium">{totalDays}</td>
                             <td className="px-5 py-3 text-green-600 font-bold">{presentCount}</td>
                             <td className="px-5 py-3 text-orange-500 font-bold">{leaveCount}</td>
                             <td className="px-5 py-3 text-gray-500">{formatMins(loginNum > 0 ? loginMinsSum / loginNum : 0)}</td>

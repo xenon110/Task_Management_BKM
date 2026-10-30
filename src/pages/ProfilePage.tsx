@@ -1,8 +1,9 @@
 import React, { useState } from 'react';
 import { useAuthStore } from '../store/useAuthStore';
-import { User, Mail, Shield, Key, Save, Edit2, Camera } from 'lucide-react';
+import { User, Mail, Shield, Key, Save, Edit2, Camera, MapPin } from 'lucide-react';
 import { usePermissions } from '../hooks/usePermissions';
 import { supabase } from '../lib/supabase';
+import { getEmployeeBranch } from '../utils/employeeDataMap';
 
 const compressImage = (file: File): Promise<string> => {
   return new Promise((resolve, reject) => {
@@ -202,6 +203,24 @@ const ProfilePage = () => {
                 </label>
                 <div className="px-3 py-2 bg-gray-50 border border-gray-200 rounded-md text-gray-800 text-sm capitalize">
                   {role || 'member'} • {user?.status || 'Active'}
+                </div>
+              </div>
+
+              <div className="space-y-1.5">
+                <label className="text-xs font-semibold text-gray-600 flex items-center">
+                  <MapPin size={14} className="mr-1.5" /> Branch & Work Schedule
+                </label>
+                <div className="px-3 py-2 bg-gray-50 border border-gray-200 rounded-md text-gray-800 text-sm flex items-center justify-between">
+                  <span className="font-semibold text-gray-900">
+                    {getEmployeeBranch(user)}
+                  </span>
+                  <span className="text-xs text-gray-500">
+                    {getEmployeeBranch(user) === 'Silvasa' 
+                      ? 'Working: Tue–Sun • Off: Monday' 
+                      : getEmployeeBranch(user) === 'Mumbai'
+                        ? 'Working: Mon–Sat • Off: Sunday'
+                        : 'Working: Mon–Sat • Off: Sunday'}
+                  </span>
                 </div>
               </div>
             </div>

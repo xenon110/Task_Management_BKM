@@ -9,7 +9,7 @@ import { supabase } from '../lib/supabase';
 import { useAuthStore } from '../store/useAuthStore';
 import { useTaskStore } from '../store/useTaskStore';
 import { useAttendanceStore } from '../store/useAttendanceStore';
-import { getEmployeeData } from '../utils/employeeDataMap';
+import { getEmployeeData, getEmployeeBranch, isEmployeeWeeklyOff } from '../utils/employeeDataMap';
 import { COMPANY_HOLIDAYS_2026, getPublicHoliday } from '../utils/holidayData';
 
 interface MemberDetailModalProps {
@@ -266,10 +266,10 @@ export const MemberDetailModal: React.FC<MemberDetailModalProps> = ({
     for (let d = 1; d <= limitDay; d++) {
       const dateStr = `${selYear}-${String(selMonth).padStart(2, '0')}-${String(d).padStart(2, '0')}`;
       const dayOfWeek = new Date(selYear, selMonth - 1, d).getDay();
-      const isSunday = dayOfWeek === 0;
+      const isOff = isEmployeeWeeklyOff(dayOfWeek, user);
       const isHoliday = publicHolidays.some((h: any) => h.date === dateStr);
 
-      if (!isSunday && !isHoliday) {
+      if (!isOff && !isHoliday) {
         expectedWorkingDays++;
       }
     }
@@ -473,6 +473,9 @@ export const MemberDetailModal: React.FC<MemberDetailModalProps> = ({
                 <span className="flex items-center gap-1">
                   <Briefcase size={13} className="text-purple-300" />
                   {user.designation || 'Team Member'}
+                </span>
+                <span className="flex items-center gap-1.5 bg-white/10 px-2.5 py-0.5 rounded-md border border-white/15 text-purple-100 font-medium">
+                  Branch: <strong className="text-white">{getEmployeeBranch(user)}</strong>
                 </span>
                 <span className="flex items-center gap-1.5 bg-white/10 px-2.5 py-0.5 rounded-md border border-white/15 text-purple-100 font-medium">
                   <Calendar size={13} className="text-purple-300" />
